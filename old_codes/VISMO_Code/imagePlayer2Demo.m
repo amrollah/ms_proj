@@ -1,0 +1,22 @@
+%video_name = 'C:/Users/chbuzey/Documents/Visual Studio 2010/Projects/ImageAcquisitionTool/ImageAcquisitionTool/bin/Debug/Images/2013/08/12';
+%video_name = 'C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\bin\Debug\Images\2013\08\12';
+%video_name = 'E:\VISMO IMAGES\2013\11\25';
+video_name = 'E:\06\12';
+live = 0;
+frame_rate = 1;
+load 'calib_model_01_2014_v2.mat';
+load 'extrinsic_calib_model_06_2014.mat';
+load 'weatherData2.mat';
+load 'weatherData3.mat';
+load 'weatherData4.mat';
+load 'weatherData5.mat';
+
+data1 = timeseries(weatherData2(:,14),datestr(weatherData2(:,1)-(5/(60*24))));
+data1 = setinterpmethod(data1,'zoh');
+data2 = timeseries(weatherData3(:,14),datestr(weatherData3(:,1)-(5/(60*24))));
+data2 = setinterpmethod(data2,'zoh');
+data3 = timeseries(weatherData5(:,3),datestr(weatherData5(:,2)-(1/(60*24))));
+data3 = setinterpmethod(data3,'zoh');
+data4 = timeseries(((weatherData4(:,2)-weatherData4(:,3))/4.4)*304.8,datestr(weatherData4(:,1)));
+data4 = setinterpmethod(data4,'zoh');
+ImagePlayer2(video_name,live,frame_rate,ocam_model,ecam_model,data1,data2,data3,data4);

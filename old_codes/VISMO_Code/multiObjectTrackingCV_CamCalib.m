@@ -1,0 +1,1940 @@
+%% Cloud tracking using kalman filter.
+%
+% Multiple object tracking with kalman filter for could tracking:
+%Input Options:
+% recordVideo: in case one wants to record a video from all the images
+% displayed he should set this to 1 and 0 otherwise. (default: 0)
+% videoName: in case one wants to record a video from all the images
+% displayed, this is the name of that video. (default: video)
+% image_folder: path to the input image files (mandatory) 
+% record: option indicating that a record of all the tracks should be taken
+% (1) or not (0) (default: 0)
+% verbose: option indication that the algorithm process should be seen (1) 
+% or not (0) (default: 1)
+% calibModel: the intrinsic calibration model of the camera (mandatory)
+% ecalibModel: the extrinsic calibration model of the camera (mandatory)
+% mask: the mask indicating the usefull patch of the image
+% 3DModel: a structure containing the location of the camera and the sensor
+% sunPattern: the pattern for recognizing the sun location in the image
+% live: whether we directly stream from the camera or from a folder (mandatory)
+% track: whether we trackk or report using this function 
+% SeriesGHI: a database of the GHI data 
+% SeriesGHIcs: a database of the clear-sky GHI data 
+% SeriesPV: a database of the PV data
+% SeriesTemperature: a database of temperature data
+% SeriesOcclusion: a database of temperature data
+% SeriesCBH: a database of CBH data
+
+%Outputs:
+% recording_tracks: Structure array that keeps the set of all tracks for
+% all the timesteps. Kept mostly for evaluation and plotting purposes.
+% perfs: Data from all the timesteps. Kept for performance evaluation.
+% obj: Algorithm parameters for the current run. 
+
+% B. Zeydan, 08. Oct. 2013
+
+% Code is reviewed and commented. The main function call is changed as
+% well.
+%
+% Burak Zeydan, 21. Aug. 2014
+
+%function [obj,recording_tracks,perfs] = multiObjectTrackingCV_CamCalib(vid_n,vid_r,image_folder,record,verbose,calibModel,ecalibModel,model3D,imageMask,sunPattern,modelImage,live,track,timeSeriesGHI,timeSeriesGHI_cs,timeSeriesPV,timeSeriesTemp,timeSeriesOcc,timeSeriesCBH)
+function [obj,recording_tracks,perfs] = multiObjectTrackingCV_CamCalib(varargin)
+
+
+conditionShowResults = false;
+estimatedIrradianceValues = [];
+
+% create system objects used for 2reading video, detecting moving objects,
+% and displaying the results
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+vid_n =[]; 
+vid_r = [];
+image_folder = [];
+record = [];
+verbose = [];
+calibModel = [];
+ecalibModel = [];
+model3D = [];
+imageMask = [];
+sunPattern = [];
+modelImage = [];
+live = [];
+predict = [];
+timeSeriesGHI = [];
+timeSeriesGHI_cs = [];
+timeSeriesPV = [];
+timeSeriesTemp = [];
+timeSeriesOcc = [];
+timeSeriesCBH = [];
+thRGB = [];
+thGBR = [];
+thRBR = [];
+horizon = [];
+frameRate = [];
+circumsolarSize = [];
+suneliminationSize = [];
+saveImages = [];
+pathRelativeSaveImages = [];
+
+
+
+vargs = varargin;
+nargs = length(vargs);
+names = vargs(1:2:nargs);
+values = vargs(2:2:nargs);
+
+validNames = {'videoName', 'recordVideo', 'imageFolder', 'record', 'verbose',...
+              'calibModel', 'ecalibModel', '3DModel', 'mask', 'sunPattern', 'mapImage',...
+              'live', 'predict', 'SeriesGHI', 'SeriesGHIcs', 'SeriesPV', 'SeriesTemperature',...
+              'SeriesOcclusion', 'SeriesCBH', 'thresholdRGB', 'thresholdRBR', 'thresholdGBR',...
+              'horizon', 'frameRate', 'circumsolarSize', 'suneliminationSize', 'saveImages',...
+              'pathRelativeSaveImages'};
+          
+variableNames = {'vid_n','vid_r','image_folder','record','verbose',...
+                 'calibModel','ecalibModel','model3D','imageMask','sunPattern','modelImage',...
+                 'live','predict','timeSeriesGHI','timeSeriesGHI_cs','timeSeriesPV','timeSeriesTemp',...
+                 'timeSeriesOcc','timeSeriesCBH','thRGB','thRBR','thGBR', 'horizon', 'frameRate', ...
+                 'circumsolarSize', 'suneliminationSize', 'saveImages', 'pathRelativeSaveImages'};
+
+defaultValues = {'video', 0, -1, 0, 1, -1, -1, -1, [], [], -1, 0, 1, [], [], [], [], [], [], [], 100, 0.72, 0.8, 25, 4, 200, 80, 0, []};
+
+for name = names
+   validatestring(name{:}, validNames);
+end
+
+for name = validNames
+    idNx = strmatch(name, validNames, 'exact'); %if strmatch becomes obsolete, use find(strcmp(name, validNames))
+    idN = strmatch(name, names, 'exact');
+    val = [];
+    if(isempty(idN))
+        val = defaultValues{idNx};
+        if(val == -1)
+            error('Error using argument list.\nMissing mandatory field <a href="matlab: opentoline(''multiObjectTrackingCV_CamCalib.m'',9)">%s</a>.',validNames{idNx});
+            return;
+        end
+    else
+        val = values{idN};
+    end
+    eval([variableNames{idNx}, ' = val;']);
+end
+if ~exist(pathRelativeSaveImages, 'dir')
+  mkdir(pathRelativeSaveImages);
+end
+initialRelativePathImages = pathRelativeSaveImages;
+%%This if statement is only for the demo purposes, remove later on as the
+%%folder 'past' will not be used anymore!!
+% if ~exist([pathRelativeSaveImages 'past/'], 'dir')
+%     mkdir([pathRelativeSaveImages 'past/']);
+% end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% initialization of the key variables that are used as part of a model
+tracks = initializeTracks(); % create an empty array of tracks
+perfs = initializePerfs(); % performance numbers are recorded in this variable
+
+nextId = 1; % ID of the next track
+centroids = []; % the array that keeps the centroid positions of tracks on the image plane
+centroidsProj = []; % the array that keeps the centroid positions of tracks on the projected (real) plane
+bboxes = []; % the array that keeps the bounding boxes of the detected cloud trails in the image plane
+bboxesProj = []; % the array that keeps the bounding boxes of the detected cloud trails in the projected (real) plane
+areas = []; % the array that keeps the areas of bounding boxes
+areasProj = []; % the array that keeps the areas of bounding boxes
+mask = []; % the element that keeps the binary image that contains clouds only
+predCloudContours = []; % keeps the predicted cloud contours to be diaplayed on the map
+predShadowContours = []; % keeps the predicted shadow contours to be displayed on the map
+recording_tracks = []; % the scenario can be recorded into this ss
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%s%%%%%%%%%
+% the variables that determine the options and parameters applied on the
+% tracking algorithm.
+
+cbh = 1500; % the assumed cloud base height parameter that determines the projection performance of the algorithm.
+ModPlayerOption = 'map'; % the representation of clouds on the rea-sized model is done using this opttion. 'rectangle' is another possibility.
+maskMethod = 'body'; % identification type of clouds is done by this variable. either they are identified by their body or the contours ('edges')
+trackOption = 'speed'; % the option that is applied for the kalman filter. 'acceleration' and 'force' are the other possibilities.
+sunEliminationCycle = 100; % every this many frames, we calculate the sun's position once again.
+sunPosition = [-1,-1]; % we initialize the position of sun, to be used throughout the code
+deg2radf = pi/180; % degree to radian konversion
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% here we set-up the relevant objects.
+obj = setupSystemObjects(vid_n,vid_r,image_folder,live,verbose,calibModel,ecalibModel,model3D,imageMask,modelImage,cbh,ModPlayerOption,predict,timeSeriesGHI,timeSeriesGHI_cs,timeSeriesPV,timeSeriesTemp,timeSeriesOcc,timeSeriesCBH,thRGB,thRBR,thGBR,horizon,frameRate,circumsolarSize,suneliminationSize);
+% in case we go with the validation mode and we are recording the
+% performance of the algorithm, the pstate variables of all the steps are
+% recorded in these variables
+
+
+
+if(isempty(obj.reader))
+    disp('Camera does not respond. Terminating...');
+    return;
+end
+
+avg_t = 0;
+
+% This is the main loop of the program
+while obj.frameCount < obj.finalFrame
+    tst = tic;
+    frame = readFrame();  % readFrame function returns the image, that is in order, from the buffer folder if this is not live, or the recording folder that is determined during the setup
+                          % This takes time, because it matches the sun pattern in the image, so we run it not so frequently...
+    
+    if(obj.WebPageMode)
+        vecDate = obj.frameDateVec;
+%         if(obj.live)
+%             if ~exist([initialRelativePathImages 'live/'], 'dir')
+%                 mkdir([initialRelativePathImages 'live/']);
+%             end
+%             pathRelativeSaveImages = [initialRelativePathImages 'live/'];
+        if ~exist([initialRelativePathImages num2str(vecDate(1)) '_' num2str(vecDate(2)) '_' num2str(vecDate(3)) '/'], 'dir')
+            mkdir([initialRelativePathImages num2str(vecDate(1)) '_' num2str(vecDate(2)) '_' num2str(vecDate(3)) '/']);
+        end
+        pathRelativeSaveImages = [initialRelativePathImages num2str(vecDate(1)) '_' num2str(vecDate(2)) '_' num2str(vecDate(3)) '/'];
+    end
+        
+    prepareData();
+    sunPosition = getSunPositionReal(model3D);
+    sunPatch = getSunPatch(sunPosition);
+    %if((sum(sunPosition)<0) || mod(obj.frameCount,sunEliminationCycle)>=(sunEliminationCycle-obj.frameRate))
+    %    sunPosition = getSunPosition(frame,sunPattern);
+    %    sunPatch = getSunPatch(sunPosition);
+    %    getShadowDisplacement(model3D);
+    %end
+    
+    if(isempty(frame))    % if the folder does not exist or the frame is not correct, we immediately terminate
+        disp('Camera does not respond. Terminating...');
+        close all;
+        return;
+    end
+    
+    [sunObject, frame] = eliminateSun(frame,sunPosition, sunObject);
+    mask = getBinaryImage(frame,maskMethod,sunPatch);
+    [contours, contoursProj, areas, areasProj, centroids, centroidsProj, bboxes, bboxesProj] = detectObjects(mask); % this function takes in the RGB frame and :
+                                                                                                                    % - runs the cloud decision algorithm to get a binary image
+                                                                                                                    % - runs a clustering algorithm followed by a contour extraction
+                                                                                                                    % - runs simple heuristic methods on the contour pixels to extract
+                                                                                                                    %   - the representative points for the model based tracking
+                                                                                                                    %   - the projected representative point for physical interpretation
+                                                                                                                    %   - bounding boxes for the objects found
+                                                                                                                    % - returns all the results along with the binary image to be used for
+                                                                                                                    % displaying
+    
+    
+    predictNewLocationsOfTracks();    % in this function we predict the one-step future of the existing model calling the predict method of
+                                      % existing Kalman filters.
+    
+    %[predTracks,obj.occlusionValues,obj.occlusionQualities,predCloudContours,predShadowContours] = predictNewLocationsOfTracksIntoFuture(obj.timeHorizon,obj.occlusionValues,obj.occlusionQualities);
+    
+    %if(verbose && ~record)
+        %[predTracks,obj.occlusionValues,predCloudContours,predShadowContours] = predictNewLocationsOfTracksIntoFuture(obj.timeHorizon,obj.occlusionValues);
+        %[predFrame, predContours] = getPredictedImage(predTracks);
+        %if(sum(obj.occlusionValues)>0)
+        %    obj.occlusionValues
+        %end
+        %[predCloudContours,predShadowContours] = getPredictedScenario(predTracks);
+    %end
+    
+    [assignments, unassignedTracks, unassignedDetections, unassignedDetectionsToTracks] = ...
+        detectionToTrackAssignmentIntersect(); % for every frame that is processed, there is a set of detections. Also for the frames previous to the current one, there are the tracks.
+    % This function establishes the association between the observations and tracks.
+    
+    createNewTracks(); % here we create new tracks corresponding to unassigned observations
+    updateAssignedTracks(); % this is the function that updates the tracks according to assignments, it also updates some statistical variables related to update rate
+    updateUnassignedTracks(); % this is the funstion that updates tracks corresponding to unassigned tracks, it just updates statistical variables related to update rate
+    deleteLostTracks(); % here we delete tracks that remained unassigned for some number of steps
+    [predTracks,obj.occlusionValues,obj.occlusionQualities,predCloudContours,predShadowContours, predShadowContoursOnGround] = predictNewLocationsOfTracksIntoFuture(obj.timeHorizon,obj.occlusionValues,obj.occlusionQualities);
+    %obj.occCov100 = getCover(tracks,model3D,obj.shadowGrx_v100,obj.shadowGry_v100);
+    %obj.occCov500 = getCover(tracks,model3D,obj.shadowGrx_v500,obj.shadowGry_v500);
+    %obj.occCov1000 = getCover(tracks,model3D,obj.shadowGrx_v1000,obj.shadowGry_v1000);
+    
+    %save here at each loop just to make sure we have something if PC
+    %crashes overnight..
+    
+%     save('estimatedIrradianceValuesTemporary.mat', 'estimatedIrradianceValues');
+    
+    display(['Frame #' num2str(obj.frameCount) ' out of ' num2str(obj.finalFrame) ' frames.']);
+    
+    
+    createNewPerfs();
+%     if(~record)
+%         occluded = getOcclusion(predTracks,model3D);
+%         if(occluded)
+%             occluded
+%         end
+%     end
+    
+    if(record)
+        if(isempty(recording_tracks))
+            recording_tracks{1} = tracks;
+        else
+            recording_tracks{end+1} = tracks;  % this is the database where we record the predictions of the model before the updates.
+        end
+    end
+    % for recording purposes...
+    if(verbose && ~record)
+        [predFrame, predContours] = getPredictedImage(predTracks);
+        displayTrackingResults(); % here we display the status and results
+    end
+    
+    if(avg_t == 0)
+        avg_t = toc(tst);
+    else
+        avg_t = 0.8*avg_t + 0.2*toc(tst);
+    end
+    
+    if(mod(obj.frameCount,100)==5 && ~verbose)
+        %obj.frameCount
+        if(avg_t~=0)
+            disp(strcat('Remaining Time: ~',num2str(round(((obj.finalFrame-obj.frameCount)/obj.frameRate)*avg_t/60)),' minutes.'))
+        end
+    elseif(mod(obj.frameCount,100)==5 && verbose)
+        if(avg_t~=0)
+            disp(strcat('Average time per frame: ~',num2str(avg_t),{' seconds for '},num2str(numel(obj.shadowGrx)),' points.'));
+        end
+    end
+end
+
+if(obj.vid_r)
+    close(obj.vidObj);
+end
+
+%Save the estimated Irradiance values here.
+save('estimatedIrradianceValues.mat', 'estimatedIrradianceValues');
+save('sunObject.mat', 'sunObject');
+    function obj = setupSystemObjects(vid_n,vid_r,image_folder,live,verbose,calibModel,ecalibModel,model3D,imageMask,modelImage,cbh,ModPlayerOption,predict,timeSeriesGHI,timeSeriesGHI_cs,timeSeriesPV,timeSeriesTemp,timeSeriesOcc,timeSeriesCBH,thRGB,thRBR,thGBR,horizon,frameRate,circumsolarSize,suneliminationSize)
+        % Initialize Video I/O
+        % Create objects for reading a video from a file, drawing the tracked
+        % objects in each frame, and playing the video.
+        
+        
+        obj.all = model3D.all; % add the coords of the maps snapshot.
+        % create a video file reader
+        
+        try_ct = 0;
+        obj.live = live;
+        obj.vid_r = vid_r;
+        obj.vid_n = vid_n;
+        obj.vidObj = [];
+        if(vid_r)
+            obj.vidObj = VideoWriter(obj.vid_n);
+            obj.vidObj.Quality = 100;
+            obj.vidObj.FrameRate = 0.5;
+            open(obj.vidObj);
+        end
+        % if the read functionality is live, than we first check if the
+        % buffer folder exists so the camera is already operational
+        % if it cannot find the buffer folder, then it runs a bussy-wait
+        % procedure on it. When it times out, it terminates the setup
+        % function and terminates the program before ever proceeding. if
+        % the read functionality is not live, then is is directly
+        % initiated to be checked during the first read.
+        if(obj.live)
+            while(1)
+                try_ct = try_ct + 1;
+                if(exist(char([image_folder, '/Buffer']))==7)
+                    obj.reader = char([image_folder, '/Buffer']);
+                    break;
+                else
+                    if(try_ct > 10)
+                        obj.reader = [];
+                        disp('No input stream found.. Exit.');
+                        return;
+                    else
+                        disp(char(['Trying to read for: ' num2str(try_ct)]));
+                        pause(2);
+                    end
+                end
+            end
+            obj.vid_ims = [];
+            obj.im_list = [];
+            obj.finalFrame = inf;
+        else
+            obj.reader = image_folder;
+            obj.vid_ims = ls(obj.reader); % get the list of files in the folder
+            obj.im_list = cellstr(obj.vid_ims(3:end,:)); % get the name list of those list of files
+            obj.finalFrame = length(obj.im_list);
+        end
+        % here some parameters to be used during the operation of the
+        % algorithm are initialized.
+        obj.WebPageMode = 1;
+        obj.gifMode = 0;    % if we want to export minutely recordings as a gif to the web page or not.
+        obj.frameCount =1; % the order of frames that are processed.
+        obj.frameName = []; % the file name of the frame that is processed the last.
+        obj.calibModel = calibModel; % the internal calibration model that is used by the algorithm
+        obj.ecalibModel = ecalibModel; % the external calibration model that is used by the algorithm
+        obj.cbh = cbh; % the assumed cloud base height that is used.
+        obj.ModPlayerOption = ModPlayerOption; % the way clouds represented in the model player (can be cycle or rectangle)
+        obj.predict = predict; % whether we are in the prediction mode or we are just tracking. can be 0 or 1
+        obj.timeSeriesGHI = timeSeriesGHI; % the timeseries object corresponding to the GHI measurements
+        obj.timeSeriesGHI_cs = timeSeriesGHI_cs;
+        obj.timeSeriesPV = timeSeriesPV; % the timeseries object corresponding to the PV measurements
+        obj.timeSeriesTemp = timeSeriesTemp; % the timeseries object corresponding to the temperature measurements
+        obj.timeSeriesOcc = timeSeriesOcc; % the timeseries object corresponding to the occlusion measurements
+        obj.timeSeriesCBH = timeSeriesCBH; % the timeseries object corresponding to the CBH measurements
+        obj.irradianceValue = 0; % the variable that keeps the irradiance value corresponding to the current frame
+        obj.thRGB = thRGB;
+        obj.thRBR = thRBR;
+        obj.thGBR = thGBR;
+        % the parts to be eliminated from a raw image are calculated 
+        imageMask = ones(obj.calibModel.height,obj.calibModel.width);
+        [X,Y] = meshgrid(1:obj.calibModel.height,1:obj.calibModel.width);
+        obj.X = X;
+        obj.Y = Y;
+        P = [X(:)';Y(:)'];
+        p = cam2world(P,obj.calibModel);
+        p = obj.ecalibModel.R*p;
+        maskTemp = p(3,:)<-0.15;
+        indicesTemp = sub2ind([obj.calibModel.height,obj.calibModel.width],P(1,:),P(2,:));
+        imageMask(indicesTemp) = maskTemp;
+        imageMask = logical(repmat(imageMask,[1,1,3]));
+        obj.imageMask = imageMask; % the mask to be applied on a raw image
+        
+        obj.frameRate = frameRate;  % the frame rate of the algorithm
+        obj.timeHorizon = horizon;   % length of the prediction horizon in frames
+        obj.suneliminationSize = suneliminationSize; % the size of the patch used for elimination of the sun
+        obj.circumsolarSize = circumsolarSize; % the size of the circumsolar region for a different threshold application during binarization
+        
+        obj.occlusionPoints = [1:obj.timeHorizon]; % occlusion conditions are predicted for the points in this series (in this case for all the points)
+        obj.occlusionTimes = [1:obj.timeHorizon]*obj.frameRate*3/(60); % the time difference between each prediction point and the current frame is kept in this series
+        obj.occlusionTimeNums = obj.occlusionTimes/(60*24); % the timenumber difference between each prediction point and the current frame is kept in this series
+        obj.occlusionValues = zeros(1,obj.timeHorizon); % the series that keeps occlusion predictions
+        obj.occlusionQualities = zeros(1,obj.timeHorizon); % the seris that keeps a confidence metric for the occlusion predictions
+        obj.attCs = 1; % clear sky attenuation factor for irradiance prediction
+        obj.attOcc = 2; % occluded attenuation factor for irradiance prediction
+        obj.occCov100 = -1; 
+        obj.occCov500 = -1;
+        obj.occCov1000 = -1;
+        [shadowGrx,shadowGry] = meshgrid([-10:2:10],[-10:2:10]); 
+        obj.shadowGrx = shadowGrx; obj.shadowGry = shadowGry; % given a point for irradiance prediction, the occlusion is predicted for all the points in this mesh 
+        [shadowGrx_v1000,shadowGry_v1000] = meshgrid([-500:25:500],[-500:25:500]);
+        obj.shadowGrx_v1000 = shadowGrx_v1000; obj.shadowGry_v1000 = shadowGry_v1000;
+        [shadowGrx_v500,shadowGry_v500] = meshgrid([-250:25:250],[-250:25:250]);
+        obj.shadowGrx_v500 = shadowGrx_v500; obj.shadowGry_v500 = shadowGry_v500;
+        [shadowGrx_v100,shadowGry_v100] = meshgrid([-50:25:50],[-50:25:50]);
+        obj.shadowGrx_v100 = shadowGrx_v100; obj.shadowGry_v100 = shadowGry_v100;
+        
+        
+%         obj.sunObject = uint8(zeros(2*obj.suneliminationSize, 2*obj.suneliminationSize,3));
+        sunObject.Data = cell(0);
+        sunObject.Time = cell(0);
+        
+        if(~obj.predict) % if the prediction mode is active initialize the needed display objects
+                      % create three video players, one to display the video,
+                      % one to display the foreground mask and objects, and one
+                      % to display the model.
+            if(verbose)
+                obj.videoPlayer = VidPlayer([20, 500, 700, 400]); % for the real image
+                obj.skyPlayer = VidPlayer([20, 500, 700, 400]); % for the sky real image overlayed with current and future estimate contours (for the web).
+                obj.maskPlayer = VidPlayer([740, 500, 700, 400]); % for the masked cloud-decision image
+                %obj.modPlayer = ModPlayer([740, 100, 700, 400],obj.ModPlayerOption); % for the model in real dimensions
+                obj.modPlayer = [];
+                obj.predPlayer = VidPlayer([740, 100, 700, 400]); % for the model in real dimensions
+                obj.mapPlayer = ModPlayer([20, 100, 700, 400],obj.ModPlayerOption,modelImage,model3D.all); % for the model in real dimensions
+                obj.mapProjCloudsPlayer = ModPlayer([1750, 50, 1200, 900],'projected map',modelImage,model3D.all,model3D.fileNameActual); % for image of the map with current and predicted future clouds' shadows projected on it.
+            end
+        else % othervise initialize the other objects
+            % create two video players, one to display the video,
+            % and one to display the irradiance values
+            if(verbose)
+                obj.videoPlayer = VidPlayer([10, 550, 500, 400]); % for the real image
+                obj.skyPlayer = VidPlayer([20, 500, 700, 400]); % for the sky real image overlayed with current and future estimate contours (for the web).
+                obj.maskPlayer = VidPlayer([550, 550, 500, 400]); % for the masked cloud-decision image
+                obj.predPlayer = VidPlayer([1090, 550, 500, 400]); % for the model in real dimensions
+                obj.plotPlayerTemp = ModPlayer([1090, 50, 500, 400],'plot'); % for the temperature-value plot
+                obj.plotPlayerPV = ModPlayer([550, 50, 500, 400],'plot'); % for the PV-value plot
+                obj.plotPlayerGHI = ModPlayer([10, 50, 500, 400],'plot'); % for the GHI-value plot
+                obj.mapPlayer = ModPlayer([1750, 50, 1200, 900],obj.ModPlayerOption,modelImage,model3D.all); % the 3D map player
+                obj.mapProjCloudsPlayer = ModPlayer([1750, 50, 1200, 900],'projected map',modelImage,model3D.all,model3D.fileNameActual); % the 3D map player % for image of the map with current and predicted future clouds' shadows projected on it.
+            end
+        end
+    end
+
+    function tracks = initializeTracks()
+        % create an empty array of tracks
+        tracks = struct(...
+            'id', {}, ...   % id of the track
+            'cbh', {}, ...  % effective cbh assumed for the track
+            'bbox', {}, ... % the bounding box corresponding to object, on the image axis
+            'bboxProj', {}, ... % the bounding box corresponding to object, projected onto real-world axis
+            'kalmanFilter', {}, ... % kalman filter corresponding to this object
+            'kalmanFilterProj', {}, ... % kalman filter corresponding to this object, projected onto real-world axis
+            'age', {}, ... % how old the track is
+            'totalVisibleCount', {}, ... % for how many cycles do we get an observation on this track
+            'consecutiveInvisibleCount', {},... % if we cannot observe it, for how many previous steps we could not
+            'xspeed', {}, ... % a variable for keeping one directional speed in image plane
+            'yspeed', {}, ... % a variable for keeping one directional speed in image plane
+            'predSpeed', {}, ... % a variable keeping the 2D predicted speed in image plane
+            'obsSpeed', {}, ... % a variable keeping the 2D observed speed in image plane
+            'obsSpeedProj', {}, ... % a variable keeping the 2D observed speed in projected plane
+            'area', {}, ... % a variable keeping the area of the tracked object
+            'areaProj', {}, ... % a variable keeping the area of the tracked object
+            'contour', {}, ... % a variable keeping the relevant contour points on the image plane
+            'contourProj', {}, ... % a variable keeping the relevant contour points on the real world coordinates
+            'speedFilter', {}, ... % a filter for the observed speed on the image plane
+            'positionFilter', {}, ... % a filter for the position on the image plane
+            'centroidFilter', {}, ... % a filter for the centroid on the image plane
+            'centroidProjFilter', {}, ... % a filter for the centroid on the real plane
+            'massFilter', {}, ... % a filter on the predicted mass (not used)
+            'massFilterProj', {}, ... % a filter on the predicted mass (not used)
+            'centroid', {}, ... % the representative position of the center of the object on the image plane
+            'centroidObs', {}, ... % the representative observed position of the center of the object on the image plane
+            'centroidProj', {}, ... % the representative position of the center of the object on the projected plane
+            'centroidProjObs', {}, ... % the representative observed position of the center of the object on the projected plane
+            'predCentroid', {}, ... % prediction on the representative position of the center of the object on the image plane
+            'predCentroidProj', {}, ... % prediction on the representative position of the center of the object on the projected plane
+            'prevCentroid', {}, ... % previous centroid position on the image plane
+            'prevCentroidProj', {}); % previous centroid position on the projected plane
+        
+    end
+    
+    function perfs = initializePerfs()
+        perfs = struct(...
+            'frameDateNum', {},...
+            'frameCount', {},...
+            'times', {},...
+            'persOcc', {},...
+            'algOcc', {},...
+            'mesOcc', {},...
+            'persIrr', {},...
+            'algIrr', {},...
+            'csIrr', {},...
+            'mesIrr', {},...
+            'mesCov1000', {},...
+            'mesCov500', {},...
+            'mesCov100', {});
+    end
+
+    function frame = readFrame()
+        % in this function we read the frame on the order from the folder
+        
+        % if the destination buffer do not exist, than we immediately
+        % terminate
+        if(exist(obj.reader) ~=7)
+            disp('Input stream should have been closed... Terminating...');
+            frame = []; % indicator of an unsuccessful read trial
+            return;
+        end
+        
+        read_try = 1; % try to read a file for the first time
+        if(obj.live) % if this is the live mode, meaning, we are going at the same paste as the camera
+            vid_ims = ls(obj.reader); % get the list of files in the folder
+            im_list = cellstr(vid_ims(3:end,:)); % get the name list of those list of files
+            while(length(im_list{1}) == 0) % wait for an image to be written to the buffer
+                if(exist(obj.reader) ~=7) % if the buffer folder is deleted during the wait, this means the camera has been shut down, so terminate
+                    disp('Input stream should have been closed... Terminating...');
+                    frame = []; % indicator of an unsuccessful read trial
+                    return;
+                end
+                vid_ims = ls(obj.reader); % get the list of files in the folder
+                im_list = cellstr(vid_ims(3:end,:)); % get the name list of those list of files
+                read_try = read_try+1; % increment the number of trials and go for another try
+                disp(char(['Trying to read for: ' num2str(read_try)])); % report the action to the user.
+                if(read_try > 8) % if a read is tried for more than 8 times, then terminate with an unsuccessfull read
+                    disp('Input stream not available... Terminating...');
+                    frame = []; % unsuccessful read indicator
+                    return;
+                end
+                pause(1); % wait 1 msec between two read trials, we can increase this time unit, but not so necessary
+            end
+            % wait until the name of the file in the buffer folder is
+            % different from the previous read to make sure that the
+            % observation frame is updated
+            while(strcmp(char(strcat(obj.reader, '/', im_list(1))),obj.frameName)==1)
+                pause(1);
+                vid_ims = ls(obj.reader);
+                im_list = cellstr(vid_ims(3:end,:));
+            end
+            % if the code is here, this means that the new file is ready
+            % to be read
+            fid = fopen(char(strcat(obj.reader, '/', im_list(1))), 'r'); % we try to read in case there is an operating system related lock on the file. This may happen if the camera is writing the
+            % the file as we try to read it. if this application manages to open the file, than the file is locked by it and can be read.
+            while (fid == -1) % if the camera is writing the file then apply the same trial based procedure until the write is over.
+                if(read_try > 8)
+                    disp('Input stream not available... Terminating...');
+                    frame = [];
+                    return;
+                end
+                disp(['Retrying from this one...   ' char(strcat(obj.reader, '/', im_list(1)))]);
+                vid_ims = ls(obj.reader);
+                im_list = cellstr(vid_ims(3:end,:));
+                fid = fopen(char(strcat(obj.reader, '/', im_list(1))), 'r'); % try to lock the file once again
+                read_try = read_try + 1;
+                pause(0.5);
+            end
+            
+            frame = imread(char(strcat(obj.reader, '/', im_list(1)))); % since the file is locked, it is safe to read it.
+            fclose(fid); % since the file is read, the lock can be released
+            
+            obj.frameName = char(strcat(obj.reader, '/', im_list(1))); % record the name of the file for the check operation on the up-to-date information of the file
+            obj.frameCount = obj.frameCount + 1; % increase the frame count
+        else
+            % if it is not a live operation, directly read the file in
+            % order
+            if(length(obj.im_list) >= obj.frameCount) % if there are still some images to be read
+                obj.frameName = char(strcat(obj.reader, '/', obj.im_list(obj.frameCount)));
+                frame = imread(obj.frameName);  % read the image directly, no need for the lock operations
+                obj.frameNameStr = strtok(char(obj.im_list(obj.frameCount)),'.'); % seperate the file type extension, get the date info
+                frameDateVec = strread(obj.frameNameStr,'%d','delimiter','_'); % get the date vector elements, in integer, corresponding to day, month etc.
+                obj.frameDateVec = frameDateVec;
+                
+                if(mod(obj.frameCount-obj.frameRate,50*obj.frameRate)<=obj.frameRate)
+                    frameDateVecStr = strread(obj.frameNameStr,'%s','delimiter','_'); % get the date vector elements, in string, corresponding to day, month etc.
+                    obj.frameRecordImageName = char(strcat(frameDateVecStr(1), '_',frameDateVecStr(2), '_',frameDateVecStr(3), ...
+                        '_',frameDateVecStr(4), '_',frameDateVecStr(5))); % the name of the image or the gif file with the directory
+                end
+                obj.frameCount = obj.frameCount + obj.frameRate;
+            else
+                frame = []; % if no more frames in the recording, directly terminate
+                display('Done reading strored images... Terminating...');
+            end
+        end
+        frame(~obj.imageMask) = 0;  % we eliminate the parts that are angularly behind the camera observation point
+    end
+    
+    function prepareData()
+        frameDateVec = obj.frameDateVec(1:6);
+        frameDateVecStr = strread(obj.frameNameStr,'%s','delimiter','_'); % get the date vector elements, in string, corresponding to day, month etc.
+        % if does not exist, build the correct directory in the web server
+        if(exist(char(strcat(frameDateVecStr(1), '/', frameDateVecStr(2), '/', frameDateVecStr(3),'/images/')))~=7)
+            mkdir(char(strcat(frameDateVecStr(1), '/', frameDateVecStr(2), '/', frameDateVecStr(3),'/images/'))); % make the directory with all the sub directories
+        end
+        
+        % build required date strings
+        if(mod(obj.frameCount,20)==2)
+            obj.frameRecordImageName = char(strcat(frameDateVecStr(1), '/', frameDateVecStr(2), '/', frameDateVecStr(3), '/images/',...
+                frameDateVecStr(1), '_',frameDateVecStr(2), '_',frameDateVecStr(3), '_',frameDateVecStr(4), '_',...
+                frameDateVecStr(5))); % the name of the image or the gif file with the directory
+            obj.frameRecordImagePageName = char(strcat('images/',frameDateVecStr(1), '_',frameDateVecStr(2),'_',...
+                frameDateVecStr(3), '_',frameDateVecStr(4), '_',frameDateVecStr(5))); % the name of the image or the gif file without the directory
+            obj.frameRecordPageName = char(strcat(frameDateVecStr(1), '/', frameDateVecStr(2), '/', frameDateVecStr(3), '/',...
+                frameDateVecStr(1), '_',frameDateVecStr(2), '_',frameDateVecStr(3), '_',frameDateVecStr(4), '_',...
+                frameDateVecStr(5))); % the name of the  web page file with the directory
+        end
+        
+        % get the frame date in string format to query the needed period from timeseries objects
+        frameDateStr = datestr(frameDateVec');
+        obj.frameDateStr = frameDateStr;
+        queryDates = datestr([0;obj.occlusionTimeNums']+datenum(frameDateStr));
+        
+        % read the irradiance value between the current frame date and minuteLag mins before
+        irradianceDB = resample(obj.timeSeriesGHI,queryDates);
+        obj.irradianceValues = irradianceDB.Data(2:end);
+        obj.irradianceTimes = obj.occlusionTimes';
+        irradianceDB_cs = resample(obj.timeSeriesGHI_cs,queryDates);
+        obj.irradianceValues_cs = irradianceDB_cs.Data(2:end);
+        obj.irradianceTimes_cs = obj.occlusionTimes';
+        if(isempty(obj.irradianceValues)) % if not found the associated entries, set to zero
+            obj.irradianceValues = 0;
+            obj.irradianceTimes = 0;
+            obj.irradianceValues_cs = 0;
+            obj.irradianceTimes_cs = 0;
+        end
+        
+        % read the power value between the current frame date and minuteLag mins before.
+        powerDB = resample(obj.timeSeriesPV,queryDates);
+        obj.powerValues = powerDB.Data(2:end); % get the values into buffer
+        obj.powerTimes = obj.occlusionTimes';
+        if(isempty(obj.powerValues)) % if not found the associated entries, set to zero
+            obj.powerValues = 0;
+            obj.powerTimes = 0;
+        end
+        
+        % read the temperature value between the current frame date and minuteLag mins before.
+        tempDB = resample(obj.timeSeriesTemp,queryDates);
+        obj.tempValues = tempDB.Data(2:end); % get the values into buffer
+        obj.tempTimes = obj.occlusionTimes';
+        if(isempty(obj.tempValues)) % if not found the associated entries, set to zero
+            obj.tempValues = 0;
+            obj.tempTimes = 0;
+        end
+        
+        % read the corresponding CBH value from the previously calculated
+        % series
+        cbhDB = resample(obj.timeSeriesCBH, frameDateStr); % query the values
+        obj.cbh =  cbhDB.Data(1);
+        
+        % read the future occlusion states from the database
+        occDB = resample(obj.timeSeriesOcc,queryDates);
+        obj.occValues = occDB.Data(2:end,1)>10 | occDB.Data(2:end,2)<-10;
+        obj.occTimes = obj.occlusionTimes';
+        if(isempty(obj.occValues)) % if not found the associated entries, set to zero
+            obj.occValues = 0;
+            obj.occTimes = 0;
+        end
+        
+        % get the current occlusion state
+        obj.occState = (occDB.Data(1,1)>10 | occDB.Data(1,2)<-10) & occDB.Data(1,2)<0;
+        obj.clearnessState = ~(occDB.Data(1,1)>10 | occDB.Data(1,2)<-10) & (occDB.Data(1,1)<-10 | occDB.Data(1,2)>=0);
+        
+        % get the current clear sky irradiance value
+        obj.irrCs = irradianceDB_cs.Data(1);
+        % get the current irradiance reading
+        obj.irrMs = irradianceDB.Data(1);
+        
+        % update attenuation factors according to the current occlusion
+        % state, current irradiance reading, and the current clear sky
+        % irradiance value expectation
+        if(obj.occState)
+            if(obj.attOcc == 2)
+                obj.attOcc = obj.irrCs/obj.irrMs;
+            else
+                obj.attOcc = 0.7*obj.attOcc + 0.3*obj.irrCs/obj.irrMs;
+                if(obj.attOcc < obj.attCs)
+                    obj.attOcc = 1.5;
+                end
+                %obj.attOcc = obj.irradianceValues_cs(1)/obj.irradianceValues(1);
+            end
+        elseif(obj.clearnessState)
+            if(obj.attCs == 1)
+                obj.attCs = obj.irrCs/obj.irrMs;
+            else
+                obj.attCs = 0.9*obj.attCs + 0.1*obj.irrCs/obj.irrMs;
+                if(obj.attCs > 2)
+                    obj.attCs = 1.2;
+                %elseif(obj.attCs < 1)
+                %    obj.attCs = 1.01;
+                end
+                %obj.attCs = obj.irradianceValues_cs(1)/obj.irradianceValues(1);
+            end
+        end
+        % initialize the irrediance value predictions using the clear sky
+        % correspondances.
+        obj.irradianceValues_est = obj.irradianceValues_cs;
+    end
+
+    function [contours, contoursProj, areas, areasProj, centroids, centroidsProj, bboxes, bboxesProj] = detectObjects(mask)
+        %contours = cv.findContours(mask,'Mode','List'); % contour extraction using openCV method
+        contours = cv.findContours(mask,'Mode','External'); % contour extraction using openCV method
+        
+        % areas of objects are approximately computed here using several methods
+        %areas = cell2mat(cellfun(@(x) size(cell2mat(x(:)),1),contours,'UniformOutput',false))';
+        %areas = cell2mat(cellfun(@(x) prod(max(cell2mat(x(:)),[],1)-min(cell2mat(x(:)),[],1)) ,contours,'UniformOutput',false))';
+        areas = cell2mat(cellfun(@(x) cv.contourArea(x(:)) ,contours,'UniformOutput',false))';
+        
+        % elminate the objects with contour smaller than 350.
+        consider = (areas > 300); % if the area of an object is less than 300 pixels, we discard that
+        
+        % take only the objects that we want to consider
+        contours = contours(consider);
+        areas = areas(consider);
+        
+        % contours are projected onto the hypothetical plane at an height
+        % of cbh in the world coordinate system then the area of the
+        % projected contours are computed.
+        contoursProj = cellfun(@(x) num2cell(getImage2Real(cell2mat(x(:))+1,obj.calibModel,obj.ecalibModel,obj.cbh),2)',contours,'UniformOutput',false);
+        areasProj = cell2mat(cellfun(@(x) cv.contourArea(x(:)) ,contoursProj,'UniformOutput',false))';
+        
+        % different methods for determining the point that represent the
+        % cloud objets first method uses the mean of the contours the
+        % second one uses the mid point of the bounding rectangle
+        %centroids = cellfun(@(x) mean(cell2mat(x(:)),1)+1,contours,'UniformOutput',false);
+        %centroidsProj = cellfun(@(x) mean(cell2mat(x(:)),1),contoursProj,'UniformOutput',false);
+        centroids = cellfun(@(x) (min(cell2mat(x(:))+1,[],1)+max(cell2mat(x(:))+1,[],1))/2,contours,'UniformOutput',false);
+        centroidsProj = cellfun(@(x) (min(cell2mat(x(:)),[],1)+max(cell2mat(x(:)),[],1))/2,contoursProj,'UniformOutput',false);
+        
+        % bounding boxes on the image and the projected plane are
+        % deteremined
+        bboxes = cellfun(@(x) [min(cell2mat(x(:))+1,[],1),max(cell2mat(x(:))+1,[],1)-min(cell2mat(x(:))+1,[],1)] ,contours,'UniformOutput',false);
+        bboxesProj = cellfun(@(x) [min(cell2mat(x(:)),[],1),max(cell2mat(x(:)),[],1)-min(cell2mat(x(:)),[],1)] ,contoursProj,'UniformOutput',false);
+        
+        % centroids and boxes on both planes are put into 2D arrays for
+        % easy access later
+        centroids = vertcat(centroids{:});
+        centroidsProj = vertcat(centroidsProj{:});
+        bboxes = vertcat(bboxes{:});
+        bboxesProj = vertcat(bboxesProj{:});
+    end
+
+    function mask = getBinaryImage(frame, type, varargin)
+        % two types are available: 'body' and 'edge'.
+        r_b = double(frame(:,:,1))./double(frame(:,:,3)); % R/B thresholding applied
+        rgb = double(frame(:,:,1))+double(frame(:,:,2))+double(frame(:,:,3)); % to distinguish other objects like buildings from clouds, a test on brightness
+        mask = r_b > 0.72 & rgb > 100;             %% brightness auto thing is needed because of this ..
+        
+        % this part is for the sun glare elimination. 
+        if(~isempty(varargin))
+            sunP = varargin{1}; % the area around the sun is defined by the sun patch
+            g_b = double(frame(:,:,2))./double(frame(:,:,3)); % G/B thresholding is applied for the parts around the sun
+            mask2 = g_b > 0.8;  % apply another threshold on the G/B feature.
+            %mask2 = (r_b - g_b)>-0.01;
+            mask(sunP) = mask2(sunP);
+        end
+        
+        % if the cloud binarization is done using edges, this extra part is
+        % run
+        if(strcmp(type,'edge')) 
+            H = [1,1,1;1,-8,1;1,1,1];
+            mask = imfilter(mask,H,'replicate');
+        end
+        mask = logical(cv.medianBlur(mask, 'KSize', 13)); % the binary image is filtered to eliminate the possible noise
+    end
+
+    function sunPosition = getSunPosition(frame,sunPattern)
+        res = cv.matchTemplate(frame,sunPattern); % the pattern for the sun is searched in the frame
+        if(min(min(res))>1e8) % if the minimum value used is greater than a given threshold, it is reported.
+            min(min(res)) 
+        end
+        [y,x]=ind2sub(size(res),find(res==min(min(res)))); % the position corresponding to the sun is determined from the matching
+        
+        s_s = size(sunPattern);
+        x_s = s_s(2);
+        y_s = s_s(1);
+        if(size(x)>(size(res,1)/3))
+            sunPosition = [-1,-1];  % if the output from the pattern matching algorithm is not valid, the sun is marked to be not found  
+            return;
+        end
+        sunPosition = [x,y]+([x_s,y_s]./2); % the pattern matching method gives the position for the corner of the pattern, the center is calculated here.
+    end
+
+    function sunPositionReal = getSunPositionReal(model3D)
+        DN = datenum(obj.frameDateVec(1:6)'); % date number corresponding to the current frame
+        Time = pvl_maketimestruct(DN, model3D.UTC); % time structure corresponding to the current frame
+        [SunAz, ~, ApparentSunEl, ~]=pvl_ephemeris(Time, model3D.Location); % sun angles corresponding to the current frame time and the camera location
+        zenith = 90-ApparentSunEl; % sun zenith angle
+        azimuth = SunAz; % sun azimuth angle
+        [x,y,z] = sph2cart((90-azimuth)*deg2radf,(90-zenith)*deg2radf,1); % direction of the sun converted from the angles to spherical coordinates
+        sunPositionR = [x;y;-z];
+        sunPositionReal = world2cam(obj.ecalibModel.Rinv*sunPositionR,obj.calibModel); % direction of the sun converted from global to image pixel coordinates
+        sunPositionReal = [sunPositionReal(2);sunPositionReal(1)];
+        [x_sd,y_sd,~] = sph2cart((90-azimuth)*deg2radf,(90-zenith)*deg2radf,obj.cbh/cos(zenith*deg2radf)); % global position of the sun is computed assuming a certain height
+        obj.shadowDisp = [-x_sd,-y_sd]; % the shadow displacement depends on the global position of the sun and the assumed cbh 
+    end
+
+    function sunPatch = getSunPatch(sunPosition)
+        sunPatch = sqrt((obj.X-sunPosition(1)).^2+(obj.Y-sunPosition(2)).^2)<=obj.circumsolarSize; % sun patch for better binarization is calculated according to the sun position on the image
+    end
+
+    function [sunObject, frame] = eliminateSun(frame,sunPosition, sunObject)
+        x = sunPosition(1);
+        y = sunPosition(2);
+        sunObject.Data{end+1} = frame(round(y)-obj.suneliminationSize:round(y)+obj.suneliminationSize-1,round(x)-obj.suneliminationSize:round(x)+obj.suneliminationSize-1,:);
+        sunObject.Time{end+1} = obj.frameDateStr;
+        frame = cv.circle(frame,[x,y],obj.suneliminationSize,'Color',[0,0,0],'Thickness',-1); % the sun is eliminated using a patch
+    end
+
+    function getShadowDisplacement(model3D)
+        % this function calculates the displacement of shadows depending on the time and the location
+        DN = datenum(obj.frameDateVec(1:6)'); % date number corresponding to the current frame
+        Time = pvl_maketimestruct(DN, model3D.UTC); % the time is calculated for the time of the frame under consideration
+        [SunAz, ~, ApparentSunEl, ~]=pvl_ephemeris(Time, model3D.Location); % sun position is calculated for the camera location and the given time
+        zenith = 90-ApparentSunEl; % sun zenith angle
+        azimuth = SunAz; % sun azimuth angle
+        [x,y,~] = sph2cart((90-azimuth)*deg2radf,(90-zenith)*deg2radf,obj.cbh/cos(zenith*deg2radf)); % global position of the sun is computed assuming a certain height
+        obj.shadowDisp = [-x,-y]; % the shadow displacement depends on the global position of the sun and the assumed cbh 
+    end
+    
+    function getShadowDisplacement_DN(DN,model3D)
+        % this function calculates the displacement of shadows depending on the time and the location
+        Time = pvl_maketimestruct(DN, model3D.UTC); % the time is calculated for the time of the frame under consideration
+        [SunAz, ~, ApparentSunEl, ~]=pvl_ephemeris(Time, model3D.Location); % sun position is calculated for the camera location and the given time
+        zenith = 90-ApparentSunEl; % sun zenith angle
+        azimuth = SunAz; % sun azimuth angle
+        [x,y,~] = sph2cart((90-azimuth)*deg2radf,(90-zenith)*deg2radf,obj.cbh/cos(zenith*deg2radf)); % global position of the sun is computed assuming a certain height
+        obj.shadowDisp_d = [-x,-y]; % the shadow displacement depends on the global position of the sun and the assumed cbhS
+    end
+
+    function [tracksPred,occlusion,occlusionQ,predCloudContours,predShadowContours, predShadowContoursOnGround] = predictNewLocationsOfTracksIntoFuture(timeSteps,occlusion,occlusionQ)
+        % this function generates the predictions for the given number of
+        % timesteps to predict the occludedness conditions for the future.
+        %tracksPred = [tracks,tracksLost];
+        tracksPred = tracks; 
+        predCloudContours = [];
+        predShadowContours = [];
+        occlusion = zeros(1,timeSteps);
+        %occlusion = [occlusion(2:end),0];
+        occlusionQ = [occlusionQ(2:end),0]; % occlusion quality
+        for predNum = 1:timeSteps % over all the horizon
+            occ = 0;
+            upInd = find(obj.occlusionPoints==predNum,1);
+            getShadowDisplacement_DN(datenum(obj.frameDateVec(1:6)')+ predNum*3*obj.frameRate/(60*60*24),model3D); % for the exact time of prediction, the shadow displacement is computed
+            for i = 1:length(tracksPred) % over all the tracks 
+                % to be able to used them for image annotation and sanity
+                % checking, we provide the bounding boxes in an array format
+                % where one bounding box is on one row of the matrix
+                bbox = tracksPred(i).bbox;
+                bboxProj = tracksPred(i).bboxProj;
+                
+                % predict the current location of the track
+                [tracksPred(i).kalmanFilter,predictedCentroid,~] = tracksPred(i).kalmanFilter.Estimate();
+                tracksPred(i).centroidFilter = tracksPred(i).centroidFilter.Add(predictedCentroid);  % the extra filters are not operating right now, they are put in case needed.
+                tracksPred(i).predCentroid = tracksPred(i).centroidFilter.value;
+                
+                % projected values from the kalman filter.
+                [tracksPred(i).kalmanFilterProj,predictedCentroidProj,~] = tracksPred(i).kalmanFilterProj.Estimate();
+                tracksPred(i).centroidProjFilter = tracksPred(i).centroidProjFilter.Add(predictedCentroidProj);  % the extra filters are not operating right now, they are put in case needed.
+                tracksPred(i).predCentroidProj = tracksPred(i).centroidProjFilter.value;
+                
+                % here we update the state variables of the current track
+                % according to different types of the kalman filter
+                switch trackOption
+                    case {'force', 'acceleration'}
+                        tracksPred(i).predSpeed = [tracksPred(i).kalmanFilter.State(2),tracksPred(i).kalmanFilter.State(5)];
+                    case 'speed'
+                        tracksPred(i).predSpeed = [tracksPred(i).kalmanFilter.State(2),tracksPred(i).kalmanFilter.State(4)];
+                    otherwise
+                end
+                
+                % here to update bounding boxes, we get a local copy on the
+                % location of tracks
+                predictedCentroid = tracksPred(i).predCentroid;
+                
+                % shift the bounding box so that its center is at
+                % the predicted location
+                predictedCentroid = int32(predictedCentroid(1:2)) - (int32(bbox(3:4)) / 2);
+                
+                % reform  the bounding boxes with their new locations
+                tracksPred(i).bbox = double([predictedCentroid(1:2), bbox(3:4)]);
+                
+                % here to update bounding boxes (on the projected plane), we get a local copy on the
+                % location of tracks
+                predictedCentroidProj = tracksPred(i).predCentroidProj;
+                
+                % shift the bounding box so that its center is at
+                % the predicted location
+                predictedCentroidProj = predictedCentroidProj(1:2) - bboxProj(3:4) / 2.0;
+                
+                % reform  the bounding boxes with their new locations
+                tracksPred(i).bboxProj = double([predictedCentroidProj(1:2), bboxProj(3:4)]);
+
+                if(~isempty(upInd))
+                    
+                    cloudContours = [tracksPred(i).contourProj+repmat(tracksPred(i).predCentroidProj,size(tracksPred(i).contourProj,1),1),obj.cbh*ones(size(tracksPred(i).contourProj,1),1)]; % cloud contour is reformed
+                    shadowContours = [tracksPred(i).contourProj+repmat(tracksPred(i).predCentroidProj+obj.shadowDisp_d,size(tracksPred(i).contourProj,1),1),zeros(size(tracksPred(i).contourProj,1),1)]; % shadow contour is reformed
+%                     shadowContours2D = shadowContours(:,1:2);
+%                     predShadowContoursOnGround{1,i} = num2cell(shadowContours2D,2)';
+                    predCloudContours{1,i} = num2cell(cloudContours,2)'; % cloud contours are organized in a cell array to be used by the openCV method for drawing
+                    predShadowContours{1,i} = num2cell(shadowContours,2)'; % shadow contour are organized in a cell array to be used by the openCV method for drawing
+                    % ******
+                    [in,on] = inpolygon(model3D.Sen_xs+obj.shadowGrx,model3D.Sen_ys+obj.shadowGry,shadowContours(:,1),shadowContours(:,2)); % for this track, the occlusion condition of the sensor
+                                                                                                                                            % location is checked with the predicted shadow 
+                    occRes = in | on; 
+                    occ = occ + sum(occRes(:));
+                end
+            end
+            obj.occCov100(predNum) = getCover(tracksPred,model3D,obj.shadowGrx_v100,obj.shadowGry_v100);
+            obj.occCov500(predNum) = getCover(tracksPred,model3D,obj.shadowGrx_v500,obj.shadowGry_v500);
+            obj.occCov1000(predNum) = getCover(tracksPred,model3D,obj.shadowGrx_v1000,obj.shadowGry_v1000);
+            
+            if(~isempty(upInd) && occ>0)
+                if(occlusion(predNum)==0)
+                    occlusionQ(predNum) = occ;  % qualitiy or a confidence measure for the occlusion. 
+                end
+                occlusion(predNum) = occlusion(predNum) | occ>0; % occlusion prediction is set.
+            else
+                if(occlusionQ(predNum) < length(obj.shadowGry(:)))
+                    occlusion(predNum) = 0.96*occlusion(predNum) + 0.04*occ; % occlusion prediction is degraded.
+                end
+            end
+        end
+        obj.irradianceValues_est = obj.irradianceValues_est ./ (occlusion'*obj.attOcc + (1-occlusion')*obj.attCs); % the occlusion predictions and the clear sky irrdaiance predictions are combined.
+        predShadowContoursOnGround = []; %TODO: remove this variable from code.
+        temp.values = obj.irradianceValues_est;
+        temp.values_cs = obj.irradianceValues_cs;
+        temp.dateStr = obj.frameDateStr;
+        temp.dateVec = obj.frameDateVec;
+        temp.correspondingImageFrame = obj.frameNameStr;
+        estimatedIrradianceValues = [estimatedIrradianceValues, temp];
+    end
+
+    function [predFrame predContours] = getPredictedImage(tracksPred)
+        predFrame = zeros(size(frame));
+        predContours=[];
+        iterator = 1;
+        for i = 1:length(tracksPred)
+            if(tracksPred(i).consecutiveInvisibleCount<1)
+                predContours{1,iterator} = num2cell(getReal2Image(tracksPred(i).contourProj+repmat(tracksPred(i).predCentroidProj,size(tracksPred(i).contourProj,1),1),obj.calibModel,obj.ecalibModel,obj.cbh)-1,2)';
+                iterator = iterator+1;
+            end
+        end
+        if(length(tracksPred)~=0)
+            predFrame = cv.drawContours(predFrame,predContours,'Thickness',-1,'LineType',4);
+        end
+    end
+
+    function [occluded] = getOcclusion(tracksPred,model3D)
+        occluded = 0; % initially it is assumed to be not occluded
+        for i = 1:length(tracksPred) % over all the given tracks
+            shadowContProj  = tracksPred(i).contourProj+repmat(tracksPred(i).predCentroidProj+obj.shadowDisp,size(tracksPred(i).contourProj,1),1); % determine the shadow contour of the given track
+            [in,on] = inpolygon(model3D.Sen_xs,model3D.Sen_ys,shadowContProj(:,1),shadowContProj(:,2)); % check whether the shadow for the given track intersects with the sensor location
+            occluded = occluded | in | on; % if the sensor is on or in the shadow contour, then it is occluded by this track
+        end
+    end
+
+    function [cover] = getCover(tracksPred,model3D,shadowGrx,shadowGry)
+        occluded = zeros(size(shadowGrx)); % initially it is assumed to be not occluded
+        for i = 1:length(tracksPred) % over all the given tracks
+            shadowContProj  = tracksPred(i).contourProj+repmat(tracksPred(i).predCentroidProj+obj.shadowDisp_d,size(tracksPred(i).contourProj,1),1); % determine the shadow contour of the given track
+            [in,on] = inpolygon(model3D.Sen4_xs+shadowGrx,model3D.Sen4_ys+shadowGry,shadowContProj(:,1),shadowContProj(:,2)); % check whether the shadow for the given track intersects with the given set of locations around the sensor
+            occluded = occluded | in | on; % if the the points around the sensor are on or in the shadow contour, then they are occluded by this track
+        end
+        cover = sum(occluded(:))/length(occluded(:)); % the fraction of points that are occluded are determined to be the area cover
+    end
+    
+    function [predCloudContours,predShadowContours] = getPredictedScenario(tracksPred)
+        predCloudContours=[];
+        predShadowContours=[];
+        for i = 1:length(tracksPred)
+            predCloudContours{1,i} = num2cell([tracksPred(i).contourProj+repmat(tracksPred(i).predCentroidProj,size(tracksPred(i).contourProj,1),1),obj.cbh*ones(size(tracksPred(i).contourProj,1),1)],2)';
+            predShadowContours{1,i} = num2cell([tracksPred(i).contourProj+repmat(tracksPred(i).predCentroidProj+obj.shadowDisp,size(tracksPred(i).contourProj,1),1),zeros(size(tracksPred(i).contourProj,1),1)],2)';
+            %predShadowContoursP{1,i} = num2cell([tracksPred(i).contourProj+repmat(tracksPred(i).predCentroidProj+obj.shadowDisp+[model3D.Cam_xc,model3D.Cam_yc],size(tracksPred(i).contourProj,1),1)],2)';
+        end
+    end
+
+    function predictNewLocationsOfTracks()
+        for i = 1:length(tracks)
+            tracks(i).cbh = obj.cbh;
+            % to be able to used them for image annotation and sanity
+            % checking, we provide the bounding boxes in an array format
+            % where one bounding box is on one row of the matrix
+            bbox = tracks(i).bbox;
+            bboxProj = tracks(i).bboxProj;
+            
+            % predict the current location of the track
+            [tracks(i).kalmanFilter,predictedCentroid,~] = tracks(i).kalmanFilter.Estimate();
+            tracks(i).centroidFilter = tracks(i).centroidFilter.Add(predictedCentroid);  % the extra filters are not operating right now, they are put in case needed.
+            tracks(i).predCentroid = tracks(i).centroidFilter.value;
+            
+            % projected values from the kalman filter.
+            [tracks(i).kalmanFilterProj,predictedCentroidProj,~] = tracks(i).kalmanFilterProj.Estimate();
+            tracks(i).centroidProjFilter = tracks(i).centroidProjFilter.Add(predictedCentroidProj);  % the extra filters are not operating right now, they are put in case needed.
+            tracks(i).predCentroidProj = tracks(i).centroidProjFilter.value;
+            
+            %tracks(i).predCentroid = getReal2Image(tracks(i).predCentroidProj,obj.calibModel,obj.ecalibModel,cbh);
+            % here we update the state variables of the current track
+            % according to different types of the kalman filter
+            switch trackOption
+                case {'force', 'acceleration'}
+                    tracks(i).predSpeed = [tracks(i).kalmanFilter.State(2),tracks(i).kalmanFilter.State(5)];
+                case 'speed'
+                    tracks(i).predSpeed = [tracks(i).kalmanFilter.State(2),tracks(i).kalmanFilter.State(4)];
+                otherwise
+            end
+            
+            % here to update bounding boxes, we get a local copy on the
+            % location of tracks
+            predictedCentroid = tracks(i).predCentroid;
+            
+            % shift the bounding box so that its center is at
+            % the predicted location
+            predictedCentroid = int32(predictedCentroid(1:2)) - (int32(bbox(3:4)) / 2);
+            
+            % reform  the bounding boxes with their new locations
+            tracks(i).bbox = double([predictedCentroid(1:2), bbox(3:4)]);
+            
+            % here to update bounding boxes (on the projected plane), we get a local copy on the
+            % location of tracks
+            predictedCentroidProj = tracks(i).predCentroidProj;
+            
+            % shift the bounding box so that its center is at
+            % the predicted location
+            predictedCentroidProj = predictedCentroidProj(1:2) - bboxProj(3:4) / 2.0;
+            
+            % reform  the bounding boxes with their new locations
+            tracks(i).bboxProj = double([predictedCentroidProj(1:2), bboxProj(3:4)]);
+        end
+    end
+
+    function [assignments, unassignedTracks, unassignedDetections] = detectionToTrackAssignment()
+        % in this function we find the assignment between the existing
+        % tracks and the observations coming from a certain frame. We do
+        % the assignment on the image plane, so the numbers correspond to
+        % pixels mostly.
+        
+        nTracks = length(tracks);
+        nDetections = size(centroidsProj, 1);
+        % we initialize the assignment matrix and all other related
+        % variables first
+        if(nTracks == 0 || size(centroidsProj,1) == 0)
+            assignments = [];
+            unassignedTracks = [];
+            unassignedDetections = [1:nDetections];
+            return;
+        end
+        
+        % compute the cost of assigning each detection to each track
+        % here we want to obtain (x_i - y_j)^2 where x_i is the position of
+        % a track and y_j is the position of an observation. for this
+        % purpose we first get the x_i^2, then we get the y_j^2, after we
+        % get the x_i*y_j. after those it all comes down to calculating
+        % x_i^2 - 2*x_i*y_j + y_j^2 using the matrices.
+        cent_tracks = cat(1,tracks(:).predCentroidProj);
+        match_mat1 = dot(cent_tracks,cent_tracks,2); % square of tracks x_i^2
+        match_mat2 = dot(centroidsProj,centroidsProj,2); % square of detections y_j^2
+        match_mat11 = repmat(match_mat1,1,length(match_mat2)); % get x_i^2 into matrix
+        match_mat22 = repmat(match_mat2',length(match_mat1),1); % get y_j^2 into matrix
+        match_mat12 = cent_tracks*centroidsProj'; % get x_i*y_j into matrix
+        
+        % we construct the cost matrix here. entry i j refers to the cost
+        % of assigning the i'th track to the j'th observation
+        cost = match_mat11 - 2*match_mat12 + match_mat22; % get x_i^2 - 2*x_i*y_j + y_j^2 using those matrices
+        cost_th = (obj.cbh^2/300^2)*1e4;
+        cost(cost>cost_th) = inf; % here we do a sanity check on the costs. if the cost of assigning is greater than 2500 meaning
+        % if a track and an observation are apart from each other by more than 50 pixels on the image plane,
+        % we eliminate the possibilty of an assignment between these two. 2500 is a hand-tuned value.
+        
+        % the hungarian algorithm for track to observation assignment
+        %[matching,~] = Hungarian(cost);
+        %matching_inds = find(matching);
+        %matched_costs = cost(matching_inds);
+        %matching_inds = matching_inds(matched_costs < 2500);
+        %[assignments(:,1),assignments(:,2)] = ind2sub(size(matching),matching_inds);
+        
+        % use of munkres algorithm (a modification of the hungarian
+        % algorithm) to do the assignment between tracks and observations
+        [matching,~] = munkres(cost);
+        matching = matching'; %  get the matching matrix.
+        id_tracks = [1:nTracks]';
+        assignments = [id_tracks(matching~=0),matching(matching~=0)]; % here we get the assigned tracks
+        unassignedTracks = setdiff(id_tracks,assignments(:,1)); % get the tracks that are unassigned
+        unassignedDetections = setdiff([1:nDetections],assignments(:,2)); % get the observations that are not assigned
+    end
+    
+    function [assignments, unassignedTracks, unassignedDetections] = detectionToTrackAssignmentDetailed()
+        % in this function we find the assignment between the existing
+        % tracks and the observations coming from a certain frame. We do
+        % the assignment on the image plane, so the numbers correspond to
+        % pixels mostly.
+        
+        nTracks = length(tracks);
+        nDetections = size(centroidsProj, 1);
+        % we initialize the assignment matrix and all other related
+        % variables first
+        if(nTracks == 0 || size(centroidsProj,1) == 0)
+            assignments = [];
+            unassignedTracks = [];
+            unassignedDetections = [1:nDetections];
+            return;
+        end
+        
+        % compute the cost of assigning each detection to each track
+        % here we want to obtain (x_i - y_j)^2 where x_i is the position of
+        % a track and y_j is the position of an observation. for this
+        % purpose we first get the x_i^2, then we get the y_j^2, after we
+        % get the x_i*y_j. after those it all comes down to calculating
+        % x_i^2 - 2*x_i*y_j + y_j^2 using the matrices.
+        cent_tracks = [cat(1,tracks(:).predCentroidProj),cat(1,tracks(:).bboxProj)];
+        cent_tracks(:,5:6) = cent_tracks(:,3:4)+cent_tracks(:,5:6);
+        cent_proj = [centroidsProj,bboxesProj];
+        cent_proj(:,5:6) = cent_proj(:,3:4)+cent_proj(:,5:6);
+        normalization_factor = max([cent_tracks;cent_proj],[],1) - min([cent_tracks;cent_proj],[],1);
+        cent_tracks_nrm = cent_tracks*diag(normalization_factor);
+        cent_proj_nrm = cent_proj*diag(normalization_factor);
+        match_mat1 = dot(cent_tracks_nrm,cent_tracks_nrm,2); % square of tracks x_i^2
+        match_mat2 = dot(cent_proj_nrm,cent_proj_nrm,2); % square of detections y_j^2
+        match_mat11 = repmat(match_mat1,1,length(match_mat2)); % get x_i^2 into matrix
+        match_mat22 = repmat(match_mat2',length(match_mat1),1); % get y_j^2 into matrix
+        match_mat12 = cent_tracks_nrm*cent_proj_nrm'; % get x_i*y_j into matrix
+        
+        % we construct the cost matrix here. entry i j refers to the cost
+        % of assigning the i'th track to the j'th observation
+        cost = match_mat11 - 2*match_mat12 + match_mat22; % get x_i^2 - 2*x_i*y_j + y_j^2 using those matrices
+        %cost = 1 - match_mat12;
+        %cost_th = 9*(obj.cbh^2/300^2)*1e4;
+        %cost(cost>cost_th) = inf; % here we do a sanity check on the costs. if the cost of assigning is greater than 2500 meaning
+        % if a track and an observation are apart from each other by more than 50 pixels on the image plane,
+        % we eliminate the possibilty of an assignment between these two. 2500 is a hand-tuned value.
+        
+        % the hungarian algorithm for track to observation assignment
+        %[matching,~] = Hungarian(cost);
+        %matching_inds = find(matching);
+        %matched_costs = cost(matching_inds);
+        %matching_inds = matching_inds(matched_costs < 2500);
+        %[assignments(:,1),assignments(:,2)] = ind2sub(size(matching),matching_inds);
+        
+        % use of munkres algorithm (a modification of the hungarian
+        % algorithm) to do the assignment between tracks and observations
+        [matching,~] = munkres(cost);
+        matching = matching'; %  get the matching matrix.
+        id_tracks = [1:nTracks]';
+        assignments = [id_tracks(matching~=0),matching(matching~=0)]; % here we get the assigned tracks
+        unassignedTracks = setdiff(id_tracks,assignments(:,1)); % get the tracks that are unassigned
+        unassignedDetections = setdiff([1:nDetections],assignments(:,2)); % get the observations that are not assigned
+    end
+
+    function [assignments, unassignedTracks, unassignedDetections, unassignedDetectionsToTracks, unassignedTracksToDetections] = detectionToTrackAssignmentIntersect()
+        % in this function we find the assignment between the existing
+        % tracks and the observations coming from a certain frame. We do
+        % the assignment on the image plane, so the numbers correspond to
+        % pixels mostly.
+        
+        nTracks = length(tracks);
+        nDetections = size(centroidsProj, 1);
+        % we initialize the assignment matrix and all other related
+        % variables first
+        if(nTracks == 0 || size(centroidsProj,1) == 0)
+            assignments = [];
+            unassignedTracks = [];
+            unassignedDetectionsToTracks = [];
+            unassignedTracksToDetections = [];
+            unassignedDetections = [1:nDetections];
+            return;
+        end
+        
+        % compute the cost of assigning each detection to each track
+        % here we want to obtain (x_i - y_j)^2 where x_i is the position of
+        % a track and y_j is the position of an observation. for this
+        % purpose we first get the x_i^2, then we get the y_j^2, after we
+        % get the x_i*y_j. after those it all comes down to calculating
+        % x_i^2 - 2*x_i*y_j + y_j^2 using the matrices.
+        cent_tracks = cat(1,tracks(:).predCentroidProj);
+        match_mat1 = dot(cent_tracks,cent_tracks,2); % square of tracks x_i^2
+        match_mat2 = dot(centroidsProj,centroidsProj,2); % square of detections y_j^2
+        match_mat11 = repmat(match_mat1,1,length(match_mat2)); % get x_i^2 into matrix
+        match_mat22 = repmat(match_mat2',length(match_mat1),1); % get y_j^2 into matrix
+        match_mat12 = cent_tracks*centroidsProj'; % get x_i*y_j into matrix
+        
+        bbox_tracks = cat(1,tracks(:).bboxProj);
+        bbox_tracks(:,3:4) = bbox_tracks(:,1:2)+bbox_tracks(:,3:4);
+        bbox_proj = bboxesProj;
+        bbox_proj(:,3:4) = bbox_proj(:,1:2)+bbox_proj(:,3:4);
+        
+        int_mat11 = repmat(bbox_tracks(:,1),1,length(bbox_proj(:,1)));
+        int_mat12 = repmat(bbox_tracks(:,2),1,length(bbox_proj(:,2)));
+        int_mat13 = repmat(bbox_tracks(:,3),1,length(bbox_proj(:,3)));
+        int_mat14 = repmat(bbox_tracks(:,4),1,length(bbox_proj(:,4)));
+        
+        int_mat21 = repmat(bbox_proj(:,1)',length(bbox_tracks(:,1)),1);
+        int_mat22 = repmat(bbox_proj(:,2)',length(bbox_tracks(:,2)),1);
+        int_mat23 = repmat(bbox_proj(:,3)',length(bbox_tracks(:,3)),1);
+        int_mat24 = repmat(bbox_proj(:,4)',length(bbox_tracks(:,4)),1);
+        
+        int_mat = (int_mat11 < int_mat23) & (int_mat12 < int_mat24) & (int_mat13 > int_mat21) & (int_mat14 > int_mat22);
+        
+        area_tracks = cat(1,tracks(:).areaProj);
+        area_mat1 = repmat(area_tracks,1,length(areasProj));
+        area_mat2 = repmat(areasProj',length(area_tracks),1);
+        area_mat = area_mat2./area_mat1;
+        area_mat = (area_mat>0.2) & (area_mat<5);
+        % we construct the cost matrix here. entry i j refers to the cost
+        % of assigning the i'th track to the j'th observation
+        cost = match_mat11 - 2*match_mat12 + match_mat22; % get x_i^2 - 2*x_i*y_j + y_j^2 using those matrices
+        %cost_th = (obj.cbh^2/300^2)*1e4;
+        %cost(cost>cost_th) = inf; % here we do a sanity check on the costs. if the cost of assigning is greater than 2500 meaning
+        cost(~(int_mat & area_mat)) = inf;
+        % if a track and an observation are apart from each other by more than 50 pixels on the image plane,
+        % we eliminate the possibilty of an assignment between these two. 2500 is a hand-tuned value.
+        
+        % the hungarian algorithm for track to observation assignment
+        %[matching,~] = Hungarian(cost);
+        %matching_inds = find(matching);
+        %matched_costs = cost(matching_inds);
+        %matching_inds = matching_inds(matched_costs < 2500);
+        %[assignments(:,1),assignments(:,2)] = ind2sub(size(matching),matching_inds);
+        
+        % use of munkres algorithm (a modification of the hungarian
+        % algorithm) to do the assignment between tracks and observations
+        [matching,~] = munkres(cost);
+        matching = matching'; %  get the matching matrix.
+        id_tracks = [1:nTracks]';
+        assignments = [id_tracks(matching~=0),matching(matching~=0)]; % here we get the assigned tracks
+        if(~isempty(assignments))
+            unassignedTracks = setdiff(id_tracks,assignments(:,1)); % get the tracks that are unassigned
+            unassignedDetections = setdiff([1:nDetections],assignments(:,2))'; % get the observations that are not assigned
+        else
+            unassignedTracks = id_tracks; % get the tracks that are unassigned
+            unassignedDetections = [1:nDetections]'; % get the observations that are not assigned
+        end
+        [unDeCosts,unDeTracks] = min(cost(:,unassignedDetections),[],1);
+        if(~isempty(unDeCosts))
+            unassignedDetectionsToTracks = [unDeTracks(unDeCosts~=inf)',unassignedDetections(unDeCosts~=inf)];
+        else
+            unassignedDetectionsToTracks = [];
+        end
+        [unTCosts,unTDetections] = min(cost(unassignedTracks,:),[],2);
+        if(~isempty(unTCosts))
+            unassignedTracksToDetections = [unassignedTracks(unTCosts~=inf),unTDetections(unTCosts~=inf)];
+        else
+            unassignedTracksToDetections = [];
+        end
+    end
+
+    function [assignments, unassignedTracks, unassignedDetections] = detectionToTrackAssignmentGaussian()
+        % in this function we find the assignment between the existing
+        % tracks and the observations coming from a certain frame. We do
+        % the assignment on the image plane, so the numbers correspond to
+        % pixels mostly.
+        
+        nTracks = length(tracks);
+        nDetections = size(centroidsProj, 1);
+        % we initialize the assignment matrix and all other related
+        % variables first
+        if(nTracks == 0 || size(centroidsProj,1) == 0)
+            assignments = [];
+            unassignedTracks = [];
+            unassignedDetections = [1:nDetections];
+            return;
+        end
+        
+        
+        for i = 1:nTracks
+            P = tracks(i).kalmanFilterProj.P;
+            P_s = [P(1,1),P(1,3),0;P(3,1),P(3,3),0;0,0,1e6];
+            cost(i,:) = 1-mvnpdf([centroidsProj,areas],[tracks(i).predCentroidProj,tracks(i).area],P_s)';
+        end
+        cost(cost==1)=inf;
+        %cost(cost>3500) = inf; % here we do a sanity check on the costs. if the cost of assigning is greater than 2500 meaning
+        % if a track and an observation are apart from each other by more than 50 pixels on the image plane,
+        % we eliminate the possibilty of an assignment between these two. 2500 is a hand-tuned value.
+        
+        % the hungarian algorithm for track to observation assignment
+        %[matching,~] = Hungarian(cost);
+        %matching_inds = find(matching);
+        %matched_costs = cost(matching_inds);
+        %matching_inds = matching_inds(matched_costs < 2500);
+        %[assignments(:,1),assignments(:,2)] = ind2sub(size(matching),matching_inds);
+        
+        % use of munkres algorithm (a modification of the hungarian
+        % algorithm) to do the assignment between tracks and observations
+        [matching,~] = munkres(cost);
+        matching = matching'; %  get the matching matrix.
+        id_tracks = [1:nTracks]';
+        assignments = [id_tracks(matching~=0),matching(matching~=0)]; % here we get the assigned tracks
+        unassignedTracks = setdiff(id_tracks,assignments(:,1)); % get the tracks that are unassigned
+        unassignedDetections = setdiff([1:nDetections],assignments(:,2)); % get the observations that are not assigned
+    end
+
+    function updateAssignedTracks()
+        % here we update then statistical parameters corresponding to
+        % assgined tracks along with the kalman filters of those tracks
+        % with the observartions associated
+        numAssignedTracks = size(assignments, 1);
+        for i = 1:numAssignedTracks % for each assignment
+            trackIdx = assignments(i, 1); % get the track that is assigned
+            detectionIdx = assignments(i, 2); % get the detection id that is assigned
+            centroid = centroids(detectionIdx, :); % get the observation correspoding to the position of the detected object, on image plane
+            centroidProj = centroidsProj(detectionIdx, :); % get the observation correspoding to the position of the detected object, on projected plane
+            bbox = bboxes(detectionIdx, :); % get the observation correspoding to the bounding box of the detected object, on image plane
+            bboxProj = bboxesProj(detectionIdx, :); % get the observation correspoding to the bounding box of the detected object, on projected plane
+            area = areas(detectionIdx, :); % get the observation correspoding to the area of the detected object, on projected plane
+            areaProj = areasProj(detectionIdx, :); % get the observation correspoding to the area of the detected object, on projected plane
+            contour = vertcat(contours{1,detectionIdx}{1,:}); % get the observed contour
+            contour = contour - repmat(centroid,size(contour,1),1);
+            contourProj = vertcat(contoursProj{1,detectionIdx}{1,:}); % get the projected contour
+            contourProj = contourProj - repmat(centroidProj,size(contourProj,1),1);
+            
+            tracks(trackIdx).centroidObs = centroid; % set the observed centroid position
+            tracks(trackIdx).centroidProjObs = centroidProj; % set the observed projected centroid position
+            tracks(trackIdx).contour = contour; % set the observed contour
+            tracks(trackIdx).contourProj = contourProj; % set the obvserved projected contour
+            
+            areaRatio = area/tracks(trackIdx).area;
+            if( areaRatio < 0.6 && areaRatio > 1.67 )
+               tracks(trackIdx).kalmanFilter.State(tracks(trackIdx).kalmanFilter.state_to_x) = centroid';
+               tracks(trackIdx).kalmanFilterProj.State(tracks(trackIdx).kalmanFilterProj.state_to_x) = centroidProj';
+            end
+            
+            tracks(trackIdx).prevCentroid = tracks(trackIdx).centroid; % get a recording on the previous position of the detected object, on image plane
+            tracks(trackIdx).prevCentroidProj = tracks(trackIdx).centroidProj; % get a recording on the previous position of the detected object, on projected plane
+            
+            % correct the estimate of the object's location
+            % using the new detection
+            
+            % filter out the position observation
+            tracks(trackIdx).positionFilter = tracks(trackIdx).positionFilter.Add(centroid);
+            pos_t = tracks(trackIdx).positionFilter.value;
+            
+            % filter out the area observation
+            tracks(trackIdx).massFilter = tracks(trackIdx).massFilter.Add(area);
+            tracks(trackIdx).area = tracks(trackIdx).massFilter.value;
+            
+            % filter out the projected area observation
+            tracks(trackIdx).massFilterProj = tracks(trackIdx).massFilterProj.Add(areaProj);
+            tracks(trackIdx).areaProj = tracks(trackIdx).massFilterProj.value;
+            
+            % fiter out the centroid information
+            tracks(trackIdx).centroidFilter = tracks(trackIdx).centroidFilter.Add(centroid);
+            tracks(trackIdx).centroid = tracks(trackIdx).centroidFilter.value;
+            
+            % fiter out the projected centroid information
+            tracks(trackIdx).centroidProjFilter = tracks(trackIdx).centroidProjFilter.Add(centroidProj);
+            tracks(trackIdx).centroidProj = tracks(trackIdx).centroidProjFilter.value;
+            
+            % get the observed speed wrt the previous step using a first
+            % order differential approximation
+            tracks(trackIdx).obsSpeed = tracks(trackIdx).centroid - tracks(trackIdx).prevCentroid;
+            
+            % update the kalman filter corresponding to the centroid, on
+            % the image plane
+            tracks(trackIdx).kalmanFilter = tracks(trackIdx).kalmanFilter.Update(tracks(trackIdx).centroid',double(tracks(trackIdx).area));
+            tracks(trackIdx).centroid = tracks(trackIdx).kalmanFilter.x';
+            
+            % update the kalman filter corresponding to the centroid, on
+            % the projected
+            %tracks(trackIdx).kalmanFilterProj = tracks(trackIdx).kalmanFilterProj.Update(tracks(trackIdx).centroidProj',double(tracks(trackIdx).areaProj));
+            tracks(trackIdx).kalmanFilterProj = tracks(trackIdx).kalmanFilterProj.Update(tracks(trackIdx).centroidProj',double(obj.cbh));
+            tracks(trackIdx).centroidProj = tracks(trackIdx).kalmanFilterProj.x';
+            
+            
+            % getting the speed estimate from the kalman depending on the type of kalman used...
+            switch trackOption
+                case {'force','acceleration'}
+                    speed = [tracks(trackIdx).kalmanFilter.State(2), tracks(trackIdx).kalmanFilter.State(5)];
+                case 'speed'
+                    speed = [tracks(trackIdx).kalmanFilter.State(2), tracks(trackIdx).kalmanFilter.State(4)];
+                otherwise
+            end
+            
+            % filter out the speed information
+            tracks(trackIdx).speedFilter =  tracks(trackIdx).speedFilter.Add(speed);
+            speed = tracks(trackIdx).speedFilter.value;% * camParams.conversionFactor;
+            
+            % for some reason, in case needed, get the x and y speeds
+            tracks(trackIdx).xspeed = speed(2);
+            tracks(trackIdx).yspeed = speed(1);
+            
+            % replace predicted bounding box with detected
+            % bounding box
+            tracks(trackIdx).bbox = bbox;
+            tracks(trackIdx).bboxProj = bboxProj;
+            
+            % update track's age
+            tracks(trackIdx).age = tracks(trackIdx).age + 1;
+            
+            % update visibility
+            tracks(trackIdx).totalVisibleCount = ...
+                tracks(trackIdx).totalVisibleCount + 1;
+            
+            % since we know that the track was visible for the previous
+            % step, we set this variable to zero, as the name also suggests
+            tracks(trackIdx).consecutiveInvisibleCount = 0;
+        end
+    end
+
+    function updateUnassignedTracks()
+        % here we update the statistical parameters corresponding to
+        % unassigned tracks
+        for i = 1:length(unassignedTracks) % for each unassigned track we loop
+            ind = unassignedTracks(i); % get the id of the track
+            tracks(ind).centroid = tracks(ind).predCentroid;
+            tracks(ind).centroidObs = [-1,-1];
+            tracks(ind).centroidProj = tracks(ind).predCentroidProj;
+            tracks(ind).centroidProjObs = [-1,-1];
+            tracks(ind).age = tracks(ind).age + 1; % increment the age by one
+            tracks(ind).consecutiveInvisibleCount = ...
+                tracks(ind).consecutiveInvisibleCount + 1; % since it is not observed, increase the invisible count
+        end
+    end
+
+    function deleteLostTracks()
+        if isempty(tracks)
+            return;
+        end
+        
+        invisibleForTooLong = 5;
+        ageThreshold = 3;
+        
+        % compute the fraction of the track's age for which it was visible
+        ages = [tracks(:).age];
+        totalVisibleCounts = [tracks(:).totalVisibleCount];
+        visibility = totalVisibleCounts ./ ages;
+        
+        % find the indices of 'lost' tracks
+        lostInds = (ages < ageThreshold & visibility < 0.5) | ...
+            [tracks(:).consecutiveInvisibleCount] >= invisibleForTooLong;
+        
+        % delete lost tracks
+        %tracksLost = [tracksLost,tracks(lostInds)];
+        tracks = tracks(~lostInds);
+    end
+
+    function pointReal = getImage2Real_v2(m,calibModel,ecalibModel,cbh)
+        % here we project a set of points given in m onto a plane that is cbh meters away from the camera the used convention in opencv is [column,row] kind of
+        % represantation for pixel points, here however we change that to [row,column]
+        pointTemp = cam2world([m(:,2),m(:,1)]',calibModel); % we get the corresponding direction on a unit-sphere at first.
+        pointReal = zeros(size(pointTemp,2),2); % we crate the array that will contain the projected positions
+        if(size(ecalibModel.R,1)==3)
+            pointTemp = ecalibModel.R*pointTemp;
+            pointReal = (pointTemp(1:2,:).*repmat((-cbh./pointTemp(3,:)),2,1))';
+        else
+            pointReal = ((ecalibModel.R*pointTemp(1:2,:)).*repmat((-cbh./pointTemp(3,:)),2,1))'; % here we map the point on the unit-sphere onto the plane
+        end
+    end
+
+    function pointImage = getReal2Image_v2(m,calibModel,ecalibModel,cbh)
+        % here we project a set of points given in m back onto the image plane. The used convention in opencv is [column,row] kind of
+        % represantation for pixel points, here however we change that to [row,column]
+        if(size(ecalibModel.R,1)==3)
+            pointTemp = world2cam(ecalibModel.Rinv*[m';-cbh*ones(1,size(m,1))],calibModel)';
+        else
+            pointTemp = world2cam([ecalibModel.R'*m';-cbh*ones(1,size(m,1))],calibModel)'; % we get the corresponding direction on a unit-sphere at first.
+        end
+        pointImage = [pointTemp(:,2),pointTemp(:,1)]-1;
+    end
+
+    function pointReal = getImage2Real(m,calibModel,ecalibModel,cbh)
+        % here we project a set of points given in m onto a plane that is cbh meters away from the camera the used convention in opencv is [column,row] kind of
+        % represantation for pixel points, here however we change that to [row,column]
+        R_earth = 6378100; 
+        pointTemp = cam2world([m(:,2),m(:,1)]',calibModel); % we get the corresponding direction on a unit-sphere at first.
+        pointReal = zeros(size(pointTemp,2),2); % we crate the array that will contain the projected positions
+        if(size(ecalibModel.R,1)==3)
+            pointTemp = ecalibModel.R*pointTemp;
+            alphas = (pi/2) - atan2(-pointTemp(3,:),sqrt(pointTemp(1,:).^2 + pointTemp(2,:).^2));
+            heights = (-2*R_earth*cos(alphas) + sqrt((2*R_earth*cos(alphas)).^2 + 4*(cbh^2+2*cbh*R_earth)))/2;
+            pointReal = (pointTemp(1:2,:).*repmat(heights,2,1))';
+        else
+            pointReal = ((ecalibModel.R*pointTemp(1:2,:)).*repmat((-cbh./pointTemp(3,:)),2,1))'; % here we map the point on the unit-sphere onto the plane
+        end
+    end
+
+    function pointImage = getReal2Image(m,calibModel,ecalibModel,cbh)
+        % here we project a set of points given in m back onto the image plane. The used convention in opencv is [column,row] kind of
+        % represantation for pixel points, here however we change that to [row,column]
+        R_earth = 6378100; 
+        if(size(ecalibModel.R,1)==3)
+            heights = sqrt((R_earth+cbh)^2-(m(:,1).^2 + m(:,2).^2))-R_earth;
+            pointTemp = world2cam(ecalibModel.Rinv*[m';-heights'],calibModel)';
+        else
+            pointTemp = world2cam([ecalibModel.R'*m';-cbh*ones(1,size(m,1))],calibModel)'; % we get the corresponding direction on a unit-sphere at first.
+        end
+        pointImage = [pointTemp(:,2),pointTemp(:,1)]-1;
+    end
+
+    function createNewTracks()
+        % here we create new tracks for the obbservations that are not
+        % assigned to any existing tracks
+        
+        % first we filter out the necessary information corresponding to
+        % unassigned observations. kind of information should be obvious
+        % from looking at the name
+        avgSpeed = [0,0];
+        avgSpeedProj = [0,0];
+        for j = 1:length(tracks)
+            avgSpeed = avgSpeed + 1/length(tracks)*tracks(j).obsSpeed;
+            avgSpeedProj = avgSpeedProj + 1/length(tracks)*tracks(j).obsSpeedProj;
+        end
+        
+        centroidsU = centroids(unassignedDetections, :);
+        centroidsProjU = centroidsProj(unassignedDetections, :);
+        bboxesU = bboxes(unassignedDetections, :);
+        bboxesProjU = bboxesProj(unassignedDetections, :);
+        areasU = areas(unassignedDetections, :);
+        areasProjU = areasProj(unassignedDetections, :);
+        contoursU = contours(unassignedDetections);
+        contoursProjU = contoursProj(unassignedDetections);
+        % for each unassigned observation we loop
+        for i = 1:size(centroidsU, 1)
+            
+            % we get the information correponding to the ith observation.
+            % kind of inforamtion should be obvious looking at the name
+            centroid = centroidsU(i,:);
+            centroidProj = centroidsProjU(i,:);
+            bbox = bboxesU(i, :);
+            bboxProj = bboxesProjU(i, :);
+            contour = vertcat(contoursU{1,i}{1,:});
+            contour = contour - repmat(centroid,size(contour,1),1);
+            contourProj = vertcat(contoursProjU{1,i}{1,:});
+            contourProj = contourProj - repmat(centroidProj,size(contourProj,1),1);
+            
+            area = areasU(i);
+            areaProj = areasProjU(i);
+            % create the kalman filter with the initial parameters. Order
+            % and the correspondance of the inputs are given by the below
+            % signature of the initialization function. This filter is used
+            % for tracking purposes on the image plane.
+            % SimpleKF(init_x,sigma_p,sigma_q,sigma_r,type,m,time)
+            if(~isempty(unassignedDetectionsToTracks) && sum(unassignedDetectionsToTracks(:,2)==unassignedDetections(i))>0)
+                trackIdx = unassignedDetectionsToTracks(unassignedDetectionsToTracks(:,2)==unassignedDetections(i),1);
+                assignIdx = assignments(assignments(:,1)==trackIdx,2);
+                tracks(trackIdx).kalmanFilter.State(tracks(trackIdx).kalmanFilter.state_to_x) = centroids(assignIdx,:);
+                
+                kalmanFilter = tracks(trackIdx).kalmanFilter;
+                kalmanFilter.State(kalmanFilter.state_to_x) = centroid';
+                kalmanFilter = kalmanFilter.Update(centroid',double(area));
+                centroid = kalmanFilter.x';
+            else    
+                %kalmanFilter = SimpleKF([centroid,avgSpeed],0.6,[0.01,0.01],1e1,trackOption,double(area),1);
+                kalmanFilter = SimpleKF(centroid,0.6,[0.01,0.01],1e1,trackOption,double(area),1);
+            end
+            
+            % to track on the projected plane, we initialize another kalman
+            % filter. The order of the input are the same as the previous
+            % one.
+            %kalmanFilterProj = SimpleKF(centroidProj,(obj.cbh^2/300^2)*1e1,(obj.cbh^2/300^2)*[1e3,1e2],(obj.cbh^2/300^2)*1e3,trackOption,double(areaProj),1);
+            if(~isempty(unassignedDetectionsToTracks) && sum(unassignedDetectionsToTracks(:,2)==unassignedDetections(i))>0)
+                trackIdx = unassignedDetectionsToTracks(unassignedDetectionsToTracks(:,2)==unassignedDetections(i),1);
+                assignIdx = assignments(assignments(:,1)==trackIdx,2);
+                tracks(trackIdx).kalmanFilterProj.State(tracks(trackIdx).kalmanFilterProj.state_to_x) = centroidsProj(assignIdx,:);
+                
+                kalmanFilterProj = tracks(trackIdx).kalmanFilterProj;
+                kalmanFilterProj.State(kalmanFilterProj.state_to_x) =  centroidProj';
+                kalmanFilterProj = kalmanFilterProj.Update(centroidProj',double(areaProj));
+                centroidProj = kalmanFilterProj.x';
+            else
+                %kalmanFilterProj = SimpleKF([centroidProj,avgSpeedProj],(obj.cbh^2/300^2)*1e2,(obj.cbh^2/300^2)*[9e4,1e3],(obj.cbh^2/300^2)*2e4,trackOption,double(areaProj),1);
+                kalmanFilterProj = SimpleKF(centroidProj,(obj.cbh^2/300^2)*1e2,(obj.cbh^2/300^2)*[9e4,1e3],(obj.cbh^2/300^2)*2e4,trackOption,double(areaProj),1);
+                %kalmanFilterProj = SimpleKF_v2(centroidProj,0.9,[0.01,0.15],1e1,trackOption,obj.cbh,1);
+            end
+            
+            % create a new track
+            newTrack = struct(...
+                'id', nextId, ... % id of the track
+                'cbh', obj.cbh, ... % effective cbh assumed for the track
+                'bbox', bbox, ... % the bounding box corresponding to object, on the image axis
+                'bboxProj', bboxProj, ... % the bounding box corresponding to object, projected onto real-world axis
+                'kalmanFilter', kalmanFilter, ... % kalman filter corresponding to this object
+                'kalmanFilterProj', kalmanFilterProj, ... % kalman filter corresponding to this object, projected onto real-world axis
+                'age', 1, ... % how old the track is
+                'totalVisibleCount', 1, ... % for how many cycles do we get an observation on this track
+                'consecutiveInvisibleCount', 0, ... % if we cannot observe it, for how many previous steps we could not
+                'xspeed', 0, ... % a variable for keeping one directional speed in image plane
+                'yspeed', 0, ... % a variable for keeping one directional speed in image plane
+                'predSpeed', [0,0], ... % a variable keeping the 2D predicted speed in image plane
+                'obsSpeed', avgSpeed, ... % a variable keeping the 2D observed speed in image plane
+                'obsSpeedProj', avgSpeedProj, ... % a variable keeping the 2D observed speed in projected plane
+                'area', double(area), ... % a variable keeping the area of the tracked object
+                'areaProj', double(areaProj), ... % a variable keeping the area of the tracked object
+                'contour', contour, ... % a variable keeping the relevant contour points on the image plane
+                'contourProj', contourProj, ... % a variable keeping the relevant contour points on the real world coordinates
+                'speedFilter', LinearFilter(10,2), ... % a filter for the observed speed on the image plane
+                'positionFilter', LinearFilter(5,2), ... % a filter for the position on the image plane
+                'centroidFilter', LinearFilter(1,2), ... % a filter for the centroid on the image plane
+                'centroidProjFilter', LinearFilter(1,2), ... % a filter for the centroid on the real plane
+                'massFilter', LinearFilter(10,1), ... % a filter on the predicted mass (not used)
+                'massFilterProj', LinearFilter(10,1), ... % a filter on the predicted mass (not used)
+                'centroid', centroid, ... % the representative position of the center of the object on the image plane
+                'centroidObs', centroid, ... % the representative observed position of the center of the object on the image plane
+                'centroidProj', centroidProj, ... % the representative position of the center of the object on the projected plane
+                'centroidProjObs', centroidProj, ... % the representative observed position of the center of the object on the projected plane
+                'predCentroid', centroid, ... % prediction on the representative position of the center of the object on the image plane
+                'predCentroidProj', centroidProj, ... % prediction on the representative position of the center of the object on the projected plane
+                'prevCentroid', centroid, ... % previous centroid position on the image plane
+                'prevCentroidProj', centroidProj); % previous centroid position on the projected plane
+            
+            
+            % add it to the array of tracks
+            tracks(end + 1) = newTrack;
+            
+            % increment the next id
+            nextId = nextId + 1;
+        end
+    end
+
+    function createNewPerfs()
+        persOcc = repmat(obj.occState,size(obj.occlusionValues));
+        persIrr =  obj.irradianceValues_cs' ./ (persOcc*obj.attOcc + (1-persOcc)*obj.attCs);
+        newPerf = struct(...
+            'frameDateNum', datenum(obj.frameDateVec(1:6)'),...
+            'frameCount', obj.frameCount,...
+            'times', obj.irradianceTimes',...
+            'persOcc', persOcc,...
+            'algOcc', obj.occlusionValues,...
+            'mesOcc', obj.occValues',...
+            'persIrr', persIrr,...
+            'algIrr', obj.irradianceValues_est',...
+            'csIrr', obj.irradianceValues_cs',...
+            'mesIrr', obj.irradianceValues',...
+            'mesCov1000', obj.occCov1000,...
+            'mesCov500', obj.occCov500,...
+            'mesCov100', obj.occCov100);
+        perfs(end+1) = newPerf;
+        %'persIrr', repmat(obj.irrMs,size(obj.occlusionValues)),...
+        %'persOcc', repmat(obj.occState,size(obj.occlusionValues)),...
+    end
+
+    function displayTrackingResults()
+        %         % convert the frame and the mask to uint8 RGB
+        %         frame = im2uint8(frame);
+        %
+        %         mask = uint8(repmat(mask, [1, 1, 3])) .* 255;
+        %
+        if(~obj.predict)
+            minVisibleCount = 1;
+            if ~isempty(tracks)
+                
+                % noisy detections tend to result in short-lived tracks
+                % only display tracks that have been visible for more than
+                % a minimum number of frames.
+                reliableTrackInds = ...
+                    [tracks(:).totalVisibleCount] > minVisibleCount;
+                reliableTracks = tracks(reliableTrackInds);
+                
+                % display the objects. If an object has not been detected
+                % in this frame, display its predicted bounding box.
+                if ~isempty(reliableTracks)
+                    % get bounding boxes
+                    bboxes = cat(1, reliableTracks.bbox);
+                    realKals = cat(1,reliableTracks.kalmanFilterProj);
+                    %!!!!! pay attention !!!!!
+                    realProjs = cat(1,realKals.x);
+                    ids = cat(1,reliableTracks.id);
+                    % get ids
+                    %                 ids = int32([reliableTracks(:).id]);
+                    %                 xspeeds = [reliableTracks(:).xspeed];
+                    %                 yspeeds = [reliableTracks(:).yspeed];
+                    
+                    % create labels for objects indicating the ones for
+                    % which we display the predicted rather than the actual
+                    % location
+                    %                 labels = cellstr(int2str(ids'));
+                    %                 xlspeeds = cellstr(num2str(xspeeds',2));
+                    %                 ylspeeds = cellstr(num2str(yspeeds',2));
+                    
+                    %predictedTrackInds = ...
+                    %    [reliableTracks(:).consecutiveInvisibleCount] > 0;
+                    %isPredicted = cell(size(labels));
+                    %isPredicted(predictedTrackInds) = {' predicted'};
+                    %space = {', '};
+                    %                 labels = strcat(labels, ', x: ', xlspeeds, ', y: ', ylspeeds);
+                    
+                    predictedTrackInds = ...
+                        [reliableTracks(:).consecutiveInvisibleCount] > 0;
+                    
+                    newTrackInds = ...
+                        [reliableTracks(:).consecutiveInvisibleCount] <= 0 & [reliableTracks(:).age] <= 5;
+                    trackedTrackInds = ...
+                        [reliableTracks(:).consecutiveInvisibleCount] <= 0 & [reliableTracks(:).age] > 5;
+                    if(conditionShowResults)
+                        if (sum(predictedTrackInds)>0)
+                            bboxColor = 'r';
+                            % draw on the mask
+                            mask = objectAnnotation(mask, 'Rectangle', bboxes(predictedTrackInds,:),bboxColor,3);
+                            %mask = objectAnnotation(mask, 'Text', [ids(predictedTrackInds,:),bboxes(predictedTrackInds,1:2)],bboxColor,3);
+                        end
+                        if (sum(trackedTrackInds)>0)
+                            bboxColor = 'y';
+                            % draw on the mask
+                            mask = objectAnnotation(mask, 'Rectangle', bboxes(trackedTrackInds,:),bboxColor,3);
+                            %mask = objectAnnotation(mask, 'Text', [ids(trackedTrackInds,:),bboxes(trackedTrackInds,1:2)],bboxColor,3);
+                        end
+                        if (sum(newTrackInds)>0)
+                            bboxColor = 'g';
+                            % draw on the mask
+                            mask = objectAnnotation(mask, 'Rectangle', bboxes(newTrackInds,:),bboxColor,3);
+                            %mask = objectAnnotation(mask, 'Text', [ids(newTrackInds,:),bboxes(newTrackInds,1:2)],bboxColor,3);
+                        end
+                    end
+                    % draw on the mask
+                    %mask = objectAnnotation(mask, 'Rectangle', bboxes,bboxColor,4);
+                    
+                    % draw on the frame
+                    frame = cv.drawContours(frame,contours,'Color',[255 255 0],'Thickness',3);
+                    predFrame = cv.drawContours(predFrame,contours,'Color',[0 255 0],'Thickness',3);
+                end
+            end
+            allPredContours = [predCloudContours,predShadowContours];
+            colors = [repmat('b',size(predCloudContours)),repmat('g',size(predShadowContours))];
+            % draw on the mask
+            
+            %mask = objectAnnotation(mask, 'Rectangle', bboxes);
+            
+            % draw on the frame
+            %frame = cv.drawContours(frame,contours,'Color',[255 255 0]);
+            
+            % display the mask and the frame
+            if(conditionShowResults)
+                obj.maskPlayer.Step(mask);
+            end
+            obj.videoPlayer.Step(frame);
+            obj.predPlayer.Step(predFrame);
+            obj.mapPlayer = obj.mapPlayer.Step(allPredContours,colors);
+            if(obj.gifMode)
+                frame1 = obj.videoPlayer.GetFrame();
+                frame2 = obj.maskPlayer.GetFrame();
+                frame3 = obj.predPlayer.GetFrame();
+                %pause(0.02);
+                frame4 = obj.mapPlayer.GetFrame();
+                ff = [frame1,frame2;frame3,frame4];
+                if(mod(obj.frameCount-obj.frameRate,50*obj.frameRate)<=obj.frameRate)
+                    [ffind,cm] = rgb2ind(ff,256);
+                    imwrite(ffind,cm,strcat(obj.frameRecordImageName,'.gif'),'gif', 'Loopcount',inf);
+                else
+                    [ffind,cm] = rgb2ind(ff,256);
+                    imwrite(ffind,cm,strcat(obj.frameRecordImageName,'.gif'),'gif', 'WriteMode','append');
+                end
+            end
+        else
+            minVisibleCount = 1;
+            if ~isempty(tracks)
+                
+                % noisy detections tend to result in short-lived tracks
+                % only display tracks that have been visible for more than
+                % a minimum number of frames.
+                reliableTrackInds = ...
+                    [tracks(:).totalVisibleCount] > minVisibleCount;
+                reliableTracks = tracks(reliableTrackInds);
+                
+                % display the objects. If an object has not been detected
+                % in this frame, display its predicted bounding box.
+                if ~isempty(reliableTracks)
+                    % get bounding boxes
+                    bboxes = cat(1, reliableTracks.bbox);
+                    realKals = cat(1,reliableTracks.kalmanFilterProj);
+                    %!!!!! pay attention !!!!!
+                    realProjs = cat(1,realKals.x);
+                    ids = cat(1,reliableTracks.id);
+                    % get ids
+                    %                 ids = int32([reliableTracks(:).id]);
+                    %                 xspeeds = [reliableTracks(:).xspeed];
+                    %                 yspeeds = [reliableTracks(:).yspeed];
+                    
+                    % create labels for objects indicating the ones for
+                    % which we display the predicted rather than the actual
+                    % location
+                    %                 labels = cellstr(int2str(ids'));
+                    %                 xlspeeds = cellstr(num2str(xspeeds',2));
+                    %                 ylspeeds = cellstr(num2str(yspeeds',2));
+                    
+                    %predictedTrackInds = ...
+                    %    [reliableTracks(:).consecutiveInvisibleCount] > 0;
+                    %isPredicted = cell(size(labels));
+                    %isPredicted(predictedTrackInds) = {' predicted'};
+                    %space = {', '};
+                    %                 labels = strcat(labels, ', x: ', xlspeeds, ', y: ', ylspeeds);
+                    
+                    predictedTrackInds = ...
+                        [reliableTracks(:).consecutiveInvisibleCount] > 0;
+                    
+                    newTrackInds = ...
+                        [reliableTracks(:).consecutiveInvisibleCount] <= 0 & [reliableTracks(:).age] <= 5;
+                    trackedTrackInds = ...
+                        [reliableTracks(:).consecutiveInvisibleCount] <= 0 & [reliableTracks(:).age] > 5;
+                    if(conditionShowResults)
+                        if (sum(predictedTrackInds)>0)
+                            bboxColor = 'r';
+                            % draw on the mask
+                            mask = objectAnnotation(mask, 'Rectangle', bboxes(predictedTrackInds,:),bboxColor,3);
+                            mask = objectAnnotation(mask, 'Text', [ids(predictedTrackInds,:),bboxes(predictedTrackInds,1:2)],bboxColor,3);
+                        end
+                        if (sum(trackedTrackInds)>0)
+                            bboxColor = 'y';
+                            % draw on the mask
+                            mask = objectAnnotation(mask, 'Rectangle', bboxes(trackedTrackInds,:),bboxColor,3);
+                            mask = objectAnnotation(mask, 'Text', [ids(trackedTrackInds,:),bboxes(trackedTrackInds,1:2)],bboxColor,3);
+                        end
+                        if (sum(newTrackInds)>0)
+                            bboxColor = 'g';
+                            % draw on the mask
+                            mask = objectAnnotation(mask, 'Rectangle', bboxes(newTrackInds,:),bboxColor,3);
+                            mask = objectAnnotation(mask, 'Text', [ids(newTrackInds,:),bboxes(newTrackInds,1:2)],bboxColor,3);
+                        end
+                    end
+                    % draw on the mask
+                    %mask = objectAnnotation(mask, 'Rectangle', bboxes,bboxColor,4);
+                    
+                    % draw on the frame
+                    frame = cv.drawContours(frame,contours,'Color',[255 255 0],'Thickness',3);
+                    predFrame = cv.drawContours(predFrame,contours,'Color',[0 255 0],'Thickness',3);
+                end
+            end
+            %allPredContours = [predCloudContours,predShadowContours];
+            %colors = [repmat('b',size(predCloudContours)),repmat('g',size(predShadowContours))];
+            % draw on the mask
+            
+            %mask = objectAnnotation(mask, 'Rectangle', bboxes);
+            
+            % draw on the frame
+            %frame = cv.drawContours(frame,contours,'Color',[255 255 0]);
+            if(conditionShowResults)
+                % display the mask and the frame
+                obj.maskPlayer.Step(mask,obj.frameDateStr);
+            end
+            %obj.videoPlayer.Step(frame);
+            obj.predPlayer.Step(predFrame,obj.frameDateStr);
+            %obj.mapPlayer = obj.mapPlayer.Step(allPredContours,colors);
+            if(obj.gifMode)
+                frame1 = obj.videoPlayer.GetFrame();
+                frame2 = obj.maskPlayer.GetFrame();
+                frame3 = obj.predPlayer.GetFrame();
+                pause(0.02);
+                frame4 = obj.mapPlayer.GetFrame();
+                ff = [frame1,frame2;frame3,frame4];
+                if(mod(obj.frameCount-obj.frameRate,50*obj.frameRate)<=obj.frameRate)
+                    [ffind,cm] = rgb2ind(ff,256);
+                    imwrite(ffind,cm,strcat(obj.frameRecordImageName,'.gif'),'gif', 'Loopcount',inf);
+                else
+                    [ffind,cm] = rgb2ind(ff,256);
+                    imwrite(ffind,cm,strcat(obj.frameRecordImageName,'.gif'),'gif', 'WriteMode','append');
+                end
+            end
+            % if we are dumping to a webseite.
+            textColor = 'g';
+            irradianceValues = obj.cbh;
+            %irradianceValues = obj.irradianceValues(end);
+            value_positions = [repmat(70,1,length(irradianceValues));70:35:70+((length(irradianceValues)-1)*35)];
+            frame = objectAnnotation(frame, 'Text', [irradianceValues, value_positions'], textColor,3);
+            obj.videoPlayer.Step(frame,obj.frameDateStr);
+            obj.plotPlayerGHI.Step([obj.irradianceTimes,obj.irradianceValues,obj.irradianceTimes_cs,obj.irradianceValues_cs],strcat('Time Relative to ', obj.frameDateStr, ' (Min.)') ,'Irradiance (W/m2)','Irradiance Value Changes',['Measured ';'Clear-Sky']);
+            obj.plotPlayerPV.Step([obj.irradianceTimes,obj.irradianceValues,obj.irradianceTimes,obj.irradianceValues_est],strcat('Time Relative to ', obj.frameDateStr, ' (Min.)') ,'Irradiance (W/m2)','Irradiance Value Changes',['Measured ';'Predicted']);
+            %obj.plotPlayerPV.Step([obj.powerTimes,obj.powerValues],strcat('Time Relative to ', obj.frameDateStr, ' (Min.)') ,'Power (W)','Power Production Value Changes');
+            %obj.plotPlayerTemp.Step([obj.tempTimes,obj.tempValues],strcat('Time Relative to ', obj.frameDateStr, ' (Min.)') ,'Temperature (degrees)','Temperature Value Changes');
+            obj.plotPlayerTemp.Step([obj.occTimes,obj.occValues,obj.occlusionTimes',obj.occlusionValues'],strcat('Time Relative to ', obj.frameDateStr, ' (Min.)') ,'Occlusion (binary)','Occlusion Value Changes',['Measured ';'Predicted']);
+            allPredContours = [predCloudContours,predShadowContours];
+            colors = [repmat('b',size(predCloudContours)),repmat('g',size(predShadowContours))];
+            obj.mapPlayer = obj.mapPlayer.Step(allPredContours,colors);
+            if(obj.vid_r)
+                ff11 = obj.videoPlayer.GetFrame();
+                ff12 = obj.maskPlayer.GetFrame();
+                ff13 = obj.predPlayer.GetFrame();
+                ff21 = obj.plotPlayerGHI.GetFrame();
+                ff22 = obj.plotPlayerPV.GetFrame();
+                ff23 = obj.plotPlayerTemp.GetFrame();
+                ff = [ff11,ff12,ff13;ff21,ff22,ff23];
+                writeVideo(obj.vidObj, ff);
+            end
+            if(obj.gifMode)
+                frame1 = obj.videoPlayer.GetFrame();
+                frame2 = obj.plotPlayerGHI.GetFrame();
+                frame3 = obj.plotPlayerPV.GetFrame();
+                frame4 = obj.plotPlayerTemp.GetFrame();
+                ff = [frame1,frame2;frame3,frame4];
+                %imwrite(ff,strcat(obj.frameRecordName,'.jpg'));
+                if(mod(obj.frameCount-1,20)==1)
+                    [ffind,cm] = rgb2ind(ff,256);
+                    imwrite(ffind,cm,strcat(obj.frameRecordImageName,'.gif'),'gif', 'Loopcount',inf);
+                    fid = fopen(strcat(obj.frameRecordPageName,'.html'),'w');
+                    fprintf(fid, '%s\n', strcat('<img src="', strcat(obj.frameRecordImagePageName,'.gif'), '" alt="the file here">'));
+                    fclose(fid);
+                else
+                    [ffind,cm] = rgb2ind(ff,256);
+                    imwrite(ffind,cm,strcat(obj.frameRecordImageName,'.gif'),'gif', 'WriteMode','append');
+                end
+            else
+                if(mod(obj.frameCount-1,20)==1)
+                    frame1 = obj.videoPlayer.GetFrame();
+                    frame2 = obj.plotPlayerGHI.GetFrame();
+                    frame3 = obj.plotPlayerPV.GetFrame();
+                    frame4 = obj.plotPlayerTemp.GetFrame();
+                    ff = [frame1,frame2;frame3,frame4];
+                    imwrite(ff,strcat(obj.frameRecordImageName,'.jpg'));
+                    fid = fopen(strcat(obj.frameRecordPageName,'.html'));
+                    fprintf(fid, '%s\n', strcat('<img src="', strcat(obj.frameRecordImagePageName,'.jpg'), '" alt="the file here">'));
+                    fclose(fid);
+                end
+                
+            end
+            if(obj.WebPageMode) 
+                skyFrame = frame;
+                mapProjClouds = imread(model3D.fileName);
+%                 if(obj.live)
+%                     delete([pathRelativeSaveImages '*.jpeg']);
+%                 end
+                if ~isempty(reliableTracks)
+                    skyFrame = cv.drawContours(frame,predContours,'Color',[255 0 0],'Thickness',3);
+                    obj.skyPlayer.Step(skyFrame);
+%                   figure(8), imshow(skyFrame); %change this to another specific handle later.
+                    imwrite(skyFrame, [pathRelativeSaveImages obj.frameNameStr '_sky.jpeg']);
+                    currentShadowContours = cell(1,length(tracks));
+                    for i = 1:length(tracks)
+                        shadowContours = [tracks(i).contourProj+repmat(tracks(i).centroidProj+obj.shadowDisp_d,size(tracks(i).contourProj,1),1)];
+                        currentShadowContours{1,i} = num2cell(shadowContours, 2)';
+                    end
+                    obj.mapProjCloudsPlayer.Step({predShadowContours currentShadowContours},{[255 0 0] [0 0 255]}, {[pathRelativeSaveImages obj.frameNameStr]});    
+%                     obj.mapProjCloudsPlayer.Step(currentShadowContours,[0 0 255]); 
+% remove the predShadowContoursOnGround variable from all over the code. .Step(allPredContours,colors);
+                else %reliable tracks are empty, save default images.
+                    imwrite(skyFrame, [pathRelativeSaveImages obj.frameNameStr '_sky.jpeg']);
+                    imwrite(modelImage, [pathRelativeSaveImages obj.frameNameStr '_map.jpeg']);
+                end
+                
+%                 mapProjClouds = obj.mapProjCloudsPlayer.getMapFrame();
+%                 imwrite(mapProjClouds,
+%                 'C:\Users\CHFIOEZ\programs\xampp\htdocs\images\map.jpeg');
+%                 %file is written within the ModPlayer.m
+                
+            end
+            
+        end
+    end
+
+end

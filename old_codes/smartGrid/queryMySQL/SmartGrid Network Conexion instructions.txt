@@ -1,0 +1,10 @@
+1. Connect to WLan:
+Network ID : A88551DVL690WLAN
+password: UseSm@rtGrid!
+
+2. Add queryMySQL to MATLAB Path
+
+3. Run the stcripts:
+	queryExampleSmartGrid
+	VISMO_forecast.m
+	

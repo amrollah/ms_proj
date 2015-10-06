@@ -1,0 +1,31 @@
+/* Hello. This file is made for easing up the debugging process of the algorithm. You'll see that most of the variables' names follow a structure.
+This list here is intended to cover the most frequently used variable naming conventions. 
+Note that the list is not exhaustive.
+Firat Ozdemir 11.08.2014 */
+
+Cs: Clear sky
+att: attribute
+Occ: occlusion 
+irr: irradiance reading
+DB: database
+est: estimation
+th: threshold
+Temp: temperature
+CBH/cbh: Cloud Base Height
+GHI: Global Horizontal Irradiance 
+Proj: same variable projected on real world coordinates (x,y,z). Otherwise on image plane (u,v)
+Obs: observed
+rwc: real world coordinates
+
+
+Note: timeseries function in MATLAB takes a long time (several seconds) given the data is long.
+
+OTHER ABBREVIATIONS WITHIN THE SCOPE OF THE PROJECT:
+CBH: Cloud Base Height
+GHI: Global Horizontal Irradiance
+NWP: Numerical Weather Prediction (not used)
+CSL: Clear Sky Library
+SP: Sunshine Parameter
+RBR: Red to Blue Ratio
+R-B: Red to Blue difference
+LCL: Lifting Condensation Level (same as CBH): 1500m for now.

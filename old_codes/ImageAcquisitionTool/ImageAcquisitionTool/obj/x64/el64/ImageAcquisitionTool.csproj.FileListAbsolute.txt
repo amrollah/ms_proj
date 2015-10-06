@@ -1,0 +1,5 @@
+C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\bin\x64\el64\ImageAcquisitionTool.exe
+C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\bin\x64\el64\ImageAcquisitionTool.pdb
+C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\obj\x64\el64\ResolveAssemblyReference.cache
+C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\obj\x64\el64\ImageAcquisitionTool.exe
+C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\obj\x64\el64\ImageAcquisitionTool.pdb

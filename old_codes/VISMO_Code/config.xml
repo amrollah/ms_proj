@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<properties>
+    <algorithm>
+        <imageFolder>C:\Users\chamsei\Documents\old_code\ImageAcquisitionTool\ImageAcquisitionTool\bin\Debug\Images\2013\08\SunTest</imageFolder>
+        <live>0</live>
+        <verbose>1</verbose>
+        <record>0</record>
+        <dataPath>0</dataPath>
+        <predict>1</predict>
+        <videoName>hello.avi</videoName>
+        <recordVideo>0</recordVideo>
+        <saveImages>1</saveImages>
+        <pathRelativeSaveImages>C:\Users\chamsei\Documents\old_code\VISMO_Code\SunPatchTestImages</pathRelativeSaveImages>
+    </algorithm>
+    <data>
+        <calibModel>calib_model_01_2014_v2.mat</calibModel>
+        <ecalibModel>extrinsic_calib_model_08_2013.mat</ecalibModel>
+        <imageMask>image_mask_01_2014.mat</imageMask>
+        <Model3D>model3D_Bigger.mat</Model3D>
+        <weatherData>weatherData.mat</weatherData>
+        <sunPattern>sunPattern3.jpg</sunPattern>
+        <GHIData>PVGHIData_plus_CSK.mat</GHIData>
+    </data>
+    <parameters>
+        <horizon>25</horizon>
+        <frameRate>4</frameRate>
+        <rgbThreshold>100</rgbThreshold>
+        <rbrThreshold>0.72</rbrThreshold>
+        <gbrThreshold>0.8</gbrThreshold>
+        <circumsolarSize>200</circumsolarSize>
+        <suneliminationSize>80</suneliminationSize>
+    </parameters>
+</properties>

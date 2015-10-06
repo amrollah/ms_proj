@@ -1,0 +1,7 @@
+C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\bin\Debug\ImageAcquisitionTool.exe
+C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\bin\Debug\ImageAcquisitionTool.pdb
+C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\obj\x86\Debug\ImageAcquisitionTool.exe
+C:\Users\chbuzey\Documents\Visual Studio 2010\Projects\ImageAcquisitionTool\ImageAcquisitionTool\obj\x86\Debug\ImageAcquisitionTool.pdb
+C:\Users\CHFIOEZ\Documents\git\cloudtracking\codes\ImageAcquisitionTool\ImageAcquisitionTool\obj\x86\Debug\ImageAcquisitionTool.exe
+C:\Users\CHFIOEZ\Documents\git\cloudtracking\codes\ImageAcquisitionTool\ImageAcquisitionTool\obj\x86\Debug\ImageAcquisitionTool.pdb
