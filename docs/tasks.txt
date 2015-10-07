@@ -1,0 +1,13 @@
+net use u: \\CHRD-SRV-C105\E C105User /USER:CHRD-SRV-C105\C105
+
+These are the notes for tasks during the master thesis
+
+Goals:
+1:: Design(improve) the power prediction based on three components: direct sun, diffuse irradiatio (from sky atmosphere-i.e clear regions of sky), reflected irradiance (from clouds)
+The current model only predicts based on direct irradiance
+
+2:: Consider weather conditions and etc. in creating power curve for a clear-sky day. Currently it only accounts for time of year, but we need to consider weather conditions, temperature, moisture in the atmosphere, short-time past history of PV plant power, 
+
+3:: Consider shades coming from clouds which are not directly occluding sun (from camera point of view) but actually are blocking sublight for other parts of PV plant. Since the plant is big (maybe 100km), we have to consider shades from all clouds in the sky.
+Currently a 3d model based on cloud-base-height is used for this purpose, but it's not accurate because of difficalty of 3d modeling for this scenario. Instead, we want to use machine learning approch for predicting the projected location of clouds on the ground, 
+or even predict the power directly from traininig data (without projecting the clouds on ground). That would be a pure machine learning approch for this part. Ideally it will be integrated to our normal predictor model.
