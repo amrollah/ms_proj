@@ -1,0 +1,5 @@
+add this line to scipts which shound run under python3
+#!c:/Python35/python3.exe -u
+
+Fisheye model book:
+https://books.google.ch/books?id=0NS6BQAAQBAJ&lpg=PA247&ots=S2NJFSyihb&dq=azimuth%20and%20elevation%20on%20%22fisheye%22&pg=PA250#v=onepage&q=azimuth%20and%20elevation%20on%20%22fisheye%22&f=false

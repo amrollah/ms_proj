@@ -515,7 +515,7 @@ function opts = getargs(varargin)
     %
 
     % default values
-    opts.opencv_path = 'C:\opencv';  % OpenCV location
+    opts.opencv_path = 'C:\opencv\build\';  % OpenCV location
     opts.opencv_contrib = false;     % optional/extra OpenCV modules
     opts.clean = false;              % clean mode
     opts.test = false;               % unittest mode

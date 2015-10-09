@@ -19,11 +19,13 @@
 %video_name = 'C:/Users/chbuzey/Documents/Visual Studio 2010/Projects/ImageAcquisitionTool/ImageAcquisitionTool/bin/Debug/Images/2013/05/14'; % the name of the stream file (video or a collection of images)
 %video_name = 'C:/Users/chbuzey/Documents/Visual Studio 2010/Projects/ImageAcquisitionTool/ImageAcquisitionTool/bin/Debug/Images/2013/06/28';
 %video_name = 'C:/Users/chbuzey/Documents/Visual Studio 2010/Projects/ImageAcquisitionTool/ImageAcquisitionTool/bin/Debug/Images/2013/08/13';
+addpath(genpath('../../../mexopencv-master')); %MATLAB within ABB gives error with the default path. bear this with me each time..
+addpath(genpath('../../Utils'));
 
 %video_name = 'C:\Users\chbuzey\Documents\MATLAB\Archive\Validation Sequences\Model Validation\1';
 %video_name = 'E:\06\calib12';
 %video_name = 'E:\VISMO IMAGES\2013\08\ecalib_set';
-video_name = 'E:\VISMO IMAGES\2013\08\04';
+video_name = 'C:\data\04';
 save_name = 'extrinsic_calib_model_08_2013';
 %video_name = 'C:/Users/chbuzey/Documents/Visual Studio 2010/Projects/ImageAcquisitionTool/ImageAcquisitionTool/bin/Debug/Images/2013/07/21';
 %video_name = 'C:/Users/chbuzey/Documents/Visual Studio 2010/Projects/ImageAcquisitionTool/ImageAcquisitionTool/bin/Debug/Images/2013/06/06'; % the name of the stream file (video or a collection of images)
@@ -123,7 +125,8 @@ cd '../../Validation/Model Calibration'
 %frameRate = 50;
 %extrinsicCameraCalibrationValidation(video_name,ocam_model,ecam_model,model3D,image_mask,sunPattern,live,frameRate,R);
 %video_name = 'C:\Users\chbuzey\Documents\MATLAB\Archive\Validation Sequences\Model Validation\1';
-video_name = 'E:\06\calib12';
+%video_name = 'E:\06\calib12';
+video_name = 'C:\data\04_validation';
 load 'calib_model_01_2014_v2.mat';
 load 'extrinsic_calib_model_06_2014.mat';
 %load 'extrinsic_calib_model_tuned.mat';
@@ -215,7 +218,7 @@ cbh_up = 5;
 cbh_scale = 100/cbh_up;
 for i = cbh_low:cbh_up
     cbh_given = cbh_base * i * cbh_scale;
-    video_name = 'C:\Users\chbuzey\Documents\MATLAB\Archive\Validation Sequences\Model Validation\1';
+    video_name = 'C:\data\12';
     [pix_err1,pix_err2,pix_errR1,pix_errR2,pix_errR3,pix_errR4,pix_errR5,pix_errR6] = extrinsicCameraCalibrationValidation(video_name,ocam_model,ecam_model,model3D,image_mask,sunPattern,live,frameRate,R,cbh_given);
     mean_bb_err_pix1(i) = mean(pix_err1);
     mean_bb_err_pix2(i) = mean(pix_err2);
@@ -369,7 +372,7 @@ sunPattern = imread('sunPattern3.jpg');
 frameRate = 50;
 live = 0;
 cbh_given = 100;
-video_name = 'C:\Users\chbuzey\Documents\MATLAB\Archive\Validation Sequences\Model Validation\1';
+video_name = 'C:\data\12';
 frame_res = extrinsicCameraCalibrationAvg(video_name,ocam_model,ecam_model,model3D,image_mask,sunPattern,live,frameRate,R,cbh_given);
 
 
