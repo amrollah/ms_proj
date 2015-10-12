@@ -27,7 +27,7 @@
 function [sunPositionDetected,sunPositionReal,matchQual] = extrinsicCameraCalibration(image_folder,calibModel,ecalibModel,model3D,imageMask,sunPattern,live,frameRate)
 % create system objects used for 2reading video, detecting moving objects,
 % and displaying the results
-
+disp_images = false;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % initialization of the key variables that are used as part of a model
 
@@ -54,15 +54,23 @@ end
 
 iterator = 1;
 % This is the main loop of the program
-while obj.frameCount < obj.finalFrame
+while obj.frameCount <= obj.finalFrame
     frame = readFrame();  % readFrame function returns the image, that is in order, from the buffer folder if this is not live, or the recording folder that is determined during the setup
     % This takes time, because it matches the sun pattern in the image, so
     % we run it not so frequently...
     [sunPosition,matchQual(:,iterator)] = getSunPosition(frame,sunPattern);
-    sunPositionDetected(:,iterator) = cam2world([sunPosition(2);sunPosition(1)],obj.calibModel);
-    sunPositionReal(:,iterator) = getSunPositionReal(obj.m
-    odel3D);
+    sunPositionDetected(:,iterator) = cam2world([sunPosition(1);sunPosition(2)],obj.calibModel);
+    sunPositionReal(:,iterator) = getSunPositionReal(obj.model3D);
+    sunPositionReal_on_image = world2cam(sunPositionReal(:,iterator), obj.calibModel);
+    if (disp_images)
+        figure;
+        imshow(frame);
+        hold on;
+        plot(sunPosition(1),sunPosition(2),'Marker','o', 'MarkerSize',10, 'MarkerFaceColor','b');
+        plot(sunPositionReal_on_image(1),sunPositionReal_on_image(2),'Marker','o', 'MarkerSize',10, 'MarkerFaceColor','g');
+    end
     iterator = iterator + 1;
+    hold off;
 end
 
     function obj = setupSystemObjects(image_folder,live,model3D,calibModel,ecalibModel,imageMask,cbh,frameRate)
@@ -135,7 +143,13 @@ end
         if(length(obj.im_list) >= obj.frameCount) % if there are still some images to be read
             obj.frameName = char(strcat(obj.reader, '/', obj.im_list(obj.frameCount)));
             frame = imread(obj.frameName);  % read the image directly, no need for the lock operations
+            try
+                frame = imresize(frame,[1800 1800]);
+            catch    
+                frame = cv.resize(frame, [1800 1800]);
+            end
             frameNameStr = strtok(char(obj.im_list(obj.frameCount)),'.'); % seperate the file type extension, get the date info
+            frameNameStr = strrep(frameNameStr, '_Debevec', '');
             frameDateVec = strread(frameNameStr,'%d','delimiter','_'); % get the date vector elements, in integer, corresponding to day, month etc.
             obj.frameDateVec = frameDateVec;
             obj.frameCount = obj.frameCount + obj.frameRate;
@@ -143,7 +157,7 @@ end
             frame = []; % if no more frames in the recording, directly terminate
             display('Done reading strored images... Terminating...');
         end
-        frame(~obj.imageMask) = 0;  % we eliminate the parts that are angularly behind the camera observation point
+        %frame(~obj.imageMask) = 0;  % we eliminate the parts that are angularly behind the camera observation point
     end
     
     function [contours, contoursProj,areas, centroids, centroidsProj, bboxes, bboxesProj, mask] = detectObjects(frame)
@@ -211,7 +225,8 @@ end
     function sunPositionReal = getSunPositionReal(model3D)
         DN = datenum(obj.frameDateVec(1:6)');
         Time = pvl_maketimestruct(DN, model3D.UTC);
-        [SunAz, ~, ApparentSunEl, ~]=pvl_ephemeris(Time, model3D.Location);
+        %[SunAz, ~, ApparentSunEl, ~]=pvl_ephemeris(Time, model3D.Location);
+        [SunAz, ~, ApparentSunEl]=pvl_spa(Time, model3D.Location);
         zenith = 90-ApparentSunEl;
         azimuth = SunAz;
         [x,y,z] = sph2cart((90-azimuth)*deg2radf,(90-zenith)*deg2radf,1);
