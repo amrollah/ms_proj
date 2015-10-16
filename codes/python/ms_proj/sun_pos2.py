@@ -25,3 +25,5 @@ solpos.plot()
 # calculate clear sky data
 tus_cs = pvlib.clearsky.ineichen(times, tus, airmass_model='young1994')
 tus_cs.plot()
+
+

@@ -3,3 +3,29 @@ add this line to scipts which shound run under python3
 
 Fisheye model book:
 https://books.google.ch/books?id=0NS6BQAAQBAJ&lpg=PA247&ots=S2NJFSyihb&dq=azimuth%20and%20elevation%20on%20%22fisheye%22&pg=PA250#v=onepage&q=azimuth%20and%20elevation%20on%20%22fisheye%22&f=false
+
+
+
+
+
+
+http://toolbox.webservice-energy.org/service/wps
+
+
+POST http://www.soda-pro.com/portlets-common/cgi-bin/proxy.py?url=http%3A%2F%2Ftoolbox.webservice-energy.org%2Fservice%2Fwps HTTP/1.1
+Host: www.soda-pro.com
+Proxy-Connection: keep-alive
+Content-Length: 1860
+Origin: http://www.soda-pro.com
+X-Requested-With: XMLHttpRequest
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36
+Content-Type: application/xml
+Accept: */*
+DNT: 1
+Referer: http://www.soda-pro.com/web-services/radiation/mcclear
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.8,fa;q=0.6,ar;q=0.4
+Cookie: COOKIE_SUPPORT=true; JSESSIONID=26640E3BF35EF0D88147721913A3EAB5; USER_UUID=8pzW+BUcMunmeUDCITuJwNsUfs/1pH/4; GUEST_LANGUAGE_ID=en_US; LFR_SESSION_STATE_139225=1444834046848
+
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><wps:Execute service="WPS" version="1.0.0" xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.opengis.net/wps/1.0.0 wpsExecute_request.xsd"><ows:Identifier>get_mcclear</ows:Identifier><wps:DataInputs><wps:Input><ows:Identifier>latitude</ows:Identifier><wps:Data><wps:LiteralData>43.5654</wps:LiteralData></wps:Data></wps:Input><wps:Input><ows:Identifier>longitude</ows:Identifier><wps:Data><wps:LiteralData>11.5373</wps:LiteralData></wps:Data></wps:Input><wps:Input><ows:Identifier>altitude</ows:Identifier><wps:Data><wps:LiteralData>-999</wps:LiteralData></wps:Data></wps:Input><wps:Input><ows:Identifier>date_begin</ows:Identifier><wps:Data><wps:LiteralData>2004-01-01</wps:LiteralData></wps:Data></wps:Input><wps:Input><ows:Identifier>date_end</ows:Identifier><wps:Data><wps:LiteralData>2004-01-31</wps:LiteralData></wps:Data></wps:Input><wps:Input><ows:Identifier>time_ref</ows:Identifier><wps:Data><wps:LiteralData>UT</wps:LiteralData></wps:Data></wps:Input><wps:Input><ows:Identifier>summarization</ows:Identifier><wps:Data><wps:LiteralData>PT15M</wps:LiteralData></wps:Data></wps:Input><wps:Input><ows:Identifier>verbose</ows:Identifier><wps:Data><wps:LiteralData>false</wps:LiteralData></wps:Data></wps:Input><wps:Input><ows:Identifier>username</ows:Identifier><wps:Data><wps:LiteralData>a.seif67@gmail.com</wps:LiteralData></wps:Data></wps:Input></wps:DataInputs><wps:ResponseForm><wps:ResponseDocument lineage="false" storeExecuteResponse="false" status="false"><wps:Output asReference="true"  mimeType="text/csv"><ows:Identifier>irradiation</ows:Identifier></wps:Output></wps:ResponseDocument></wps:ResponseForm></wps:Execute>
