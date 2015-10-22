@@ -94,3 +94,9 @@ com_crashlytics_export_strings.xml
 crashlytics.properties
 crashlytics-build.properties
 fabric.properties
+*.asv
+*.cfe
+*.cfs
+*.si
+*segments.gen
+lib/PV_LIB Version 1_2 Release/html/helpsearch-v3/segments_1

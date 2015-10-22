@@ -10,7 +10,7 @@ classdef vmlSeq < handle
     oi;             %original image info
     mfi;            %median filtered image info
     sz;             %size of the original image
-    calib;          %camera calib
+    calib;          %camera caliblocatio
     strtitle;       %title, typically day as a string
     dt_day;         %day in date time
     dplane;         %min pixel distance on plane
