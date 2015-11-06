@@ -1,0 +1,57 @@
+ver. 1.2.1
+October 6, 2015
+* Function m5pout now has the ability to display how the tree deals with unknown values. To enable, set the new input argument dealWithNaN to true.
+* Some code optimizations in functions m5pbuild and m5ppredict.
+* In the previous version, the smoothing process was moved from prediction phase (in predictsingle) to building phase (in m5pbuild) but it still could not make smoothed model trees to be able to resolve unknown data values without redoing the smoothing during the prediction. In this version, smoothing in m5pbuild is done for all possible situations. As a result, the data structure for built trees is greatly simplified, computations for prediction are slightly faster, and m5pout can display how a tree deals with unknown values even if the tree is a smoothed model tree.
+* Reverted the changes from M5PrimeLab version 1.0.1 because Octave already supports all tic/toc use cases.
+* For ensembles, m5pbuild now reports OOBNum (number of times observations were out-of-bag).
+* More accurate computations in m5ppredict (and therefore in m5ptest and m5pcv) for ensembles.
+
+ver. 1.2.0
+September 26, 2015
+* M5PrimeLab now has the ability to grow ensembles of trees using Bagging and Random Forests.
+  All the functions of M5PrimeLab are updated so that they can handle ensembles (except m5pout).
+  A new function for configuring ensembles is added: m5pparamsensemble.
+  Functions m5pbuild and m5pcv have additional input argument for configuration of ensembles.
+  Function m5pbuild has an additional output argument for results specific to ensembles.
+  When ensembles are handled, functions m5pbuild, m5ppredict, m5ptest, and m5pcv change dimensionality of some of their output arguments.
+* Overhauled m5ptest and m5pcv to make them more useful and convenient.
+  Output argument structure for both functions has changed.
+  m5pcv has additional output argument for reporting results on each Cross-Validation fold separately.
+  m5ptest and m5pcv now reports MAE.
+  m5ptest, and consequently m5pcv, now outputs -Inf instead of Inf for Coefficient of Determination when the number of observations in test data is 1.
+  Order of input arguments for m5pcv has changed.
+* Input argument binCat for functions m5pbuild and m5pcv is changed to logical isBinCat to simplify indication of binary/categorical variables.
+* m5pparams: Removed redundant parameter smoothing and renamed smoothing_k to smoothingK. Smoothing is now by default enabled.
+* Smoothing is now done in m5pbuild as a post-processing task (instead of in m5ppredict each time a prediction is asked). As a result prints/plots by m5pout now reflect smoothing. The printed equations now look more complex than before because models from interior nodes are now incorporated in models of leaf nodes (although the actual predictions of the tree have not changed). Disable smoothing if you want to see more interpretable trees.
+  Note that m5ppredict still does smoothing from scratch if NaN is encountered.
+* Careful study of source code for M5' in Weka revealed a number of differences from Quinlan's and Wang & Witten's papers. The most notable difference is that, at the pruning phase, expected error compensation for a subtree is much more aggressive. M5PrimeLab now has additional parameter in m5pparams called aggressivePruning (false by default) that penalizes subtrees in the same aggressive fashion as Weka's implementation. With this option enabled, the pruned trees are usually much more smaller than those pruned with this option disabled. This can be helpful for interpretation but the trees can also turn out underfitted.
+* Updated how function m5pbuild handles missing values so that it is done exactly like in the Wang & Witten's paper. SDR is calculated only using observations for which the value of the splitting attribute is known while observations with unknown values are divided according to observations that are nearest to the split point.
+* Dropping of terms in regression models is now done only when pruning is enabled.
+* The data structure for built trees is slightly simplified as well as changed to incorporate all the mentioned new stuff.
+* m5pout tree plots now look better.
+* Added three new private functions in separate .m files used from the main functions.
+* Got rid of some unnecessary computations in m5pbuild.
+* Various other minor code updates.
+* Many documentation updates. Added more information about M5' parameters. Updated the example of usage as well as added a new one for building ensembles.
+
+ver. 1.1.0
+July 11, 2015
+* m5pout now has the ability to plot the tree.
+* Minor modifications in function descriptions in code as well as in reference manual, hopefully making them more clear.
+* Slightly expanded section 'Example of usage' in user's manual as well as some additional touch-ups in other sections.
+
+ver. 1.0.2
+May 16, 2015
+* m5pbuild had a nested loop reusing an index variable used by the outer loop. This is essentially just a cosmetic change because this does not influence results in any way.
+* Some minor cosmetic changes to the source code according to the 'best practices'. Some additional comments.
+* Some minor modifications in function descriptions in code as well as in reference manual, hopefully making them more clear.
+* Some additional user's manual touch-ups.
+
+ver. 1.0.1
+September 3, 2010
+* A tiny change so that M5PrimeLab is fully compatible with Octave: "ttt=tic;" is replaced by "tic;" and "time = toc(ttt);" is replaced by "time = toc;" (Thanks to Dr. Julio J. Valdes for reminding me about Octave community.)
+
+ver. 1.0
+April 9, 2010
+* First public release.

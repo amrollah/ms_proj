@@ -7,7 +7,7 @@ x1 = dir([conf.basefolder folder '\*.7z']);
 for i=1:length(x1)
   j = strfind(x1(i).name,folder1);
   if ~isempty(j), idstr = x1(i).name(12:j-2); end
-  cmd = ['7z x -y -o' conf.basefolder folder ' ' conf.basefolder folder '\' x1(i).name];
+  cmd = ['"C:\Program Files\7-Zip\7z.exe" x -y -o' conf.basefolder folder ' ' conf.basefolder folder '\' x1(i).name];
   disp(cmd);
   system(cmd);
 end
@@ -15,11 +15,14 @@ end
 datalogfile = [conf.basefolder folder '\' folder '_data.log'];
 if exist(datalogfile,'file')
   disp(['READING FROM DATA LOGGER FILE ' datalogfile]);
-  [x1,tx1] = swallowcsv(datalogfile,' ');
-  tx1_times=cellfun(@(s)textscan(s,'%f','delimiter',':'),tx1(:,2));
+  %[x1,tx1] = swallowcsv(datalogfile,' ');
+  fid = fopen(datalogfile);
+  x1 = textscan(fid, '%s%s%f%f%f%f%f%f','delimiter',' ');
+  fclose(fid);
+  tx1_times=cellfun(@(s)textscan(s,'%f','delimiter',':'),x1{1,2});
   tm = tm1+([3600 60 1]*cat(2,tx1_times{:})/86400)';
-  data_Irr = [tm x1(:,5:6)];
-  data_Temp = [tm x1(:,7:8)];
+  data_Irr = [tm x1{1,5} x1{1,6}];
+  data_Temp = [tm x1{1,7} x1{1,8}];
 else 
   disp(['MISSING DATA LOGGER FILE ' datalogfile]);
   data_Irr = [];
@@ -29,7 +32,11 @@ end
 powerfile = [conf.basefolder folder '\' idstr '-' folder1 '.txt'];
 if ~isempty(idstr) && exist(powerfile,'file')
   disp(['READING FROM POWER LOG FILE ' powerfile]);
-  x1 = swallowcsv(powerfile,char(9));
+  fid = fopen(powerfile);
+  x1 = textscan(fid, '%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f','delimiter',' ');
+  fclose(fid);
+  x1 = cell2mat(x1);
+  %x1 = swallowcsv(powerfile,char(9));
   tm = tm1+x1(:,1)/86400;
   pp = x1(:,[2 12 22 32]);
   psum = sum(pp,2);

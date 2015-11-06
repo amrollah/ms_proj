@@ -1,5 +1,8 @@
 close all; clear all; clc;
 
+%% settings
+save_figs = false;
+
 %% Path of data
 % folder of McClear export files
 mcclear_path = 'C:\data\mcclear\';
@@ -18,10 +21,11 @@ days = dir(cav_data_path); % get all content of Cavriglia image folder
 days = days(vertcat(days.isdir)); % filter only folders
 days = days(8:end-1); % skip first 5 folders (first two are . and .., data of next 5 are corrupted) and skip last folder, because log data is not still transfered for current day.
 
-RMSE_mat = cell(size(days,1),2); % the array to store RMSE values for each day
-RMSE_mat(:) = {NaN};
-start_date = '2015_08_28';
+RMSE_mat = {}; % the array to store RMSE values for each day
+start_date = days(1).name; % '2015_08_28'; % if not wish to provide a start_date, just replace the specific date with days(d).name;
+end_date = '2015_10_22'; % we don't consider days after this date
 start_date_found = false;
+day_counter = 1; % counter for days which we decide to compare and store RMSE
 
 %%% loop over all days
 for d=1:size(days,1)
@@ -48,7 +52,6 @@ catch
     % the file does not exist or is corrupted; so we skip this day
     continue;
 end
-RMSE_mat{d,1} = date;
 
 %% plot complete version of log data in a temp figure just to see if current day is a clear sky or not. 
 % We don't continue to next steps for mostly cloudy days.
@@ -111,14 +114,15 @@ while i<=n
     counter = counter + 1;
 end
 adj_data_est = adjust_mcclear(data_est(:,1) + data_est(:,2));
-
+RMSE_mat{day_counter,1} = date;
 
 %% plot real log data and mcclear estimated data for current day
 f = figure(d);
-h(1) = plot((1:counter-1),data_real, '--b');
+h(1) = plot((1:counter-1),data_real(1:counter-1), '--b');
 hold on;
 ylim([0, max(max(data_real), max(adj_data_est)) + 30]);
-h(2) = plot((1:counter-1),adj_data_est, '--r');
+h(2) = plot((1:counter-1),adj_data_est(1:counter-1), '--r');
+h(2) = plot((1:counter-1),adjust_mcclear(data_est(1:counter-1,2)), '--g');
 legend([h(1),h(2)],{'Real data'; 'McClear'}); 
 xtick2 = 1:100:size(data_est_label,2);
 set(gca, 'XTick', xtick2, 'XTickLabel',data_est_label(1,xtick2));
@@ -133,9 +137,15 @@ end_t = numel(data_real); %300; %end of time index
 % calc the RMSE error for estimated data
 rmse=sqrt(mean((data_real(begin_t:end_t)'-adj_data_est(begin_t:end_t,1)).^2));
 rmse_percent = rmse/mean(data_real(begin_t:end_t))*100;
-RMSE_mat{d,2} = rmse_percent;
-fprintf('RMSE: %f', rmse_percent);
+RMSE_mat{day_counter,2} = rmse_percent;
+day_counter = day_counter + 1;
+fprintf('RMSE: %f\n', rmse_percent);
 
-saveas(f, strcat(local_cav_data_path, date, '.jpg'));
+if (save_figs)
+    saveas(f, strcat(local_cav_data_path, date, '.jpg'));
+end
+if strcmp(end_date, date)
+     break;
+end
 end
 save('RMSE_mat.mat', 'RMSE_mat');

@@ -11,3 +11,7 @@ The current model only predicts based on direct irradiance
 3:: Consider shades coming from clouds which are not directly occluding sun (from camera point of view) but actually are blocking sublight for other parts of PV plant. Since the plant is big (maybe 100km), we have to consider shades from all clouds in the sky.
 Currently a 3d model based on cloud-base-height is used for this purpose, but it's not accurate because of difficalty of 3d modeling for this scenario. Instead, we want to use machine learning approch for predicting the projected location of clouds on the ground, 
 or even predict the power directly from traininig data (without projecting the clouds on ground). That would be a pure machine learning approch for this part. Ideally it will be integrated to our normal predictor model.
+
+sun_detection does not have satisfactory accuracy over horizon points and I need to adjust the result in that area with a function. The parameters for that function depend on distance from midday position of sun and also
+the day. Although the day is kind of accounted for in the distance to midday position of sun but this does not seem enough. So, either I should change the type of function to increase effect of distance or I need to incorporate it as a different parameter.
+I'm currently replacing the position with visually detected sun position when their RMSE is below a threshold.

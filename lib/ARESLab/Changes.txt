@@ -1,0 +1,148 @@
+ver. 1.10.1
+October 14, 2015
+* To end some possible confusion with the argument c of function aresparams, its default value is changed to -1. Using this value, means that the actual value for c will be chosen automatically according to Friedman, 1991a, so that c = 2 for additive modelling (when maxInteractions=1) and c = 3 otherwise (when maxInteractions>1). For anyone who used default value for c in previous versions, the default behaviour does not change. This update just gets rid of the c=2*c/3 formula that was used to modify the user's provided non-default value for c when maxInteractions was set to 1. From this version on, any provided non-negative value will be exactly the one used for calculating GCV, even if maxInteractions=1.
+* The values in the structure model.trainParams (in the first output argument returned by aresbuild) now are set according to all the automatic choices done in aresbuild (with the exception of useMinSpan, because in automatic mode it is calculated for each parent basis function separately). Consequently, variable model.endSpan is removed because it would always be equal to model.trainParams.useEndSpan.
+* Changed the list of input and output arguments for function arescv. The order of arguments has changed.
+  Removed input arguments cvc_cTry and cvc_k.
+  Added new input argument nCross.
+  Added new input argument evalPruning and new output argument resultsPruning.
+* New functionality for arescv: using Cross-Validation to select the number of basis functions for the final model (maxFinalFuncs). See the new example of usage in user's manual for details.
+* A new input argument for function arescvc: nCross. The order of arguments has changed.
+* A new input argument and a new output argument for function aresbuild: dataEval, resultsEval. This is mainly to be used from arescv. The order of arguments has changed.
+* A little code optimization in function createbasisfunction.
+* Fixed a bug: some calculations in the backward phase ignored the provided weights vector.
+
+ver. 1.10.0
+September 30, 2015
+* Overhauled arestest, arescv, and arescvc to make them more useful and convenient.
+  Order of input arguments for functions arescv and arescvc has changed.
+  Output argument structures for all the functions has changed.
+  arescv has additional output argument for reporting results on each Cross-Validation fold separately.
+  arescvc changed so that the results are easier to average for stability.
+  arestest and arescv now reports MAE.
+  Added a new input argument for arescv and arescvc: testWithWeights.
+  arestest, and consequently arescv, now outputs -Inf instead of Inf for Coefficient of Determination when the number of observations in test data is 1.
+* Added a new function: aresdel.
+* Function aresanovareduce now also reduces matrix model.X (if it exists).
+* Reworked function aresanova according to a little newer Friedman's paper (Friedman, 1991b). Added relative variable importance assessment. The function now also handles weights.
+* Updated function aresplot: for datasets with one input variable the function now plots knot locations and the graphs themselves are more accurate.
+* Changed the default value for hideCubicSmoothing in function areseq to true. The outputted cell array is now a column array.
+* If verbose=true, aresbuild now also prints the number of input variables in the final model as well as lists them.
+* Clarified termination messages in aresbuild and remarks on termination conditions in user's manual.
+* Got rid of some unnecessary computations in aresbuild.
+* Reverted the changes from ARESLab version 1.4.1 because Octave already supports all tic/toc use cases.
+* Fixed a bug in aresbuild: pruning for multi-response modelling was essentially disabled.
+* Various other minor code updates.
+* Added some more clarifications on the arguments of different ARESLab functions. Updated and extended examples of usage as well as made various other user's manual updates.
+
+ver. 1.9.0
+September 7, 2015
+* Function aresbuild now builds multi-response models if Ytr has more than one column. The result is a cell array of models, one for each response variable. Each model has the same set of basis functions but different coefficients.
+* Updated other ARESLab functions so that they can handle cell arrays of models, where applicable.
+* Updated function aresbuild so that if weights vector is supplied the vector is also used for checking the "threshold" stopping criterion (i.e., calculates RSS and variance using weights). This can result in slightly different models than before.
+* Updated functions arestest, arescv, and arescvc so that if weights vector is supplied the functions use the weights not only for training data cases but also for validation data cases.
+* Function arescvc now outputs MSE for the best found value of c.
+* A new argument for function areseq: hideCubicSmoothing.
+* Various other minor code updates.
+* A few user's manual updates.
+
+ver. 1.8.2
+June 8, 2015
+* A new parameter for aresbuild: keepX. Set it to true if you want to retain the matrix model.X of values of basis functions applied to Xtr.
+* Fixed a little bug: aresbuild starting from version 1.7 printed some text ignoring verbose=false.
+* Fixed an obscure bug that arised in two very specific situations with cubicFastLevel<2: 1) If function aresbuild was used with modelOld and arguments cubic=true and cubicFastLevel=1 while modelOld was built with prune=false and then rebuild with prune=true. In this case the resulting model had wrong additional knot sites. 2) If function arescvc was used together with cubic=true and cubicFastLevel<2. In this case the most complex considered model could get wrong GCV value sometimes forcing to select suboptimal model complexity resulting in suboptimal value for "best" c. Note that this applies only to piecewise-cubic modelling situations where cubicFastLevel was set to something other than the default (and recommended) value 2.
+
+ver. 1.8.1
+June 2, 2015
+* Bugfix: Function createList in aresbuild in version 1.8 sometimes didn't assign any value to its output argument idxEnd2 resulting in error message. (Thanks to Peter Sephton for spotting this.)
+
+ver. 1.8
+June 2, 2015
+* Implemented the Fast MARS algorithm to make the forward phase considerably faster. Fast MARS is off by default.
+* Three new arguments for aresparams: fastK, fastBeta, fastH. All three are for configuration of Fast MARS. As a side effect, the order of arguments for the function has changed.
+* Got rid of some unnecessary computations and matrix resizing in aresbuild.
+* One new argument for areseq allowing to print the real names of variables instead of the generic ones.
+
+ver. 1.7
+May 22, 2015
+* Changed how we deal with endSpan so that the implementation is even more closer to the Friedman's original paper. Previously we ignored first and last endSpan-1 potential knot sites. Now it is endSpan. This means that now to allow all x values to be knot sites you should set endSpan to 0 (instead of 0 or 1) and minSpan to 0 or 1.
+* Changed how we deal with minSpan so that the implementation is even more closer to Milborrow's Earth package version 4.3.0. Knots are now placed symmetrically so that there are approximately equal number of skipped cases at each end of data intervals.
+As a result of these two modifications knot placements will be slightly different than before. However, in most cases there won't be any significant changes to the predictive performance of built models.
+* Changed the default value of maxFuncs argument to the same as in Earth version 4.3.0: maxFuncs = min(200, max(20, 2 * d)) + 1, where d is number of input variables.
+* Two new arguments for aresparams: endSpanAdjust and newVarPenalty. See description of aresparams for details. The working principles of these are the same as in Earth version 4.3.0.
+* Function aresbuild now outputs reasons for termination of forward phase (if verbose is set to true).
+* A few additional source code clean-ups.
+* Updated first example of usage in user's manual to show usage of arescvc.
+* User's manual touch-ups.
+
+ver. 1.6
+May 17, 2015
+* Fixed a bug in functions arescv and arescvc: if weights vector was provided the functions failed and gave a wrong error message. (Thanks to Marko Wilke for spotting this.)
+* Due to the popular use of default arguments for aresparams, changed the default value of maxFuncs from 21 to 101 (could be more useful for some problems).
+* Some minor cosmetic changes to the source code according to the 'best practices'.
+* Some minor modifications of aresparams description in code as well as in user's manual, hopefully making it more clear.
+* Some additional user's manual touch-ups.
+
+ver. 1.5.1
+June 2, 2011
+* Fixed two little bugs in functions aresanova and aresanovareduce: the functions crashed when piecewise-linear models were used due to 'null index in null matrix' while accessing t1 and t2. (Thanks to Nir Yosef for spotting this.)
+
+ver. 1.5
+September 15, 2010
+* Fixed a bug in function areseq: there was a wrong sign in the first type of hinge functions.
+* Now areseq can print piecewise-cubic models.
+* Upgraded the license to GPL ver. 3.
+
+ver. 1.4.1
+September 3, 2010
+* A tiny change so that ARESLab is fully compatible with Octave: "ttt=tic;" is replaced by "tic;" and "time = toc(ttt);" is replaced by "time = toc;". (Thanks to Julio J. Valdes for reminding me about Octave community.)
+
+ver. 1.4
+May 28, 2010
+* Added a function for ANOVA decomposition.
+* Added a function for plotting graphical representation of the ANOVA functions enabling to visualize individual and joint contributions of input variables.
+
+ver. 1.3.2
+May 5, 2010
+* Fixed a bug in function aresbuild: the function could not properly handle situation when a row in Xtr contained all identical values (e.g., all zeros).
+
+ver. 1.3.1
+April 20, 2010
+* Functions arescv and arescvc now have a proper handling of situation when trainParams is not supplied - a new trainParams with the default values is generated using function aresparams.
+* Some other minor code touch-ups.
+* Some user's manual touch-ups.
+
+ver. 1.3
+December 11, 2009
+* Now the minSpan and endSpan values can be set manually (changed the default value for useMinSpan and useEndSpan arguments from "true" to "-1" which means "automatic").
+* Fixed a bug in the forward phase: on rare occasions model coefficients were wrongly computed as NaN.
+* Some user's manual touch-ups.
+
+ver. 1.2.1
+December 1, 2009
+* Added information about the installation process of the toolbox.
+* Some user's manual touch-ups.
+
+ver. 1.2
+November 18, 2009
+* Additional training parameter for the backward phase: maxFinalFuncs
+
+ver. 1.1.1
+November 13, 2009
+* Added some clarifications on GCV calculation and arescvc function in user's manual.
+* Some additional comments in the code.
+
+ver. 1.1
+November 11, 2009
+* For the piecewise-cubic modelling, now the final model will be piecewise-cubic (cubic=true) even if prune=false and cubicFastLevel=2.
+* The cubicFastLevel is no longer reset to 0 if no piecewise-cubic modelling is used.
+* Function aresbuild now has one more optional argument - modelOld - a previously built model which is to be pruned using the backward phase algorithm (useful for fast selection of the "best" penalty c value using Cross-Validation).
+* Added new function arescvc for fast selection of the "best" penalty c value using Cross-Validation and MSE.
+* The "effective number of parameters" term in GCV is no longer used as a stopping criterion (in the forward phase), instead just the number of model coefficients (including the intercept term) is used. This means that in the forward phase models can get considerably larger (if allowed by maxFuncs) while in the backward phase they will be pruned small either way. This will result in slightly different models and slower computations for large maxFuncs values as larger models may be considered.
+* Modified arescv function so that two Cross-Validation loops may be performed inside each other - one for evaluation of predictive performance (arescv) and one for selection of the "best" c value (using arescvc).
+* Some other minor code touch-ups.
+* Some user's manual touch-ups.
+
+ver. 1.0
+November 9, 2009
+* First public release.

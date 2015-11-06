@@ -1,8 +1,8 @@
 from time import strptime, strftime
 import csv
 
-filename_mcclear = 'C:\data\mcclear\irradiation-clear_sky_cav_2015_till_september.csv'
-mcclear_out = 'C:\data\mcclear\irradiation-clear_sky_cav_2015_till_september_old_v2.csv'
+filename_mcclear = 'C:\data\mcclear\irradiation-clear_sky_cav_2013.csv'
+mcclear_out = 'C:\data\mcclear\irradiation-clear_sky_cav_2013_v2.csv'
 
 # t = strptime("2015-08-09T09:40:00.0", "%Y-%m-%dT%H:%M:%S.0")
 # df = strftime("%d-%m-%Y %H:%M:%S", t)
