@@ -128,7 +128,9 @@ if any(strcmp(defaultchecker,p.UsingDefaults))
     % lookup. Note that the numbers within the matrix are 20 * Linke
     % Turbidity, so divide the number from the file by 20 to get the
     % turbidity.
-    load('LinkeTurbidities.mat');
+    
+    %load('LinkeTurbidities.mat');  % commented by Amrollah, because of
+    %time considerations. Made it global variable and load once.
     
     % Find the appropriate indices for the given Latitude and Longitude
     LatitudeIndex = round(LinearlyScale(Location.latitude, 90, -90, 1, 2160));

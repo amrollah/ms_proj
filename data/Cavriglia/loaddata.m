@@ -7,12 +7,12 @@ x1 = dir([conf.basefolder folder '\*.7z']);
 for i=1:length(x1)
   j = strfind(x1(i).name,folder1);
   if ~isempty(j), idstr = x1(i).name(12:j-2); end
-  cmd = ['"C:\Program Files\7-Zip\7z.exe" x -y -o' conf.basefolder folder ' ' conf.basefolder folder '\' x1(i).name];
+  cmd = ['"C:\Program Files\7-Zip\7z.exe" x -y -o' conf.tmpfolder folder ' ' conf.basefolder folder '\' x1(i).name];
   disp(cmd);
   system(cmd);
 end
 
-datalogfile = [conf.basefolder folder '\' folder '_data.log'];
+datalogfile = [conf.tmpfolder folder '\' folder '_data.log'];
 if exist(datalogfile,'file')
   disp(['READING FROM DATA LOGGER FILE ' datalogfile]);
   %[x1,tx1] = swallowcsv(datalogfile,' ');
@@ -29,7 +29,7 @@ else
   data_Temp = [];
 end
 
-powerfile = [conf.basefolder folder '\' idstr '-' folder1 '.txt'];
+powerfile = [conf.tmpfolder folder '\' idstr '-' folder1 '.txt'];
 if ~isempty(idstr) && exist(powerfile,'file')
   disp(['READING FROM POWER LOG FILE ' powerfile]);
   fid = fopen(powerfile);

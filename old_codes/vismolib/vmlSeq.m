@@ -28,6 +28,7 @@ classdef vmlSeq < handle
     Pclearsky;      %clear sky power model
     thres;          %data for cloud thresholding
     xcur;           %current frame for feature computation
+    ext_calib;      %external calibration matrix (R)
   end
   
   methods
@@ -115,6 +116,8 @@ classdef vmlSeq < handle
       d2 = plane_px1(:,2:end,2)-plane_px1(:,1:end-1,2);
       obj.dplane = min(min(abs(d1(~isnan(d1)))),min(abs(d2(~isnan(d2)))));
       assert(obj.dplane >= 1/max(height,width));
+      
+      obj.ext_calib = load([conf.datafolder conf.calibration{2}]);
       
       %load irradiation and power data
       run([conf.datafolder 'loaddata.m']);
@@ -1041,6 +1044,10 @@ classdef vmlSeq < handle
       %position of the sun in the world coordinates
       t = [];
       [t.year,t.month,t.day,t.hour,t.min,t.sec]=datevec(obj.ti(j));
+      % for Daylight saving
+      if ~isdst(datetime(t.year,t.month,t.day,t.hour,t.min,t.sec,'TimeZone',obj.conf.timezone))
+        t.hour = t.hour + 1;
+      end
       t.UTC = obj.calib.model3D.UTC;
       sun = sun_position(t, obj.calib.model3D.Location);
       [x,y,z] = sph2cart(sun.azimuth*pi/180,(90-sun.zenith)*pi/180,1);

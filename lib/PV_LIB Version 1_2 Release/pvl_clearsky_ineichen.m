@@ -177,6 +177,10 @@ cg2=0.0000392.*Location.altitude+0.0387;
 ClearSkyGHI = cg1.*I0.*cosd(ApparentZenith).*exp(-cg2.*AMabsolute.*(fh1+fh2.*(TL-1))).*exp(0.01.*(AMabsolute).^(1.8));
 ClearSkyGHI(ClearSkyGHI<0)=0;
 
+%% Added bt Amrollah
+ClearSkyGHI(isnan(ClearSkyGHI)) = 0 ;
+%% end of Amrollah edit
+
 b = 0.664 + 0.163 ./ fh1;
 BncI = b .* I0 .* exp(-0.09 .* AMabsolute .* (TL-1)); 
 

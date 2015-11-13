@@ -1,7 +1,11 @@
 close all; clear all; clc;
 
 %% settings
-save_figs = false;
+addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'))
+vmlconfig_cavriglia;
+conf = evalin('base','VMLCONF');
+save_figs = true;
+show_power = false;
 
 %% Path of data
 % folder of McClear export files
@@ -20,21 +24,27 @@ fclose(fid);
 days = dir(cav_data_path); % get all content of Cavriglia image folder
 days = days(vertcat(days.isdir)); % filter only folders
 days = days(8:end-1); % skip first 5 folders (first two are . and .., data of next 5 are corrupted) and skip last folder, because log data is not still transfered for current day.
+%only consider these days (because they are clear_sky)
+days  = {'2015_08_03','2015_08_04','2015_08_26','2015_09_21'};
 
 RMSE_mat = {}; % the array to store RMSE values for each day
-start_date = days(1).name; % '2015_08_28'; % if not wish to provide a start_date, just replace the specific date with days(d).name;
-end_date = '2015_10_22'; % we don't consider days after this date
+start_date = '2015_08_26'; %days(1).name; % '2015_08_28'; % if not wish to provide a start_date, just replace the specific date with days(d).name;
+end_date = '2015_11_08'; % we don't consider days after this date
 start_date_found = false;
 day_counter = 1; % counter for days which we decide to compare and store RMSE
 
 %%% loop over all days
-for d=1:size(days,1)
+for d=1:size(days,2)
 % set the date for comparison
-date = days(d).name;
-if strcmp(start_date, date) || start_date_found
+if isfield(days, 'name')
+    date = days(d).name;
+    if strcmp(start_date, date) || start_date_found
     start_date_found = true;
+    else
+        continue;
+    end
 else
-    continue;
+    date = char(days(d));
 end
 disp(date);
 
@@ -71,6 +81,7 @@ if choice==2 || choice==0
     continue;
 end;
 
+obj = vmlSeq(date,[7 19]);
 %% iterate over both files to find matching moments and extract the data
 % initalization of params
 time_shift = 2;
@@ -78,6 +89,7 @@ time_shift = 2;
 tim = char(log_data{1,2}(1));
 time = tim(1:end-3);
 last_time = time;
+
 last_time_shifted = strcat(num2str(str2double(time(1:2))-time_shift), time(3:end));
 i = 1;
 idx = 1;
@@ -116,21 +128,39 @@ end
 adj_data_est = adjust_mcclear(data_est(:,1) + data_est(:,2));
 RMSE_mat{day_counter,1} = date;
 
-%% plot real log data and mcclear estimated data for current day
+%% plot real log data and mcclear estimated data with reference from PVlib for current day
+LinkeTurbidity = prep_LinkeTurbidity(obj);
+[ClearSkyGHI, ClearSkyDNI, ClearSkyDHI] = arrayfun(@(tm) pvl_clearsky_ineichen(time_struct(obj,tm), obj.calib.model3D.Location, 'LinkeTurbidityInput', LinkeTurbidity), data_est_label(1,:));
 f = figure(d);
 h(1) = plot((1:counter-1),data_real(1:counter-1), '--b');
 hold on;
 ylim([0, max(max(data_real), max(adj_data_est)) + 30]);
 h(2) = plot((1:counter-1),adj_data_est(1:counter-1), '--r');
-h(2) = plot((1:counter-1),adjust_mcclear(data_est(1:counter-1,2)), '--g');
-legend([h(1),h(2)],{'Real data'; 'McClear'}); 
+h(3) = plot((1:counter-1),adjust_reference(ClearSkyGHI), '--g');
+%h(3) = plot((1:counter-1),adjust_mcclear(data_est(1:counter-1,2)), '--g');
+legend([h(1),h(2),h(3)],{'Real data'; 'McClear'; 'Reference'}); 
 xtick2 = 1:100:size(data_est_label,2);
 set(gca, 'XTick', xtick2, 'XTickLabel',data_est_label(1,xtick2));
 rotateXLabels(gca, 90)
 title(strcat(strrep(date, '_', '/'), ' irradiance'));
 xlabel('Time');
 ylabel('Irradiance (W/m^2)');
+
 hold off;
+
+if show_power
+%% ploting the power output
+    figure(2000);
+    plot(obj.P(:,2), '--b');
+    xtick = 1:300:size(obj.P(:,2),1);
+    set(gca, 'XTick', xtick, 'XTickLabel', arrayfun(@(tm) time_convertor(datevec(tm)), obj.P(xtick,1), 'UniformOutput', false));
+    rotateXLabels(gca, 90)
+    title(strcat(strrep(date, '_', '/'), ' power output'));
+    xlabel('Time');
+    ylabel('Power (W)');
+    choice = menu('Continue?','Yes');
+    close(2000); % close the temp figure.
+end
 
 begin_t = 1; %100; %beginging of time index
 end_t = numel(data_real); %300; %end of time index

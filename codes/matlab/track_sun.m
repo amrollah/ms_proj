@@ -2,30 +2,21 @@ close all;clear all;clc;
 addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'))
 vmlconfig_cavriglia;
 conf = evalin('base','VMLCONF');
-load([conf.datafolder 'calib.mat']);
-obj = vmlSeq('2015_09_27',[8 18]);
-visualize = true;
+%load([conf.datafolder 'calib.mat']);
+load([conf.datafolder conf.calibration{2}]);
 
-pos_m = sunpos_midday(obj);
-x = obj.imread(100);
-mid = size(x)/2;
+obj = vmlSeq('2015_08_04',[8 18]);
+visualize = false;
+
 total_rmse = 0;
 counter = 0;
-thresold = 15;
-for j=1:900:length(obj.ti)
+all_pos = [];
+for j=1:80:length(obj.ti)
     counter=counter+1;
-    Q = obj.sunpos_realworld(j);
-    pos = obj.camworld2im(R'*Q);
-    pos = sun_pos_adjuster( pos, pos_m );
-    sign_dist=sign(pos_m-pos);
-    im_pos = obj.detect_saturated_sun(j);
+    [pos, im_pos, pos_m] = sun_position_v2(obj,j,obj.ext_calib.R);
+    %im_pos = obj.detect_saturated_sun(j);
     rmse = sqrt(sum((im_pos-pos).^2));
-    if rmse<thresold
-        pos = im_pos;
-        rmse = 0;
-    end
-    cloud_detector(obj,j);
-    obj.opt_cur_thresv();
+      
     if (visualize)
         figure(counter);
         obj.showframe(j);
@@ -33,12 +24,15 @@ for j=1:900:length(obj.ti)
         plot(pos(2),pos(1),'o','markersize',10);
         plot(im_pos(2),im_pos(1),'ro','markersize',10);
     end
-    
+    all_pos(counter,:) = [pos',im_pos'];
+    sign_dist=sign(pos_m-pos);
     fprintf('%d: RMSE:%.2f  dist:%f\n', counter, rmse, sign_dist(1)*pdist([pos,pos_m]','euclidean'));
     total_rmse = total_rmse + rmse;
-    %pause(0.1);
+%     im = cloud_detector( obj, j, pos);
+%     imshow(im);
+     %pause(1);
 end
-
+%save('all_sun_pos.mat', 'all_pos');
 fprintf('Avg. RMSE:%.2f  \n', total_rmse/counter);
 
 

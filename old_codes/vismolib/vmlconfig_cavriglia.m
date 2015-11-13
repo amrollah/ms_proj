@@ -2,7 +2,8 @@ VMLCONF = [];
 VMLCONF.pad_minutes = 10;
 VMLCONF.show_dt = 30;
 VMLCONF.img_ext = '.jpeg';
-VMLCONF.basefolder = 'C:\data\cav\img\'; %'U:\HDRImages_Cavriglia\img';
+VMLCONF.basefolder = 'U:\HDRImages_Cavriglia\img\'; %'C:\data\cav\img\';
+VMLCONF.tmpfolder = 'C:\data\cav\log_data\';
 VMLCONF.datafolder = 'C:\Users\chamsei\Documents\GitHub\ms_proj\data\Cavriglia\';
 VMLCONF.img_offset = [270 250];
 %VMLCONF.sky_mask = 'image_mask_2015_01_21.mat';
@@ -10,6 +11,10 @@ VMLCONF.sky_mask = 'cavriglia_skymask.png';
 VMLCONF.calibration = {'Cavriglia_InternalCalib_20150417.mat',...
   'Cavriglia_Ecalib_20150717.mat',...
   'Cavriglia_model3D.mat'};
+VMLCONF.circumsolarSize = 50;
+VMLCONF.sun_detection_thresold = 15;
+VMLCONF.timezone = 'Europe/Rome';
+VMLCONF.cbh = 500;
 VMLCONF.clear_sky_power_model = 'Pclearsky.mat';
 VMLCONF.rsun_px = 150;
 VMLCONF.gaussblur4sundect_px = 77;

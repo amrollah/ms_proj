@@ -15,3 +15,6 @@ or even predict the power directly from traininig data (without projecting the c
 sun_detection does not have satisfactory accuracy over horizon points and I need to adjust the result in that area with a function. The parameters for that function depend on distance from midday position of sun and also
 the day. Although the day is kind of accounted for in the distance to midday position of sun but this does not seem enough. So, either I should change the type of function to increase effect of distance or I need to incorporate it as a different parameter.
 I'm currently replacing the position with visually detected sun position when their RMSE is below a threshold.
+
+compare McClear with reference model from PVLib and with measurements to see if we are getting any better accuracy from McClear
+Compare my sun_position detector with current version over different days 
