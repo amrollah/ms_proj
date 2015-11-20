@@ -1,20 +1,21 @@
-close all;clear all;clc;
+close all;
+clear all;clc;
 addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'))
 vmlconfig_cavriglia;
 conf = evalin('base','VMLCONF');
-%load([conf.datafolder 'calib.mat']);
-load([conf.datafolder conf.calibration{2}]);
 
-obj = vmlSeq('2015_08_04',[8 18]);
-visualize = false;
+%load([conf.datafolder 'calib.mat']);
+
+obj = vmlSeq('2015_11_03',[6 18]);
+visualize = true;
 
 total_rmse = 0;
 counter = 0;
 all_pos = [];
-for j=1:80:length(obj.ti)
+pos_m = sunpos_midday(obj);
+for j=300:400:length(obj.ti)
     counter=counter+1;
-    [pos, im_pos, pos_m] = sun_position_v2(obj,j,obj.ext_calib.R);
-    %im_pos = obj.detect_saturated_sun(j);
+    [pos, im_pos] = sun_position_v2(obj,j,obj.ext_calib.R);
     rmse = sqrt(sum((im_pos-pos).^2));
       
     if (visualize)
@@ -30,8 +31,16 @@ for j=1:80:length(obj.ti)
     total_rmse = total_rmse + rmse;
 %     im = cloud_detector( obj, j, pos);
 %     imshow(im);
-     %pause(1);
+    if (visualize)
+         pause(1);
+    end
 end
+figure(counter);
+obj.showframe(fix(j/2));
+hold on;
+plot(all_pos(:,2),all_pos(:,1), 'g-');
+hold on;
+plot(all_pos(:,4),all_pos(:,3), 'r-');
 %save('all_sun_pos.mat', 'all_pos');
 fprintf('Avg. RMSE:%.2f  \n', total_rmse/counter);
 

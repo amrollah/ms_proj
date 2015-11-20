@@ -12,8 +12,20 @@ VMLCONF.calibration = {'Cavriglia_InternalCalib_20150417.mat',...
   'Cavriglia_Ecalib_20150717.mat',...
   'Cavriglia_model3D.mat'};
 VMLCONF.circumsolarSize = 50;
+
+%% Amrollah conf
 VMLCONF.sun_detection_thresold = 15;
 VMLCONF.timezone = 'Europe/Rome';
+VMLCONF.adapt_window_size = 60; % past seconds which we adapt our irradiation based on
+VMLCONF.clear_sky_window = 60*2; % past and future seconds which we look into for clear sky test
+VMLCONF.irr_threshold = 7;    % threshold for irradiation  variation to determine clear sky
+VMLCONF.irr_comparison_count = 1; % number of elements that we compare in irr log to determine clear sky
+VMLCONF.diff_to_reference_irr_threshold = .30;  % thresold to detect cloudy sky based on clear sky refernce
+VMLCONF.adaptive_clearsky_reference = 1;
+VMLCONF.irr_scale = .98;
+
+%%
+
 VMLCONF.cbh = 500;
 VMLCONF.clear_sky_power_model = 'Pclearsky.mat';
 VMLCONF.rsun_px = 150;

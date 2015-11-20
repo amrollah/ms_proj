@@ -29,6 +29,14 @@ classdef vmlSeq < handle
     thres;          %data for cloud thresholding
     xcur;           %current frame for feature computation
     ext_calib;      %external calibration matrix (R)
+    sun_pos;        % adjusted sun positions for all images
+    ClearSkyRef;    % PVL reference clear-sky global,direct,diffuse irradiation
+    ClearSkyOrigRef;  % PVL reference clear-sky model without adaptation
+    is_clear_states; % clearness state for all times
+    clear_times;    % index of clear times in ti matrix
+    cloudy_times;   % index of cloudy times in ti matrix
+    difff;
+    adjuster_ei;
   end
   
   methods
@@ -117,7 +125,7 @@ classdef vmlSeq < handle
       obj.dplane = min(min(abs(d1(~isnan(d1)))),min(abs(d2(~isnan(d2)))));
       assert(obj.dplane >= 1/max(height,width));
       
-      obj.ext_calib = load([conf.datafolder conf.calibration{2}]);
+      
       
       %load irradiation and power data
       run([conf.datafolder 'loaddata.m']);
@@ -152,6 +160,25 @@ classdef vmlSeq < handle
         %day = obj.dt_day-datenum(obj.strtitle(1:4),'yyyy');
         obj.Pclearsky = x1;
       end
+           
+      LinkeTurbidity = prep_LinkeTurbidity(obj);
+      times = pvl_maketimestruct(obj.Irr(:,1), obj.calib.model3D.UTC);
+      [ClearSkyGHI,ClearSkyDNI,ClearSkyDHI] = pvl_clearsky_ineichen(times,obj.calib.model3D.Location,'LinkeTurbidityInput',LinkeTurbidity);
+   
+      obj.ClearSkyOrigRef = [obj.Irr(:,1),ClearSkyGHI*obj.conf.irr_scale,ClearSkyDNI*obj.conf.irr_scale,ClearSkyDHI*obj.conf.irr_scale]; 
+      obj.ClearSkyRef = obj.ClearSkyOrigRef;
+      % amrollah: clear-sky detection and cloudy-sky detection based on irradiation
+      % log file
+      obj.is_clear_states = arrayfun(@(t) is_clear(obj, t), obj.Irr(:,1));
+      obj.clear_times = find(obj.is_clear_states==1);
+      obj.cloudy_times = find(obj.is_clear_states<1);
+      
+      % adaptive irradiation reference
+      obj.ClearSkyRef = [obj.Irr(:,1),adjust_reference(obj,ClearSkyGHI),ClearSkyDNI.*obj.conf.irr_scale,ClearSkyDHI.*obj.conf.irr_scale];  
+          
+      obj.ext_calib = load([conf.datafolder conf.calibration{2}]);
+      % calculate sun positions for all images and store them in object
+      obj.calc_sun_positions();
       
       %do a median downscale of the image and compute the sky mask...
       [obj.mfi.sm,obj.mfi.xx,obj.mfi.yy] = ...
@@ -1039,16 +1066,63 @@ classdef vmlSeq < handle
 % end of image <-> camera world transformations
     
 %% position of the sun
-
-    function p = sunpos_realworld(obj,j)
-      %position of the sun in the world coordinates
+    function calc_sun_positions(obj)
+        pos = zeros(3,length(obj.ti));
+        [center, zenith] = sunpos_midday(obj);
+        use_corrected_pos = zeros(1,length(obj.ti));
+        pos(1,:) = obj.ti;
+        for j=1:length(obj.ti)
+            [Q, sun] = obj.sunpos_realworld_v2(j);
+            pos([2 3],j) = obj.camworld2im(obj.ext_calib.R'*Q);
+            if (sun.zenith-zenith)*zenith > 710 % this formula is empricially calculated to only consider a band close to image borders for correction
+                use_corrected_pos(j) = 1;
+            end
+        end
+         corrected_pos = obj.adjust_sun_pos(pos(2:3,:));
+         pos(2:3,:) = corrected_pos.*[use_corrected_pos;use_corrected_pos] + pos(2:3,:).*[1-use_corrected_pos;1-use_corrected_pos]; 
+         obj.sun_pos = pos;
+    end
+    function inv_rot_pos = adjust_sun_pos(obj,pos)
+        [center, min_zenith] = sunpos_midday(obj);
+        sh = .033; % the shift parameter and rotation angle is emprically set, but can be relate to min_zenith of day too.
+        theta = degtorad(130); % rotaion angle counterclockwise about the center
+        Rot = [cos(theta) -sin(theta); sin(theta) cos(theta)];
+        Rot_inv = [cos(-theta) -sin(-theta); sin(-theta) cos(-theta)];
+        
+        %center = fix((pos(:,1)+pos(:,end))/2);
+        center_pos = repmat(center, 1, size(pos,2));
+        % shift points in the plane so that the center of rotation is at the origin
+        rot_pos = Rot*(pos - center_pos) + center_pos;
+        [min_y, idx] = min(rot_pos(2,:));
+        min_x = rot_pos(1,idx);
+        rot_pos(2,:) = (rot_pos(2,:)-min_y).*1+(sh^2) + min_y;
+        rot_pos(1,:) = (rot_pos(1,:)-min_x).*(1-sh) + min_x;
+        inv_rot_pos = Rot_inv*(rot_pos - center_pos) + center_pos;
+    end
+    function t= gen_time_struct(obj,j,t_array)
       t = [];
       [t.year,t.month,t.day,t.hour,t.min,t.sec]=datevec(obj.ti(j));
+      if exist('t_array','var')
+          t.hour = t_array(1);
+          t.min = t_array(2);
+          t.sec = t_array(3);       
+      end
+      t.UTC = obj.calib.model3D.UTC;
       % for Daylight saving
       if ~isdst(datetime(t.year,t.month,t.day,t.hour,t.min,t.sec,'TimeZone',obj.conf.timezone))
         t.hour = t.hour + 1;
-      end
-      t.UTC = obj.calib.model3D.UTC;
+      end  
+    end
+    function p = sunpos_realworld(obj,j)
+      %position of the sun in the world coordinates
+      t = obj.gen_time_struct(j);
+      sun = sun_position(t, obj.calib.model3D.Location);
+      [x,y,z] = sph2cart(sun.azimuth*pi/180,(90-sun.zenith)*pi/180,1);
+      p = [x y z]';
+    end
+    function [p, sun] = sunpos_realworld_v2(obj,j)
+      %position of the sun in the world coordinates
+      t = obj.gen_time_struct(j);
       sun = sun_position(t, obj.calib.model3D.Location);
       [x,y,z] = sph2cart(sun.azimuth*pi/180,(90-sun.zenith)*pi/180,1);
       p = [x y z]';
