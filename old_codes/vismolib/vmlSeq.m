@@ -138,10 +138,6 @@ classdef vmlSeq < handle
       %assign title and day in date time format
       obj.strtitle = folder;
       obj.dt_day = datenum(obj.strtitle,'yyyy_mm_dd');
-%       figure(1);multplot(data_Power(:,1),[4-sum(pp==0,2) data_Power(:,2)],'.',{'#inverters active','Pact'});datetickzoom;
-%       assignin('base','pp',pp);
-%       assignin('base','psum',psum);
-%       assignin('base','tm',tm);
          
       %initialize data for motion vectors and power prediction
       obj.mvec = nan(2,length(obj.ti));
@@ -191,50 +187,26 @@ classdef vmlSeq < handle
       obj.mfi.ppx = spx(:,1:2)./repmat(spx(:,3),[1 2]);
       obj.mfi.ppx(~obj.mfi.sm,:) = nan;
       
-      %tiles for the local thresholding and their extension
-      nnxy = (0:obj.conf.thres.ngrid)/(obj.conf.thres.ngrid);
-      obj.thres.xxg = round(1+(size(obj.mfi.sm,2)-1)*nnxy); 
-      obj.thres.xxg(end)=obj.thres.xxg(end)+1;
-      obj.thres.yyg = round(1+(size(obj.mfi.sm,1)-1)*nnxy); 
-      obj.thres.yyg(end)=obj.thres.yyg(end)+1;
-      f = @(x)[x(1) 0.5*(x(1:end-1)+x(2:end)) x(end)];
-      %d1 = obj.conf.thres.rneigh*obj.conf.thres.nfilter/2;
-      xxg = f(1+(obj.sz(2)-1)*nnxy); %xxg(2:end-1) = xxg(2:end-1)+d1;
-      yyg = f(1+(obj.sz(1)-1)*nnxy); %yyg(2:end-1) = yyg(2:end-1)+d1;
-      [obj.thres.YYg,obj.thres.XXg] = ndgrid(yyg,xxg);
-      
-%       %on the median filtered image (mfi) and by tiles for thresholding,
-%       %list all pairs of neighboring pixels
-%       r = obj.conf.thres.rneigh;
-%       [dy,dx] = ndgrid(-floor(r):floor(r),0:floor(r));
-%       d = [dy(:) dx(:)];
-%       d(1:floor(r)+1,:) = [];
-%       d(sum(d.^2,2)>r^2,:)=[];
-%       [m,n] = size(obj.mfi.sm);
-%       obj.thres.jneigh = cell(obj.conf.thres.ngrid);
-%       nnxy(end) = 2;
-%       xxg = round(1+(size(obj.mfi.sm,2)-1)*nnxy);
-%       yyg = round(1+(size(obj.mfi.sm,1)-1)*nnxy);
-%       for ix=1:obj.conf.thres.ngrid
-%         for iy=1:obj.conf.thres.ngrid
-%           sm1 = obj.mfi.sm;
-%           sm1(1:yyg(iy)-1,:) = false; sm1(yyg(iy+1):end,:) = false;
-%           sm1(:,1:xxg(ix)-1) = false; sm1(:,xxg(ix+1):end) = false;
-%           if any(sm1(:))
-%             jneigh1 = [];
-%             for i=1:size(d,1)
-%               ktop = max(0,-d(i,1));
-%               kbot = max(0,d(i,1));
-%               n1 = n-d(i,2);
-%               j = find([false(ktop,n1); sm1(ktop+1:m-kbot,1:n1); false(kbot,n1)]);
-%               jneigh = logical(obj.mfi.sm(j+d(i,1)+m*d(i,2)));
-%               jj1 = [j(jneigh) j(jneigh)+d(i,1)+m*d(i,2)];
-%               jneigh1 = [jneigh1;[jj1 mean(obj.mfi.XX(jj1),2) mean(obj.mfi.YY(jj1),2)]]; %#ok<AGROW>
-%             end
-%             obj.thres.jneigh{iy,ix} = jneigh1;
-%           end
-%         end
-%       end
+     %tiles for the local thresholding
+      [sy,sx] = size(obj.mfi.sm);
+      rr = ((1:obj.conf.thres.ngrid)-.5)/obj.conf.thres.ngrid;
+      obj.thres.xxg = [1 round(1+(sx-1)*rr) sx]; 
+      obj.thres.yyg = [1 round(1+(sy-1)*rr) sy]; 
+      obj.thres.have_v = zeros(obj.conf.thres.ngrid);
+      for ix=1:obj.conf.thres.ngrid
+        for iy=1:obj.conf.thres.ngrid
+          if any(any(obj.mfi.sm(obj.thres.yyg(iy):obj.thres.yyg(iy+2),obj.thres.xxg(ix):obj.thres.xxg(ix+2))))
+            obj.thres.have_v(iy,ix) = 1;
+          end
+        end
+      end
+      rr = (0:obj.conf.thres.ngrid)/obj.conf.thres.ngrid;
+      obj.thres.xxgb = round(sx*rr); 
+      obj.thres.yygb = round(sy*rr); 
+      yy = obj.thres.yyg(2:end-1)-(sy+1)/2;
+      xx = obj.thres.xxg(2:end-1)-(sx+1)/2;
+      [YY,XX]=ndgrid(yy,xx);
+      obj.thres.isouter = XX.^2+YY.^2>=min(max(abs(yy)),max(abs(xx)))^2;
     end
     
     function x = imread(obj,j)
@@ -253,7 +225,7 @@ classdef vmlSeq < handle
     function P1 = getPclearsky(obj,t)
       %compute the clear sky power model for time(s) t
       tt = t(:)'-floor(obj.ti(1));
-      P1 = sim_nn_nf(obj.Pclearsky.w,tt);
+      P1 = 1;%sim_nn_nf(obj.Pclearsky.w,tt);
     end
     
     function [jZ, tpred] = getZidx(obj,tpred,accept_empty)
@@ -337,9 +309,9 @@ classdef vmlSeq < handle
       obj.xcur.x = vmlMedianDownscale(obj.xcur.x0,obj.conf.thres.nfilter);
       obj.xcur.r2b0 = vmlRed2Blue(obj.xcur.x0(:,:,1),obj.xcur.x0(:,:,3));
       x1 = obj.xcur.r2b0(obj.oi.sm);
-      lo = quantil(x1,obj.conf.r2b_outliers);
-      hi = quantil(x1,1-obj.conf.r2b_outliers);
-      obj.xcur.r2b0 = max(lo,min(hi,obj.xcur.r2b0));
+      %lo = quantil(x1,obj.conf.r2b_outliers);
+      %hi = quantil(x1,1-obj.conf.r2b_outliers);
+      %obj.xcur.r2b0 = max(lo,min(hi,obj.xcur.r2b0));
       obj.xcur.r2b = vmlMedianDownscale(obj.xcur.r2b0,obj.conf.thres.nfilter);
       obj.xcur.lum = vmlMedianDownscale(mean(obj.xcur.x0,3)/255,obj.conf.thres.nfilter);
       
@@ -349,108 +321,87 @@ classdef vmlSeq < handle
       obj.xcur.avglumsun = mean(obj.xcur.lum(b));
       obj.xcur.sm = obj.mfi.sm & ~b;
       
-      r2b = obj.xcur.r2b;
-      r2b(~obj.xcur.sm) = NaN;
-      obj.xcur.thres_info.hh = cell(obj.conf.thres.ngrid);
-      obj.xcur.thres_info.cc = cell(obj.conf.thres.ngrid);
+      r2b = obj.xcur.r2b; r2b(~obj.xcur.sm) = NaN;
+      r2bmin = min(obj.xcur.r2b(obj.mfi.sm));
+      r2bmax = max(obj.xcur.r2b(obj.mfi.sm));
+      res = obj.conf.thres.r2b_resolution;
+      resh = obj.conf.thres.r2b_hist_resolution;
+      N = round((r2bmax-r2bmin)/res)+2;
+      obj.xcur.thres.zz = r2bmin+(r2bmax-r2bmin-N*res)/2+res*(0:N);
+      obj.xcur.thres.zzh = r2bmin-resh*1.5:resh:r2bmax+resh*2;
+      NN = length(obj.xcur.thres.zzh);
+      obj.xcur.thres.X = tanh(bsxfun(@minus,obj.xcur.thres.zzh',obj.xcur.thres.zz)/res);
+      obj.xcur.thres.ww0 = nan(N+1,obj.conf.thres.ngrid,obj.conf.thres.ngrid);
+      obj.xcur.thres.ww = nan(N+1,obj.conf.thres.ngrid,obj.conf.thres.ngrid);
+      obj.xcur.thres.bb = nan(obj.conf.thres.ngrid);
+      obj.xcur.thres.j0 = nan(obj.conf.thres.ngrid);
+      obj.xcur.thres.isouter = obj.thres.isouter;
+      obj.xcur.thres.histn = zeros(NN,obj.conf.thres.ngrid,obj.conf.thres.ngrid);
+      obj.xcur.thres.v0_mask = zeros(size(obj.xcur.sm));
+      sunp = obj.sunpos_im(j);
+      [~,sunpy]=min(abs(obj.mfi.yy-sunp(1))); 
+      [~,sunpx]=min(abs(obj.mfi.xx-sunp(2)));
+      sunp = [sunpy;sunpx];
       for ix=1:obj.conf.thres.ngrid
         for iy=1:obj.conf.thres.ngrid
-          z = r2b(obj.thres.yyg(iy):obj.thres.yyg(iy+1)-1,obj.thres.xxg(ix):obj.thres.xxg(ix+1)-1);
+          if sum(([obj.thres.yyg(iy+1);obj.thres.xxg(ix+1)]-sunp).^2) <= ...
+              obj.conf.thres.rsun^2
+            obj.xcur.thres.isouter(iy,ix) = 0;
+          end
+          z = r2b(obj.thres.yyg(iy):obj.thres.yyg(iy+2),obj.thres.xxg(ix):obj.thres.xxg(ix+2));
           z = z(:);
-          if mean(isnan(z))<obj.conf.thres.tile_max_nan
-            [cc,obj.xcur.thres_info.hh{iy,ix}] =...
-              otsu_gap(z(~isnan(z)),obj.conf.thres.r2b_hist_resolution);
-            if cc(1,4)-cc(1,2)<obj.conf.thres.r2b_mingap, cc(2,[2 4]) = 0; end
-            obj.xcur.thres_info.cc{iy,ix} = cc;
+          jjy = obj.thres.yygb(iy)+1:obj.thres.yygb(iy+1); 
+          jjx = obj.thres.xxgb(ix)+1:obj.thres.xxgb(ix+1);
+          if mean(isnan(z))>obj.conf.thres.tile_max_nan
+            obj.xcur.thres.v0_mask(jjy,jjx) = -2;
+          else
+            z = z(~isnan(z));
+            nn=hist(z,obj.xcur.thres.zzh)';
+            w = wlsq(obj.xcur.thres.X,nn,[],...%.1+sqrt(mean(nn)./max(nn,1)),...
+              obj.conf.thres.alpha*ones(1,N+1),[],[],...
+              -obj.xcur.thres.X,nn*0,ones(1,N+1),0);
+            yy = obj.xcur.thres.X*w;
+            scale = sum(nn)/prod(2*size(obj.mfi.sm)/obj.conf.thres.ngrid)/sum(yy);
+            yy = yy*scale; w = w*scale; nn = nn*scale;
+            j0 = otsu_local_min(yy);
+            if min(sum(yy(1:j0-1)),sum(yy(j0+1:end)))<sum(yy)*obj.conf.thres.outside_mass
+              j0 = NaN;
+            end
+            obj.xcur.thres.j0(iy,ix) = j0;
+            obj.xcur.thres.ww0(:,iy,ix) = w;
+            obj.xcur.thres.histn(:,iy,ix) = nn;
+            if isnan(j0)
+              obj.xcur.thres.v0_mask(jjy,jjx) = -1;
+            else
+              obj.xcur.thres.v0_mask(jjy,jjx) = obj.xcur.r2b(jjy,jjx)>=obj.xcur.thres.zzh(j0);
+            end
+            %repeat the fitting, but with high penalties at both ends
+            b = max(nn);
+            nnavg = mean(nn);
+            s1 = sum(nn)*obj.conf.thres.outside_mass;
+            j1 = max(1,find(cumsum(nn)>=s1,1)-obj.conf.thres.n_relax_outside); 
+            j2 = max(1,find(cumsum(nn(end:-1:1))>=s1,1)-obj.conf.thres.n_relax_outside);
+            nn(1:j1) = max(nn(1:j1),b+(nnavg-b)*(0:j1-1)'/j1);
+            nn(NN:-1:NN+1-j2) = max(nn(NN:-1:NN+1-j2),b+(nnavg-b)*(0:j2-1)'/j2);
+            w = -wlsq(obj.xcur.thres.X,b-nn,[],...
+              obj.conf.thres.alpha*ones(1,N+1),[],[],...
+              [-obj.xcur.thres.X;obj.xcur.thres.X],[nn*0;nn*0+b],ones(1,N+1),0);
+            obj.xcur.thres.ww(:,iy,ix) = w;
+            obj.xcur.thres.bb(iy,ix) = b;
           end
         end
       end
       
-%       %identify opposite class neighbors
-%       nnxy = (0:obj.conf.thres.ngrid)/(obj.conf.thres.ngrid);
-%       xxg = round(1+(size(obj.mfi.sm,2)-1)*nnxy); xxg(end)=xxg(end)+1;
-%       yyg = round(1+(size(obj.mfi.sm,1)-1)*nnxy); yyg(end)=yyg(end)+1;
-%       obj.xcur.thres_info.r2btarget = zeros(obj.conf.thres.ngrid);
-%       obj.xcur.thres_info.n = obj.xcur.thres_info.r2btarget;
-%       obj.xcur.thres_info.opp_mask = false(size(obj.xcur.sm));
-%       obj.xcur.thres_info.r2b0_mask = false(size(obj.xcur.sm));
-%       obj.xcur.thres_info.all_r2b_gap = cell(obj.conf.thres.ngrid);
-%       obj.xcur.thres_info.all_r2b_gap_j = cell(obj.conf.thres.ngrid);
-%       obj.xcur.thres_info.r2bhist_nn = cell(obj.conf.thres.ngrid);
-%       obj.xcur.thres_info.r2bhist_cc = cell(obj.conf.thres.ngrid);
-%       all_jneigh_gap = cell(obj.conf.thres.ngrid);
-%       xh = (1-(.005:.01:.995))*log2(obj.conf.thres.r2b_opp_min)+(.005:.01:.995)*log2(max(obj.xcur.r2b(:))-min(obj.xcur.r2b(:)));
-%       yh = xh*0;
-%       for ix=1:obj.conf.thres.ngrid
-%         for iy=1:obj.conf.thres.ngrid
-%           jneigh = obj.thres.jneigh{iy,ix};
-%           if ~isempty(jneigh)
-%             jneigh = jneigh((jneigh(:,3)-yx(2)).^2+(jneigh(:,4)-yx(1)).^2>obj.conf.rsun_px^2,1:2);
-%             if ~isempty(jneigh)
-%               r2b = sort(obj.xcur.r2b(jneigh),2);
-%               jgap = find(diff(r2b,[],2)>=obj.conf.thres.r2b_opp_min);
-%               if ~isempty(jgap)
-%                 [~,j] = sort(-diff(r2b(jgap,:),[],2));
-%                 jgap = jgap(j(1:min(length(j),obj.conf.thres.npoints_max)));
-%                 obj.xcur.thres_info.all_r2b_gap{iy,ix} = r2b(jgap,:);
-%                 all_jneigh_gap{iy,ix} = jneigh(jgap,:);
-%                 yh = yh + hist(log2(diff(r2b(jgap,:),[],2)),xh);
-%               end
-%             end
-%           end
-%         end
-%       end
-%       if sum(yh)==0, r2b_gap_cutoff=0;
-%       else r2b_gap_cutoff = 2^xh(length(xh)+1-find(cumsum(fliplr(yh))/sum(yh)>=obj.conf.thres.keep_opp_ratio,1)); end
-%       for ix=1:obj.conf.thres.ngrid
-%         for iy=1:obj.conf.thres.ngrid
-%           jjy = yyg(iy):yyg(iy+1)-1; jjx = xxg(ix):xxg(ix+1)-1;
-%           [obj.xcur.thres_info.r2bhist_nn{iy,ix}, obj.xcur.thres_info.r2bhist_cc{iy,ix}] = ...
-%             hist(reshape(obj.xcur.r2b(jjy,jjx),length(jjy)*length(jjx),1),20);
-%           if ~isempty(obj.xcur.thres_info.all_r2b_gap{iy,ix})
-%             j = diff(obj.xcur.thres_info.all_r2b_gap{iy,ix},[],2)>=r2b_gap_cutoff | ...
-%               (1:size(obj.xcur.thres_info.all_r2b_gap{iy,ix},1))'<=obj.conf.thres.npoints_min;
-%             obj.xcur.thres_info.all_r2b_gap_j{iy,ix} = j;
-%             obj.xcur.thres_info.n(iy,ix) = nnz(j);
-%             if obj.xcur.thres_info.n(iy,ix)>0
-%               %obj.xcur.thres_info.r2btarget(iy,ix) = median(mean(obj.xcur.thres_info.all_r2b_gap{iy,ix}(j,:),2));
-%               obj.xcur.thres_info.r2btarget(iy,ix) = find_r2b_sep(obj.xcur.thres_info.all_r2b_gap{iy,ix}(j,:),obj.conf.thres);
-%               obj.xcur.thres_info.opp_mask(all_jneigh_gap{iy,ix}(j,:)) = true;
-%               obj.xcur.thres_info.r2b0_mask(jjy,jjx) = obj.xcur.r2b(jjy,jjx)>=obj.xcur.thres_info.r2btarget(iy,ix);
-%             end
-%           end
-%         end
-%       end
-      
-% %               if (ix==8) && (iy==5)
-% %                 sm1 = obj.xcur.sm;
-% %                 sm1(1:yyg(iy)-1,:) = false; sm1(yyg(iy+1):end,:) = false;
-% %                 sm1(:,1:xxg(ix)-1) = false; sm1(:,xxg(ix+1):end) = false;
-% %                 x = vmlColorify(obj.xcur.x,~sm1,2,64);
-% %                 figure(1);clf;image(x);
-% %                 disp([ix iy]);
-% %                 %pause;
-% %                 1;
-% %               end
-      
-      %optimize and finalize the cloud segmentation threshold map
+      obj.xcur.thres.v = vmlSmoothThresMap(obj.xcur.thres,obj.thres.have_v,obj.conf.thres);
+      [YYg,XXg] = ndgrid(obj.thres.yyg,obj.thres.xxg);
+      VVg = XXg;
+      VVg(2:end-1,2:end-1) = obj.xcur.thres.v;
+      VVg(1,:) = VVg(2,:); VVg(end,:) = VVg(end-1,:);
+      VVg(:,1) = VVg(:,2); VVg(:,end) = VVg(:,end-1);
+      [YY,XX] = ndgrid(1:length(obj.mfi.yy),1:length(obj.mfi.xx));
+      obj.xcur.thres.vmfi = interp2(XXg,YYg,VVg,XX,YY);
+      obj.xcur.thres.vmfi(~obj.mfi.sm) = NaN;
 
-%       obj.xcur.thres_info.r2b_map = SmoothThresMap(obj.xcur.thres_info.r2btarget,obj.xcur.thres_info.n,obj.conf.thres);      
-      
-%       figure(1);
-%       subplot(1,3,1);imagesc(obj.xcur.thres_info.r2btarget);colorbar vert;
-%       subplot(1,3,2);imagesc(obj.xcur.thres_info.r2b_map);colorbar vert;
-%       subplot(1,3,3);imagesc(obj.xcur.thres_info.n);colorbar vert;
-%       figure(1328);
-      
-%       VVg = obj.thres.XXg;
-%       VVg(2:end-1,2:end-1) = obj.xcur.thres_info.r2b_map;
-%       VVg(1,:) = VVg(2,:); VVg(end,:) = VVg(end-1,:);
-%       VVg(:,1) = VVg(:,2); VVg(:,end) = VVg(:,end-1);
-%       obj.xcur.r2bthres = interp2(obj.thres.XXg,obj.thres.YYg,VVg,...
-%         obj.mfi.XX,obj.mfi.YY);
-%       obj.xcur.r2bthres(~obj.mfi.sm) = NaN;
-      
       obj.xcur.j = j;      
     end
       
@@ -638,24 +589,21 @@ classdef vmlSeq < handle
       axis([0.5 obj.oi.sky_area(4)-obj.oi.sky_area(3)+1.5 0.5 obj.oi.sky_area(2)-obj.oi.sky_area(1)+1.5 ]);
     end
     
-    function showThres(obj,j)
+function showThres(obj,j)
+      if nargin<2, j = obj.xcur.j;
+      else obj.loadframe(j); end
       obj.newfig(1328,['Cloud thresholds, frame #' num2str(j) ' / ' datestr(obj.ti(j))]);
-      obj.loadframe(j);
-      cb_text = {'opp','grid','thres','r2b','r2b col','thres0','auxplot','sun'};
+      cb_text = {'r2b','r2b col','thres0','thres','thres val','contour'};
       hcb = zeros(1,length(cb_text));
       htxt = uicontrol('Style','text','Position',[10 5 650 16]);
       for i = 1:length(hcb)
-        hcb(i) = uicontrol('Style','checkbox','Value',0,...
-          'Position',[30+i*70 24 64 16],'String',cb_text{i});
+        hcb(i) = uicontrol('Style','checkbox','Value',i==length(hcb),...
+          'Position',[i*85 24 80 16],'String',cb_text{i});
       end
       auxplot_shown = [-1 -1];
       set(gcf,'toolbar','figure');
       set(hcb,'Callback',{@showThres_upd}); %,hcb,hax
-      x = vmlColorify(obj.xcur.x,~obj.mfi.sm,1:3,-255);
-      ih = image(obj.mfi.xx,obj.mfi.yy,x); axis off;
-      title([datestr(obj.ti(j),'HH:MM:SS') ' (#' num2str(j) ')']);
-      axis([0.5 obj.oi.sky_area(4)-obj.oi.sky_area(3)+1.5 0.5 obj.oi.sky_area(2)-obj.oi.sky_area(1)+1.5]);
-      set(ih,'ButtonDownFcn',@showThres_click)
+      showThres_upd;
 
       function showThres_click(varargin)
         p = get(gca,'currentpoint');
@@ -663,65 +611,88 @@ classdef vmlSeq < handle
         [~,jy] = min(abs(p(1,2)-obj.mfi.yy));
         ix = max(1,min(obj.conf.thres.ngrid,1+floor((p(1,1)-1)/(obj.sz(2)-1)*obj.conf.thres.ngrid)));
         iy = max(1,min(obj.conf.thres.ngrid,1+floor((p(1,2)-1)/(obj.sz(1)-1)*obj.conf.thres.ngrid)));
-        set(htxt,'String',['[' num2str(obj.mfi.xx(jx)) ', ' num2str(obj.mfi.yy(jy)) ...
+        set(htxt,'String',['xy = [' num2str(obj.mfi.xx(jx)) ', ' num2str(obj.mfi.yy(jy)) ...
            '] RGB = (' strjoin(cellfun(@num2str,squeeze(num2cell(obj.xcur.x(jy,jx,:))),'UniformOutput',0)',', ') ...
            ') R2B = ' num2str(obj.xcur.r2b(jy,jx),'%.2f') ' / ' ...
-           '[' num2str(ix) ', ' num2str(iy) ...
-           ]);
-%            '] thres0 = ' num2str(obj.xcur.thres_info.r2btarget(iy,ix),'%.2f') ...
-%            ' thres = ' num2str(obj.xcur.thres_info.r2b_map(iy,ix),'%.2f') ...
-%            ' n = ' num2str(obj.xcur.thres_info.n(iy,ix))]);
-         vv = get(hcb,'value');
-         if vv{7} && any([ix iy]~=auxplot_shown)
-           figure(13281); clf;
-           hist_otsu_gap(obj.xcur.thres_info.hh{iy,ix},obj.xcur.thres_info.cc{iy,ix});
+           'xytile = [' num2str(ix) ', ' num2str(iy) ']']);
+         if any([ix iy]~=auxplot_shown)
+           nn = obj.xcur.thres.histn(:,iy,ix);
+           zzh = obj.xcur.thres.zzh;
+           yy0 = obj.xcur.thres.X*obj.xcur.thres.ww0(:,iy,ix);
+           yy = obj.xcur.thres.X*obj.xcur.thres.ww(:,iy,ix)+obj.xcur.thres.bb(iy,ix);
+           j0 = obj.xcur.thres.j0(iy,ix);
+           figure(13281); clf; hold on;
+           bar(zzh,nn,1); 
+           plot(zzh,max(0,yy0),'r',zzh,max(0,yy),'g--','linewidth',2);
+           if ~isnan(j0), plot(zzh(j0),max(0,yy0(j0)),'ro','linewidth',2); end
+           plot(obj.xcur.thres.v(iy,ix),0,'gd','linewidth',2);
+           hold off; grid on;
          end
       end
       
       function showThres_upd(varargin)
         figure(1328);
-        xlim = get(gca,'xlim');
-        ylim = get(gca,'ylim');
         vv = get(hcb,'value');
-        if vv{5} 
+        if vv{2} 
           x = obj.xcur.r2b;
           x(~obj.mfi.sm) = 0;
           ih = imagesc(obj.mfi.xx,obj.mfi.yy,x); axis off;
           pos = get(gca,'Position');
           colorbar('vert');
-          set(gca,'Position',pos);          
+          set(gca,'Position',pos);
         else
-          if ~vv{4}, x = obj.xcur.x;
+          if ~vv{1}, x = obj.xcur.x;
           else
             x = obj.xcur.r2b; x = x-min(x(:));
             x = repmat(uint8(x/max(x(:))*192),[1 1 3]); 
           end
           x = vmlColorify(x,~obj.mfi.sm,1:3,-255);
-          if vv{1}, x = vmlColorify(x,obj.xcur.thres_info.opp_mask,2,32); end
-          if vv{6}, x = vmlColorify(x,obj.xcur.thres_info.r2b0_mask,1,32); end
+          if vv{4}
+            x = vmlColorify(x,obj.xcur.r2b<obj.xcur.thres.vmfi,1,-40); 
+            x = vmlColorify(x,obj.xcur.r2b>=obj.xcur.thres.vmfi,1,40); 
+          elseif vv{3}
+            x = vmlColorify(x,obj.xcur.thres.v0_mask==-2,1:3,-80); 
+            x = vmlColorify(x,obj.xcur.thres.v0_mask==-1,1:3,40);
+            x = vmlColorify(x,obj.xcur.thres.v0_mask==0,1,-40); 
+            x = vmlColorify(x,obj.xcur.thres.v0_mask==1,1,40); 
+          end
           ih = image(obj.mfi.xx,obj.mfi.yy,x); axis off;
         end
         title([datestr(obj.ti(j),'HH:MM:SS') ' (#' num2str(j) ')']);
         axis([0.5 obj.oi.sky_area(4)-obj.oi.sky_area(3)+1.5 0.5 obj.oi.sky_area(2)-obj.oi.sky_area(1)+1.5]);
         set(ih,'ButtonDownFcn',@showThres_click)
-        if vv{8}, obj.showSun(j); end
-        if vv{2}
-          for p=(1:obj.conf.thres.ngrid-1)/obj.conf.thres.ngrid
-            line(1+[p p]*(obj.sz(2)-1),[1 obj.sz(1)],'Color',[0 .5 0]);
-            line([1 obj.sz(2)],1+[p p]*(obj.sz(1)-1),'Color',[0 .5 0]);
+        obj.showSun(j);
+        for p=(1:obj.conf.thres.ngrid-1)/obj.conf.thres.ngrid
+          line(1+[p p]*(obj.sz(2)-1),[1 obj.sz(1)],'Color',[0 .5 0]);
+          line([1 obj.sz(2)],1+[p p]*(obj.sz(1)-1),'Color',[0 .5 0]);
+        end
+        for iy=1:obj.conf.thres.ngrid
+          for ix=1:obj.conf.thres.ngrid
+            if ~obj.thres.have_v(iy,ix)
+              line(1+(ix-.5)/obj.conf.thres.ngrid*(obj.sz(2)-1),1+(iy-.5)/obj.conf.thres.ngrid*(obj.sz(1)-1),'Marker','x','Color',[0 .5 0])
+            end
           end
         end
-        if vv{3}
+        if vv{5} && ~vv{2}
           hold on;
-          [~,ih] = contour(obj.mfi.XX,obj.mfi.YY,obj.xcur.r2bthres-obj.xcur.r2b,[0 0],char('g'+vv{5}*('k'-'g')),'linewidth',1+vv{5});
-          set(ih,'ButtonDownFcn',@showThres_click)
+          [~,ih] = contour(obj.mfi.XX,obj.mfi.YY,obj.xcur.thres.vmfi,20);
+          set(gca,'clim',[min(obj.xcur.thres.vmfi(:)) max(obj.xcur.thres.vmfi(:))]);
           hold off;
+          set(ih,'ButtonDownFcn',@showThres_click)
+          pos = get(gca,'Position');
+          colorbar('vert');
+          set(gca,'Position',pos);
+        elseif vv{6}
+          hold on;
+          [~,ih] = contour(obj.mfi.XX,obj.mfi.YY,obj.xcur.r2b-obj.xcur.thres.vmfi,[0 0],char('g'+vv{2}*('k'-'g')),'linewidth',1+vv{2});
+          hold off;
+          set(ih,'ButtonDownFcn',@showThres_click)
         end
-        set(gca,'xlim',xlim);
-        set(gca,'ylim',ylim);
+        set(gca,'xlim',[0.5 obj.oi.sky_area(4)-obj.oi.sky_area(3)+1.5]);
+        set(gca,'ylim',[0.5 obj.oi.sky_area(2)-obj.oi.sky_area(1)+1.5]);
       end
     end
-    
+        
     function showThresVmap(obj,j,~)
       obj.loadframe(j);
       contour(obj.mfi.XX,-obj.mfi.YY,obj.xcur.thresvmap,60); 

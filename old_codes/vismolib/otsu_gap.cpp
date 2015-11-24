@@ -285,6 +285,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
         compute_right_range(right_main,gaprtry,rtry);
         sum_range(gaptry,gapltry,gaprtry);
         score = fscore_gap(gaptry,ltry,rtry);
+        //mexPrintf("w = %i, score = %f, bestscore = %f\n",w,score,bestscore);
         if (score>bestscore) {
           bestscore=score; 
           copy_range(left_peak,ltry); copy_range(right_peak,rtry);

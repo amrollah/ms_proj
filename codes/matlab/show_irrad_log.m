@@ -2,6 +2,7 @@ close all; clear all; clc;
 
 %% settings
 addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'))
+addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\solvers'));
 vmlconfig_cavriglia;
 conf = evalin('base','VMLCONF');
 save_figs = true;
@@ -26,14 +27,14 @@ days = days(vertcat(days.isdir)); % filter only folders
 days = days(8:end-1)'; % skip first 5 folders (first two are . and .., data of next 5 are corrupted) and skip last folder, because log data is not still transfered for current day.
 %only consider these days (because they are clear_sky)
 days  = {
-%     '2015_08_03',
+    '2015_08_03',
     '2015_08_04',
     '2015_08_26',
     '2015_09_21'
     };
 
 RMSE_mat = {}; % the array to store RMSE values for each day
-start_date = '2015_07_26'; %days(1).name; % '2015_08_28'; % if not wish to provide a start_date, just replace the specific date with days(d).name;
+start_date = '2015_09_21'; %days(1).name; % '2015_08_28'; % if not wish to provide a start_date, just replace the specific date with days(d).name;
 end_date = '2015_11_08'; % we don't consider days after this date
 start_date_found = false;
 day_counter = 1; % counter for days which we decide to compare and store RMSE
@@ -155,6 +156,7 @@ LinkeTurbidity = prep_LinkeTurbidity(obj);
 [ClearSkyGHI, ClearSkyDNI, ClearSkyDHI] = arrayfun(@(tm) pvl_clearsky_ineichen(time_struct(obj,tm), obj.calib.model3D.Location,'LinkeTurbidityInput', LinkeTurbidity), data_est_label(1,:));
 
 choice = menu('Continue?','Yes');
+close(1000);
 continue;
 %% plot real log data and mcclear estimated data with reference from PVlib for current day
 f = figure(d);

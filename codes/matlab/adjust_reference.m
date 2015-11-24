@@ -15,11 +15,12 @@ function [ irr ] = adjust_reference(obj,irr)
             t_future = t+(obj.conf.adapt_window_size/2)/86400; % end time of adaptation windows
             s_past = find(obj.Irr(:,1)>t_past,1,'first'); % index of start time
             s_future = find(obj.Irr(:,1)<t_future,1,'last'); % index of end time
-            ei = sum(((ref_irr(i)-obj.Irr(s_past:i,2)).*min(obj.is_clear_states(s_past-20:i+20)))./log2((i-s_past+2):-1:2)')/(ref_irr(i)*(i-s_past+1)); % calc the average weighted error
-%             ei = sign(ei)*min(abs(ei),0.002); % to inforce more smooth result
+            ei = sum(((ref_irr(i)-obj.Irr(s_past:i,2)).*mean(obj.is_clear_states(max(1,s_past-2*60):min(i+2*60, length(obj.is_clear_states)))))./log2((i-s_past+2):-1:2)')/(ref_irr(i)*(i-s_past+1)); % calc the average weighted error
+%             ei = sign(ei)*min(abs(ei),0.09); % to inforce more smooth result
+            ei = min(0,ei);
             obj.adjuster_ei(i) = ei;
-            ei = mean(obj.adjuster_ei(i-4:i));
-            ref_irr(i:s_future) = ref_irr(i:s_future)*(1-ei); % adjustment of immediate future
+            ei = mean(obj.adjuster_ei(1:end));%max(1,i-30*60):i
+            ref_irr(i:s_future) = ref_irr(i:s_future).*(1-ei./log2(2:1:(s_future-i+2))'); % adjustment of immediate future
 %             ref_irr(i:end) = ref_irr(i:end)*(1-ei); % adjustment of immediate future
 %             obj.adjuster_ei(i) = ei;
         end

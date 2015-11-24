@@ -1,4 +1,5 @@
-function v = SmoothThresMap(vtarget,w,conf)
+function v = SmoothThresMap(thres,mask,conf)
+1;
 [m,n] = size(vtarget);
 nv = numel(vtarget);
 nx = nv+1;
