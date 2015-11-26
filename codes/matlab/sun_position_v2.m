@@ -1,4 +1,4 @@
-function [ pos, im_pos] = sun_position_v2(obj,j,R)
+function [ pos, im_pos,Q] = sun_position_v2(obj,j,R)
 %SUN_POSITION Summary of this function goes here
     
     [Q, sun] = obj.sunpos_realworld_v2(j);

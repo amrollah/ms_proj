@@ -307,11 +307,8 @@ classdef vmlSeq < handle
       obj.xcur.j = [];
       obj.xcur.x0 = obj.imread(j);
       obj.xcur.x = vmlMedianDownscale(obj.xcur.x0,obj.conf.thres.nfilter);
-      obj.xcur.r2b0 = vmlRed2Blue(obj.xcur.x0(:,:,1),obj.xcur.x0(:,:,3));
+      obj.xcur.r2b0 = vmlRed2Blue(obj.xcur.x0);
       x1 = obj.xcur.r2b0(obj.oi.sm);
-      %lo = quantil(x1,obj.conf.r2b_outliers);
-      %hi = quantil(x1,1-obj.conf.r2b_outliers);
-      %obj.xcur.r2b0 = max(lo,min(hi,obj.xcur.r2b0));
       obj.xcur.r2b = vmlMedianDownscale(obj.xcur.r2b0,obj.conf.thres.nfilter);
       obj.xcur.lum = vmlMedianDownscale(mean(obj.xcur.x0,3)/255,obj.conf.thres.nfilter);
       
@@ -321,15 +318,18 @@ classdef vmlSeq < handle
       obj.xcur.avglumsun = mean(obj.xcur.lum(b));
       obj.xcur.sm = obj.mfi.sm & ~b;
       
+      r2b_midrange = obj.conf.thres.r2b_midrange;
       r2b = obj.xcur.r2b; r2b(~obj.xcur.sm) = NaN;
-      r2bmin = min(obj.xcur.r2b(obj.mfi.sm));
-      r2bmax = max(obj.xcur.r2b(obj.mfi.sm));
+      r2bmin = min(r2b_midrange(1),min(obj.xcur.r2b(obj.mfi.sm)));
+      r2bmax = max(r2b_midrange(2),max(obj.xcur.r2b(obj.mfi.sm)));
       res = obj.conf.thres.r2b_resolution;
       resh = obj.conf.thres.r2b_hist_resolution;
       N = round((r2bmax-r2bmin)/res)+2;
       obj.xcur.thres.zz = r2bmin+(r2bmax-r2bmin-N*res)/2+res*(0:N);
       obj.xcur.thres.zzh = r2bmin-resh*1.5:resh:r2bmax+resh*2;
       NN = length(obj.xcur.thres.zzh);
+      jmid_lo = find(obj.xcur.thres.zzh>=r2b_midrange(1),1);
+      jmid_hi = find(obj.xcur.thres.zzh<=r2b_midrange(2),1,'last');
       obj.xcur.thres.X = tanh(bsxfun(@minus,obj.xcur.thres.zzh',obj.xcur.thres.zz)/res);
       obj.xcur.thres.ww0 = nan(N+1,obj.conf.thres.ngrid,obj.conf.thres.ngrid);
       obj.xcur.thres.ww = nan(N+1,obj.conf.thres.ngrid,obj.conf.thres.ngrid);
@@ -379,8 +379,8 @@ classdef vmlSeq < handle
             b = max(nn);
             nnavg = mean(nn);
             s1 = sum(nn)*obj.conf.thres.outside_mass;
-            j1 = max(1,find(cumsum(nn)>=s1,1)-obj.conf.thres.n_relax_outside); 
-            j2 = max(1,find(cumsum(nn(end:-1:1))>=s1,1)-obj.conf.thres.n_relax_outside);
+            j1 = max(1,min(jmid_lo,find(cumsum(nn)>=s1,1))-obj.conf.thres.n_relax_outside); 
+            j2 = max(1,min(NN+1-jmid_hi,find(cumsum(nn(end:-1:1))>=s1,1))-obj.conf.thres.n_relax_outside);
             nn(1:j1) = max(nn(1:j1),b+(nnavg-b)*(0:j1-1)'/j1);
             nn(NN:-1:NN+1-j2) = max(nn(NN:-1:NN+1-j2),b+(nnavg-b)*(0:j2-1)'/j2);
             w = -wlsq(obj.xcur.thres.X,b-nn,[],...
@@ -404,6 +404,7 @@ classdef vmlSeq < handle
 
       obj.xcur.j = j;      
     end
+      
       
 % end basic functions
 
@@ -1054,7 +1055,7 @@ function showThres(obj,j)
          obj.sun_pos = pos;
     end
     function inv_rot_pos = adjust_sun_pos(obj,pos)
-        [center, min_zenith] = sunpos_midday(obj);
+        [center, min_zenith,~] = sunpos_midday(obj);
         sh = .033; % the shift parameter and rotation angle is emprically set, but can be relate to min_zenith of day too.
         theta = degtorad(130); % rotaion angle counterclockwise about the center
         Rot = [cos(theta) -sin(theta); sin(theta) cos(theta)];
@@ -1070,6 +1071,26 @@ function showThres(obj,j)
         rot_pos(1,:) = (rot_pos(1,:)-min_x).*(1-sh) + min_x;
         inv_rot_pos = Rot_inv*(rot_pos - center_pos) + center_pos;
     end
+    function inv_rot_pos = adjust_sun_pos_v2(obj,pos)
+        % works with real world 3d sun position data
+        [~, min_zenith, center] = sunpos_midday(obj);
+        center = center(1:2);
+        sh = .033; % the shift parameter and rotation angle is emprically set, but can be relate to min_zenith of day too.
+        theta = degtorad(130); % rotaion angle counterclockwise about the center
+        Rot = [cos(theta) -sin(theta); sin(theta) cos(theta)];
+        Rot_inv = [cos(-theta) -sin(-theta); sin(-theta) cos(-theta)];
+        
+        %center = fix((pos(:,1)+pos(:,end))/2);
+        center_pos = repmat(center, 1, size(pos,2));
+        % shift points in the plane so that the center of rotation is at the origin
+        rot_pos = Rot*(pos - center_pos) + center_pos;
+        [min_y, idx] = min(rot_pos(2,:));
+        min_x = rot_pos(1,idx);
+        rot_pos(2,:) = (rot_pos(2,:)-min_y).*1+(sh^2) + min_y;
+        rot_pos(1,:) = (rot_pos(1,:)-min_x).*(1-sh) + min_x;
+        inv_rot_pos = Rot_inv*(rot_pos - center_pos) + center_pos;
+    end
+    
     function t= gen_time_struct(obj,j,t_array)
       t = [];
       [t.year,t.month,t.day,t.hour,t.min,t.sec]=datevec(obj.ti(j));
@@ -1108,6 +1129,28 @@ function showThres(obj,j)
       %position of the sun in the unit plane
       p = obj.calib.Rext'*obj.sunpos_realworld(j);
       p = p(1:2)/p(3);
+    end
+    
+    function P = plant_projection_on_image(obj,j)
+        % project plant shape onto sky image
+        m = obj.sunpos_realworld(j); % line slope for projection
+        m(1:2)=obj.adjust_sun_pos_v2(m(1:2));
+        if size(obj.conf.plant_coords,2)<1
+            return;
+        end
+        P = zeros(2,size(obj.conf.plant_coords,2));
+        for i=1:size(obj.conf.plant_coords,2)
+            % p0 for a line formula of p0+<m>t = p. scale it to the unit sphere plane
+            p=obj.conf.plant_coords(:,i)./obj.conf.plant_projection_height;
+            syms t;
+            eqn = sum((p+m.*t).^2)==1; % intersect the line with unit sphere. (sum(p.^2)==1)
+            sol = solve(eqn,t);       
+            sol_t = eval(sol(2));
+            pt_3d=p+m.*sol_t; % insert the solution into line formula to find the intersection point
+            P(:,i) = obj.camworld2im(obj.ext_calib.R'*pt_3d);
+        end
+        P(:,end+1) = P(:,1);
+        P = obj.adjust_sun_pos(P);
     end
 
 % end position of the sun

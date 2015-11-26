@@ -35,7 +35,8 @@ opts.qfactor = 1;
 [status,x0]=ipoptqp(Q1,k1,A,b,[],[],zeros(1,nx)+minx,zeros(1,nx)+maxx,opts);
 assert(any(status==[0 1]),['Error: IpOpt returned status = ' num2str(status)]);
 
-minx = min(x0); maxx = max(x0);
+minx = min(conf.r2b_midrange(1),min(x0)); 
+maxx = max(conf.r2b_midrange(2),max(x0));
 
 has_tanh = squeeze(all(~isnan(thres.ww),1));
 tanh_ix = repmat(J(has_tanh)',size(thres.ww,1),1);

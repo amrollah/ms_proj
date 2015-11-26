@@ -24,11 +24,14 @@ VMLCONF.diff_to_reference_irr_threshold = .20;  % thresold to detect cloudy sky 
 VMLCONF.adaptive_clearsky_reference = 1;
 VMLCONF.irr_scale = .98;
 
+VMLCONF.plant_projection_height = 2000; % the height for projection of shape of plant onto image
+VMLCONF.plant_coords = [50,-135,0;195,-135,0;340,-135,0;342,-58,0;345,20,0;188,25,0;32,30,0;40,-53,0]';
+%VMLCONF.plant_coords = [340,-135,0;345,20,0]';
 %%
 
 VMLCONF.cbh = 500;
 VMLCONF.clear_sky_power_model = 'Pclearsky.mat';
-VMLCONF.rsun_px = 150;
+VMLCONF.rsun_px = 40; % Amri decreased this value from 150
 VMLCONF.gaussblur4sundect_px = 77;
 VMLCONF.minangle = 5*pi/180;
 VMLCONF.r2b_outliers = 0.01;
@@ -49,14 +52,16 @@ VMLCONF.thres.tile_max_nan = 0.5;
 VMLCONF.thres.alpha = 0.1;
 VMLCONF.thres.outside_mass = 0.1;
 VMLCONF.thres.n_relax_outside = 3;
+VMLCONF.thres.r2b_midrange = [0 0.5];
 VMLCONF.thres.r2b_resolution = 0.3;
 VMLCONF.thres.r2b_hist_resolution = 0.05;
 VMLCONF.thres.wsmooth = .1;
-VMLCONF.thres.w_local_min = 0;
+VMLCONF.thres.w_local_min = .2;
 VMLCONF.thres.w_boundary = 8;
 VMLCONF.thres.r2b_dmax = 0.2;
 VMLCONF.thres.rsun = 80;
 VMLCONF.thres.r2b_multistart_step = .3;
+
 
 
 VMLCONF.pred.n_feature_maps = 3;

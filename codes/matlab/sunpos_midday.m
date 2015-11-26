@@ -1,4 +1,4 @@
-function [pos, zenith] = sunpos_midday(obj)
+function [pos, zenith, p] = sunpos_midday(obj)
       %position of the sun in the world coordinates at midday
       hour = 11;
       min = 20;
