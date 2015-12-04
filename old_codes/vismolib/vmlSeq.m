@@ -128,10 +128,21 @@ classdef vmlSeq < handle
       
       
       %load irradiation and power data
-      run([conf.datafolder 'loaddata.m']);
+      data_Power = [];
+      try
+        run([conf.datafolder 'loaddata.m']);
+      catch
+          disp('Error in loading log files.');
+      end
       crop_fun = @(x)x(max(1,find(x(:,1)>=min(obj.ti),1)-1):min(size(x,1),...
         find(x(:,1)<=max(obj.ti)+conf.pad_minutes*60/86400,1,'last')+1),:);
-      if ~isempty(data_Power), obj.P = crop_fun(data_Power); end
+      if ~isempty(data_Power)
+          obj.P = crop_fun(data_Power); 
+          P_tmp = sort(obj.P(:,2));
+          if mean(P_tmp(1:500))< -1000
+           disp('Invalid power log files.');
+          end
+      end 
       if ~isempty(data_Irr), obj.Irr = crop_fun(data_Irr); end
       if ~isempty(data_Temp), obj.Temp = crop_fun(data_Temp); end
       
@@ -156,24 +167,31 @@ classdef vmlSeq < handle
         %day = obj.dt_day-datenum(obj.strtitle(1:4),'yyyy');
         obj.Pclearsky = x1;
       end
-           
-      LinkeTurbidity = prep_LinkeTurbidity(obj);
-      times = pvl_maketimestruct(obj.Irr(:,1), obj.calib.model3D.UTC);
-      [ClearSkyGHI,ClearSkyDNI,ClearSkyDHI] = pvl_clearsky_ineichen(times,obj.calib.model3D.Location,'LinkeTurbidityInput',LinkeTurbidity);
-   
-      obj.ClearSkyOrigRef = [obj.Irr(:,1),ClearSkyGHI*obj.conf.irr_scale,ClearSkyDNI*obj.conf.irr_scale,ClearSkyDHI*obj.conf.irr_scale]; 
-      obj.ClearSkyRef = obj.ClearSkyOrigRef;
-      % amrollah: clear-sky detection and cloudy-sky detection based on irradiation
-      % log file
-      obj.is_clear_states = arrayfun(@(t) is_clear(obj, t), obj.Irr(:,1));
-      obj.clear_times = find(obj.is_clear_states==1);
-      obj.cloudy_times = find(obj.is_clear_states<1);
       
+      if ~isempty(obj.Irr)
+          LinkeTurbidity = prep_LinkeTurbidity(obj);
+          UTC_offset = obj.calib.model3D.UTC;
+          if ~isdst(datetime(datevec(obj.ti(end)),'TimeZone',obj.conf.timezone))
+            UTC_offset =  UTC_offset - 1;
+          end
+          times = pvl_maketimestruct(obj.Irr(:,1), UTC_offset);
+          [ClearSkyGHI,ClearSkyDNI,ClearSkyDHI] = pvl_clearsky_ineichen(times,obj.calib.model3D.Location,'LinkeTurbidityInput',LinkeTurbidity);
+
+          obj.ClearSkyOrigRef = [obj.Irr(:,1),ClearSkyGHI*obj.conf.irr_scale,ClearSkyDNI*obj.conf.irr_scale,ClearSkyDHI*obj.conf.irr_scale]; 
+          obj.ClearSkyRef = obj.ClearSkyOrigRef;
+          % amrollah: clear-sky detection and cloudy-sky detection based on irradiation
+          % log file
+          obj.is_clear_states = arrayfun(@(t) is_clear(obj, t), obj.Irr(:,1));
+          obj.clear_times = find(obj.is_clear_states==1);
+          obj.cloudy_times = find(obj.is_clear_states<1);
+      end
       % adaptive irradiation reference
+      %% TEMP Comment
       obj.ClearSkyRef = [obj.Irr(:,1),adjust_reference(obj,ClearSkyGHI),ClearSkyDNI.*obj.conf.irr_scale,ClearSkyDHI.*obj.conf.irr_scale];  
           
       obj.ext_calib = load([conf.datafolder conf.calibration{2}]);
       % calculate sun positions for all images and store them in object
+      %% TEMP Comment
       obj.calc_sun_positions();
       
       %do a median downscale of the image and compute the sky mask...

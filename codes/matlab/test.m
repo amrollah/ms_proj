@@ -1,5 +1,19 @@
 close all;
 clear all;
+pm=6000;
+addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'))
+vmlconfig_cavriglia;
+conf = evalin('base','VMLCONF');
+obj = vmlSeq('2015_08_10',[6 20]);
+
+ts = timeseries(obj.Irr(:,2:end), obj.Irr(:,1));
+ts2 = resample(ts, obj.P(:,1)); 
+figure;
+plot(ts2.data(1:end-pm,1), obj.P(1:end-pm,2),'b.');
+hold on;
+plot(ts2.data(end-pm:end,1), obj.P(end-pm:end,2),'r.');
+
+
 degree = 130;
 theta = degtorad(degree); % rotaion angle counterclockwise about the origin
 R = [cos(theta) -sin(theta); sin(theta) cos(theta)];
@@ -7,10 +21,6 @@ theta_inv = degtorad(-degree); % rotaion angle counterclockwise about the origin
 R_inv = [cos(theta_inv) -sin(theta_inv); sin(theta_inv) cos(theta_inv)];
 
 translationVector = [0;0];
-
-vmlconfig_cavriglia;
-conf = evalin('base','VMLCONF');
-obj = vmlSeq('2015_08_21',[6 20]);
 
 figure;
 plot(obj.Irr(obj.clear_times,1),obj.Irr(obj.clear_times,2), '.g');
@@ -64,4 +74,22 @@ plot(orig_pos(1,:),orig_pos(2,:), '-b');
 
 for j=1:length(cloudy)
     disp(datevec(obj.ti(cloudy(j))));
+end
+
+
+figHandles = get(0,'Children'); % gets the handles to all open figure
+rez=1200; %resolution (dpi) of final graphic
+resolution=get(0,'ScreenPixelsPerInch'); %dont need to change anything here
+
+for f = figHandles'
+    axesHandle = get(f,'Children'); % get the axes for each figure
+    titleHandle = get(axesHandle,'Title'); % gets the title for the first (or only) axes)
+    text = get(titleHandle,'String'); % gets the text in the title
+    text = strrep(text, '/', '_');
+    
+    figpos=getpixelposition(f); %dont need to change anything here    
+    set(f,'paperunits','inches','papersize',figpos(3:4)/resolution,'paperposition',[0 0 figpos(3:4)/resolution]); %dont need to change anything here
+    print(f,strcat('C:\data\cav\log_data\power_plots\',text),'-dpng',['-r',num2str(rez)],'-opengl') %save file 
+
+    %saveas(f, strcat('C:\data\cav\log_data\power_plots\',text), 'jpg') % save the figure with the title as the file name 
 end

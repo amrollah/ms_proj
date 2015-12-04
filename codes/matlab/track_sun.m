@@ -4,7 +4,7 @@ addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'))
 vmlconfig_cavriglia;
 conf = evalin('base','VMLCONF');
 
-obj = vmlSeq('2015_08_21',[6 20]);
+obj = vmlSeq('2015_11_27',[6 20]);
 visualize = true;
 
 total_rmse = 0;

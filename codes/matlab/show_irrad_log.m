@@ -26,21 +26,21 @@ days = dir(cav_data_path); % get all content of Cavriglia image folder
 days = days(vertcat(days.isdir)); % filter only folders
 days = days(8:end-1)'; % skip first 5 folders (first two are . and .., data of next 5 are corrupted) and skip last folder, because log data is not still transfered for current day.
 %only consider these days (because they are clear_sky)
-days  = {
-    '2015_08_03',
-    '2015_08_04',
-    '2015_08_26',
-    '2015_09_21'
-    };
+% days  = {
+%     '2015_08_03',
+%     '2015_08_04',
+%     '2015_08_26',
+%     '2015_09_21'
+%     };
 
 RMSE_mat = {}; % the array to store RMSE values for each day
-start_date = '2015_09_21'; %days(1).name; % '2015_08_28'; % if not wish to provide a start_date, just replace the specific date with days(d).name;
+start_date = '2015_07_21'; %days(1).name; % '2015_08_28'; % if not wish to provide a start_date, just replace the specific date with days(d).name;
 end_date = '2015_11_08'; % we don't consider days after this date
 start_date_found = false;
 day_counter = 1; % counter for days which we decide to compare and store RMSE
 
 %%% loop over all days
-for d=1:size(days,1)
+for d=1:size(days,2)
 % set the date for comparison
 if isfield(days, 'name')
     date = days(d).name;
@@ -75,14 +75,19 @@ obj = vmlSeq(date,[6 20]);
 % We don't continue to next steps for mostly cloudy days.
 n = size(log_data{1,1},1);
 temp_fig = figure(1000);
+xtick = 1:20:size(obj.Irr(:,1));
+x_lables = datevec(obj.Irr(xtick,1));
+%[x_lables(:,1),x_lables(:,2),x_lables(:,3)] = arrayfun(@(tm) time_shifter(obj,tm), obj.Irr(xtick,1));
+x_lables = vertcat(num2str(x_lables(:,end-2:end)));
+      
 %plot(log_data{1,5}, '--g');
 plot(obj.Irr(:,2), '--g');
 hold on;
 plot(obj.ClearSkyRef(:,2), '--b');
 hold on;
 plot(obj.ClearSkyOrigRef(:,2), '--r');
-xtick = 1:500:size(log_data{1,1},1);
-set(gca, 'XTick', xtick, 'XTickLabel',log_data{1,2}(xtick));
+
+set(gca, 'XTick', xtick, 'XTickLabel',x_lables);
 rotateXLabels(gca, 90)
 title(strcat(strrep(date, '_', '/'), ' irradiance'));
 xlabel('Time');
@@ -94,7 +99,7 @@ ylabel('Irradiance (W/m^2)');
 %     continue;
 % end;
 
-
+pause();
 % visualize clear times and cloudy time
 figure;
 plot(obj.Irr(obj.clear_times,1),obj.Irr(obj.clear_times,2), '.g');

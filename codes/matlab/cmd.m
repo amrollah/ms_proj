@@ -22,12 +22,13 @@ figure(130);imshow(shadow)
 fprintf('Shadow area percent: %.0f  \n', 100*sum(shadow)/sum(g2));
 
 
-for r_scale=1:10
+for r_scale=1:6
     gr= g;
     obj.conf.rsun_px = obj.conf.rsun_px.*2;
     mask = obj.skymask_wo_sun(j);
     mask(isnan(mask)) = false;
     gr(mask) = 1;
+    gr(~mask) = 0;
     figure;
     imshow(gr);
     pause(1);
