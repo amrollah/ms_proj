@@ -1,6 +1,6 @@
-%close all; 
+close all; 
 clear all; 
-%clc;
+clc;
 
 %% settings
 addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'))
@@ -30,7 +30,7 @@ counter = 1;
 %%% loop over all days
 for d=1:size(days,2)
     date = days(d).name;
-    date = '2015_08_03';
+    date = '2015_08_04';
     obj = vmlSeq(date,[6 20]);
     
     disp(date);
@@ -76,20 +76,21 @@ for d=1:size(days,2)
         lin2_idxs = find(Irr.data(:,1)<140);
         X1 = [ones(size(Irr.data(lin1_idxs,1))), Irr.data(lin1_idxs,1), temp.data(lin1_idxs,1), Irr.data(lin1_idxs,1).*temp.data(lin1_idxs,1)];
 %         b1 = regress(obj.P(lin1_idxs,2),X1);
-        b1 = fitlm(X1,obj.P(lin1_idxs,2),'RobustOpts','on');
+%         b1 = fitlm(X1,obj.P(lin1_idxs,2),'RobustOpts','on');
         
         X2 = [ones(size(Irr.data(lin2_idxs,1))), Irr.data(lin2_idxs,1), Irr.data(lin2_idxs,1).^2, temp.data(lin2_idxs,1), Irr.data(lin2_idxs,1).*temp.data(lin2_idxs,1)];
 %         b2 = regress(obj.P(lin2_idxs,2),X2);
-        b2 = fitlm(X2,obj.P(lin2_idxs,2),'RobustOpts','on');
+%         b2 = fitlm(X2,obj.P(lin2_idxs,2),'RobustOpts','on');
         
+        load('pw_clear_model.mat');
         est_pw = zeros(size(obj.P,1),2);
         est_pw(:,1) = obj.P(:,1);
-        est_pw(lin1_idxs,2) = b1.Fitted;%X1*b1;
-        est_pw(lin2_idxs,2) = b2.Fitted;%X2*b2;
+        est_pw(lin1_idxs,2) = X1*b1.Coefficients.Estimate(2:end);%b1.Fitted;
+        est_pw(lin2_idxs,2) = X2*b2.Coefficients.Estimate(2:end);%b2.Fitted;
         
         %%
         figure;
-        subplot(1,2,1);
+        subplot(1,3,1);
         plot(Irr.data(1:end-pm,1), obj.P(1:end-pm,2),'b.');
         hold on;
         plot(Irr.data(end-pm:end,1), obj.P(end-pm:end,2),'r.');
@@ -107,30 +108,34 @@ for d=1:size(days,2)
         end
         hold off;
         
-        subplot(1,2,2);
-        xtick = 1:100:size(Irr.time);
+        subplot(1,3,2);
+        xtick = 1:800:size(Irr.time);
         [~,~,~,x_lables(:,1),x_lables(:,2),x_lables(:,3)] = datevec(Irr.time(xtick));
         x_lables(:,3) = floor(x_lables(:,3));
         
         plot(Irr.data(:,1), '-g');
         hold on;
+        plot(10*temp.data(:,1), '-c');
 %         plot(obj.ClearSkyRef(:,2), '--b');
 %         hold on;
 %         plot(obj.ClearSkyOrigRef(:,2), '--r');
-       
-        est_power = linmap(est_pw(:,2),[min(Irr.data(:,1)),max(Irr.data(:,1))]);
-        plot(est_power, '-r');
-        hold on;
-        t_power = linmap(obj.P(:,2),[min(Irr.data(:,1)),max(Irr.data(:,1))]);
-        plot(t_power, '-k');
-        hold on;
-        plot(10*temp.data(:,1), '-c');
-        
         set(gca, 'XTick', xtick, 'XTickLabel',strcat(num2str(x_lables(:,1)),':',num2str(x_lables(:,2)),':',num2str(x_lables(:,3))));
         rotateXLabels(gca, 90);
         title(strcat(strrep(date, '_', '/'), ' irradiance'));
         xlabel('Time');
-        ylabel('Irradiance and Power');
+        ylabel('Irradiance and Temp');
+        
+        subplot(1,3,3);
+%         est_power = linmap(est_pw(:,2),[min(Irr.data(:,1)),max(Irr.data(:,1))]);
+        plot(est_pw(:,2), '-r');
+        hold on;
+%         t_power = linmap(obj.P(:,2),[min(Irr.data(:,1)),max(Irr.data(:,1))]);
+        plot(obj.P(:,2), '-k');
+        set(gca, 'XTick', xtick, 'XTickLabel',strcat(num2str(x_lables(:,1)),':',num2str(x_lables(:,2)),':',num2str(x_lables(:,3))));
+        rotateXLabels(gca, 90);
+        title(strcat(strrep(date, '_', '/'), ' power'));
+        xlabel('Time');
+        ylabel('Power');
         
         pause(1);
     end
