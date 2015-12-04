@@ -30,7 +30,7 @@ counter = 1;
 %%% loop over all days
 for d=1:size(days,2)
     date = days(d).name;
-    date = '2015_08_04';
+    date = '2015_10_24';
     obj = vmlSeq(date,[6 20]);
     
     disp(date);
@@ -44,8 +44,11 @@ for d=1:size(days,2)
     elseif show_power
         Irr_ts = timeseries(obj.Irr(:,2:end), obj.Irr(:,1));
         Temp_ts = timeseries(obj.Temp(:,2), obj.Temp(:,1));
+        ClearSkyRef_ts = timeseries(obj.ClearSkyRef(:,2), obj.ClearSkyRef(:,1));
+        
         Irr = resample(Irr_ts, obj.P(:,1)); 
         temp = resample(Temp_ts, obj.P(:,1));
+        ClearSkyRef = resample(ClearSkyRef_ts, obj.P(:,1));
         pm=floor(size(obj.P,1)/2);
         
         txt_idx_x = 1:50:(numel(Irr.data(:,1))-4);
@@ -74,28 +77,31 @@ for d=1:size(days,2)
         %% regreesion
         lin1_idxs = find(Irr.data(:,1)>=140);
         lin2_idxs = find(Irr.data(:,1)<140);
-        X1 = [ones(size(Irr.data(lin1_idxs,1))), Irr.data(lin1_idxs,1), temp.data(lin1_idxs,1), Irr.data(lin1_idxs,1).*temp.data(lin1_idxs,1)];
+        X1 = normc([Irr.data(lin1_idxs,1), temp.data(lin1_idxs,1), Irr.data(lin1_idxs,1).*temp.data(lin1_idxs,1)]);
 %         b1 = regress(obj.P(lin1_idxs,2),X1);
 %         b1 = fitlm(X1,obj.P(lin1_idxs,2),'RobustOpts','on');
         
-        X2 = [ones(size(Irr.data(lin2_idxs,1))), Irr.data(lin2_idxs,1), Irr.data(lin2_idxs,1).^2, temp.data(lin2_idxs,1), Irr.data(lin2_idxs,1).*temp.data(lin2_idxs,1)];
+        X2 = normc([Irr.data(lin2_idxs,1), Irr.data(lin2_idxs,1).^2, temp.data(lin2_idxs,1), Irr.data(lin2_idxs,1).*temp.data(lin2_idxs,1)]);
 %         b2 = regress(obj.P(lin2_idxs,2),X2);
 %         b2 = fitlm(X2,obj.P(lin2_idxs,2),'RobustOpts','on');
         
+%         save('pw_clear_model','b1','b2');
         load('pw_clear_model.mat');
         est_pw = zeros(size(obj.P,1),2);
         est_pw(:,1) = obj.P(:,1);
-        est_pw(lin1_idxs,2) = X1*b1.Coefficients.Estimate(2:end);%b1.Fitted;
-        est_pw(lin2_idxs,2) = X2*b2.Coefficients.Estimate(2:end);%b2.Fitted;
+        est_pw(lin1_idxs,2) = [ones(size(Irr.data(lin1_idxs,1))) X1]*b1.Coefficients.Estimate(1:end);%b1.Fitted;
+        est_pw(lin2_idxs,2) = [ones(size(Irr.data(lin2_idxs,1))) X2]*b2.Coefficients.Estimate(1:end);%b2.Fitted;
         
         %%
         figure;
         subplot(1,3,1);
-        plot(Irr.data(1:end-pm,1), obj.P(1:end-pm,2),'b.');
+        h(1) = plot(Irr.data(1:end-pm,1), obj.P(1:end-pm,2),'b.');
         hold on;
-        plot(Irr.data(end-pm:end,1), obj.P(end-pm:end,2),'r.');
+        h(2) = plot(Irr.data(end-pm:end,1), obj.P(end-pm:end,2),'r.');
         hold on;
-        plot(Irr.data(:,1), est_pw(:,2),'k.');
+        h(3) = plot(Irr.data(:,1), est_pw(:,2),'k.');
+        
+        legend([h(1),h(2),h(3)],{'morning'; 'afternoon', 'estimated'});
         
         title(strrep(date, '_', '/'));
         xlabel('Irradiance');
@@ -113,30 +119,33 @@ for d=1:size(days,2)
         [~,~,~,x_lables(:,1),x_lables(:,2),x_lables(:,3)] = datevec(Irr.time(xtick));
         x_lables(:,3) = floor(x_lables(:,3));
         
-        plot(Irr.data(:,1), '-g');
+        h(1) = plot(Irr.data(:,1), '-g');
         hold on;
-        plot(10*temp.data(:,1), '-c');
-%         plot(obj.ClearSkyRef(:,2), '--b');
+        h(3) = plot(10*temp.data(:,1), '-c');
+        hold on;
+        h(2) = plot(ClearSkyRef.data(:,1), '--b');
 %         hold on;
 %         plot(obj.ClearSkyOrigRef(:,2), '--r');
         set(gca, 'XTick', xtick, 'XTickLabel',strcat(num2str(x_lables(:,1)),':',num2str(x_lables(:,2)),':',num2str(x_lables(:,3))));
         rotateXLabels(gca, 90);
         title(strcat(strrep(date, '_', '/'), ' irradiance'));
+        legend([h(1),h(2),h(3)],{'Observed'; 'Reference', 'scaled temperature'});
         xlabel('Time');
         ylabel('Irradiance and Temp');
         
         subplot(1,3,3);
 %         est_power = linmap(est_pw(:,2),[min(Irr.data(:,1)),max(Irr.data(:,1))]);
-        plot(est_pw(:,2), '-r');
+        h(1)=plot(est_pw(:,2), '-r');
         hold on;
 %         t_power = linmap(obj.P(:,2),[min(Irr.data(:,1)),max(Irr.data(:,1))]);
-        plot(obj.P(:,2), '-k');
+        h(1)=plot(obj.P(:,2), '-k');
         set(gca, 'XTick', xtick, 'XTickLabel',strcat(num2str(x_lables(:,1)),':',num2str(x_lables(:,2)),':',num2str(x_lables(:,3))));
         rotateXLabels(gca, 90);
         title(strcat(strrep(date, '_', '/'), ' power'));
+        legend([h(1),h(2)],{'Estimated'; 'Observed'});
         xlabel('Time');
         ylabel('Power');
         
-        pause(1);
+        pause();
     end
 end
