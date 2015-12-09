@@ -34,13 +34,13 @@ days = days(8:end-1)'; % skip first 5 folders (first two are . and .., data of n
 %     };
 
 RMSE_mat = {}; % the array to store RMSE values for each day
-start_date = '2015_07_21'; %days(1).name; % '2015_08_28'; % if not wish to provide a start_date, just replace the specific date with days(d).name;
-end_date = '2015_11_08'; % we don't consider days after this date
+start_date = '2015_11_10'; %days(1).name; % '2015_08_28'; % if not wish to provide a start_date, just replace the specific date with days(d).name;
+end_date = '';%'2015_11_08'; % we don't consider days after this date
 start_date_found = false;
 day_counter = 1; % counter for days which we decide to compare and store RMSE
 
 %%% loop over all days
-for d=1:size(days,2)
+for d=1:numel(days)
 % set the date for comparison
 if isfield(days, 'name')
     date = days(d).name;
@@ -80,6 +80,7 @@ x_lables = datevec(obj.Irr(xtick,1));
 %[x_lables(:,1),x_lables(:,2),x_lables(:,3)] = arrayfun(@(tm) time_shifter(obj,tm), obj.Irr(xtick,1));
 x_lables = vertcat(num2str(x_lables(:,end-2:end)));
       
+figure;
 %plot(log_data{1,5}, '--g');
 plot(obj.Irr(:,2), '--g');
 hold on;
@@ -99,7 +100,8 @@ ylabel('Irradiance (W/m^2)');
 %     continue;
 % end;
 
-pause();
+% pause();
+continue;
 % visualize clear times and cloudy time
 figure;
 plot(obj.Irr(obj.clear_times,1),obj.Irr(obj.clear_times,2), '.g');

@@ -184,11 +184,12 @@ classdef vmlSeq < handle
           obj.is_clear_states = arrayfun(@(t) is_clear(obj, t), obj.Irr(:,1));
           obj.clear_times = find(obj.is_clear_states==1);
           obj.cloudy_times = find(obj.is_clear_states<1);
-      end
-      % adaptive irradiation reference
-      %% TEMP Comment
-      obj.ClearSkyRef = [obj.Irr(:,1),adjust_reference(obj,ClearSkyGHI),ClearSkyDNI.*obj.conf.irr_scale,ClearSkyDHI.*obj.conf.irr_scale];  
           
+          % adaptive irradiation reference
+          %% TEMP Comment
+          obj.ClearSkyRef = [obj.Irr(:,1),adjust_reference(obj,ClearSkyGHI),ClearSkyDNI.*obj.conf.irr_scale,ClearSkyDHI.*obj.conf.irr_scale];
+      end
+      
       obj.ext_calib = load([conf.datafolder conf.calibration{2}]);
       % calculate sun positions for all images and store them in object
       %% TEMP Comment
@@ -1149,27 +1150,19 @@ function showThres(obj,j)
       p = p(1:2)/p(3);
     end
     
-    function P = plant_projection_on_image(obj,j)
+    function P = plant_projection_on_image(obj,j,h)
         % project plant shape onto sky image
         m = obj.sunpos_realworld(j); % line slope for projection
         m(1:2)=obj.adjust_sun_pos_v2(m(1:2));
         if size(obj.conf.plant_coords,2)<1
             return;
         end
-        P = zeros(2,size(obj.conf.plant_coords,2));
-        for i=1:size(obj.conf.plant_coords,2)
-            % p0 for a line formula of p0+<m>t = p. scale it to the unit sphere plane
-            p=obj.conf.plant_coords(:,i)./obj.conf.plant_projection_height;
-            syms t;
-            eqn = sum((p+m.*t).^2)==1; % intersect the line with unit sphere. (sum(p.^2)==1)
-            sol = solve(eqn,t);       
-            sol_t = eval(sol(2));
-            pt_3d=p+m.*sol_t; % insert the solution into line formula to find the intersection point
-            P(:,i) = obj.camworld2im(obj.ext_calib.R'*pt_3d);
-        end
+        P = obj.camworld2im(obj.calib.Rext'*(bsxfun(@plus,...
+          obj.conf.plant_coords,m*h/m(3))));
         P(:,end+1) = P(:,1);
         P = obj.adjust_sun_pos(P);
     end
+
 
 % end position of the sun
     
