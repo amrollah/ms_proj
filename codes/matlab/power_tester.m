@@ -92,25 +92,32 @@ for d=1:numel(days)
         
         %% regreesion
         if (regress)
-            lin1_idxs = find(Irr.data(:,1)>=140);
-            lin2_idxs = find(Irr.data(:,1)<140);
-            P1_history = arrayfun(@(ti) mean(obj.P(max(1,ti-50):ti-1,2)), lin1_idxs);
-            P2_history = arrayfun(@(ti) mean(obj.P(max(1,ti-50):ti-1,2)), lin2_idxs);
+%             [~, sun] = sunpos_realworld_v2(obj,j);
+            [~, sun] = arrayfun(@(j) obj.sunpos_realworld_v2(j), 1:numel(obj.ti),'UniformOutput', false);
+            sun_zths= cell2mat(sun)';
+            sun_zths = 90-sun_zths;
+            sun_zths_ts = timeseries(sun_zths, obj.ti);
+            sun_zths = resample(sun_zths_ts, obj.P(:,1)); 
+%             lin1_idxs = find(Irr.data(:,1)>=140);
+%             lin2_idxs = find(Irr.data(:,1)<140);
+            P_history = arrayfun(@(ti) mean(obj.P(max(1,ti-50):ti-1,2)), 1:size(obj.P,1));
+%             P2_history = arrayfun(@(ti) mean(obj.P(max(1,ti-50):ti-1,2)), lin2_idxs);
 
-            X1 = normc([Irr.data(lin1_idxs,1), temp.data(lin1_idxs,1), P1_history]);%Irr.data(lin1_idxs,1).*temp.data(lin1_idxs,1)
-    %         b1 = regress(obj.P(lin1_idxs,2),X1);
-            b1 = fitlm(X1,obj.P(lin1_idxs,2),'RobustOpts','on');
-
-            X2 = normc([Irr.data(lin2_idxs,1), temp.data(lin2_idxs,1), P2_history]);%, Irr.data(lin2_idxs,1).*temp.data(lin2_idxs,1)
+            X = normc([Irr.data(:,1), temp.data(:,1), sun_zths.data]);%Irr.data(lin1_idxs,1).*temp.data(lin1_idxs,1)
+            
+            modelFun = @(b,x) b(1).*(x.^b(2));  %a(x^b)
+            b = fitlm(X,obj.P(:,2),'RobustOpts','on');
+            
+%             X2 = normc([Irr.data(lin2_idxs,1), temp.data(lin2_idxs,1), P2_history]);%, Irr.data(lin2_idxs,1).*temp.data(lin2_idxs,1)
     %         b2 = regress(obj.P(lin2_idxs,2),X2);
-            b2 = fitlm(X2,obj.P(lin2_idxs,2),'RobustOpts','on');
+%             b2 = fitlm(X2,obj.P(lin2_idxs,2),'RobustOpts','on');
 
     %         save('pw_clear_model','b1','b2');
     %         load('pw_clear_model.mat');
             est_pw = zeros(size(obj.P,1),2);
             est_pw(:,1) = obj.P(:,1);
-            est_pw(lin1_idxs,2) = [ones(size(Irr.data(lin1_idxs,1))) X1]*b1.Coefficients.Estimate(1:end);%b1.Fitted;
-            est_pw(lin2_idxs,2) = [ones(size(Irr.data(lin2_idxs,1))) X2]*b2.Coefficients.Estimate(1:end);%b2.Fitted;
+            est_pw(:,2) = [ones(size(Irr.data(lin1_idxs,1))) X1]*b1.Coefficients.Estimate(1:end);%b1.Fitted;
+%             est_pw(lin2_idxs,2) = [ones(size(Irr.data(lin2_idxs,1))) X2]*b2.Coefficients.Estimate(1:end);%b2.Fitted;
         end
         %%
         figure;

@@ -1063,9 +1063,9 @@ function showThres(obj,j)
         use_corrected_pos = zeros(1,length(obj.ti));
         pos(1,:) = obj.ti;
         for j=1:length(obj.ti)
-            [Q, sun] = obj.sunpos_realworld_v2(j);
+            [Q, sun_zenith] = obj.sunpos_realworld_v2(j);
             pos([2 3],j) = obj.camworld2im(obj.ext_calib.R'*Q);
-            if (sun.zenith-zenith)*zenith > 710 % this formula is empricially calculated to only consider a band close to image borders for correction
+            if (sun_zenith-zenith)*zenith > 710 % this formula is empricially calculated to only consider a band close to image borders for correction
                 use_corrected_pos(j) = 1;
             end
         end
@@ -1131,12 +1131,13 @@ function showThres(obj,j)
       [x,y,z] = sph2cart(sun.azimuth*pi/180,(90-sun.zenith)*pi/180,1);
       p = [x y z]';
     end
-    function [p, sun] = sunpos_realworld_v2(obj,j)
+    function [p, sun_zenith] = sunpos_realworld_v2(obj,j)
       %position of the sun in the world coordinates
       t = obj.gen_time_struct(j);
       sun = sun_position(t, obj.calib.model3D.Location);
       [x,y,z] = sph2cart(sun.azimuth*pi/180,(90-sun.zenith)*pi/180,1);
       p = [x y z]';
+      sun_zenith = sun.zenith;
     end
     
     function yx = sunpos_im(obj,j)

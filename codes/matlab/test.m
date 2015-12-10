@@ -78,18 +78,19 @@
 
 
 figHandles = get(0,'Children'); % gets the handles to all open figure
-rez=400; %resolution (dpi) of final graphic
+rez=800; %resolution (dpi) of final graphic
 resolution=get(0,'ScreenPixelsPerInch'); %dont need to change anything here
 
 for f = figHandles'
-    axesHandle = get(f,'Children'); % get the axes for each figure
-    titleHandle = get(axesHandle,'Title'); % gets the title for the first (or only) axes)
-    text = get(titleHandle,'String'); % gets the text in the title
-    text = strrep(text, '/', '_');
-    
+%     axesHandle = get(f,'Children'); % get the axes for each figure
+%     titleHandle = get(axesHandle,'Title'); % gets the title for the first (or only) axes)
+%     text = get(titleHandle,'String'); % gets the text in the title
+%     text = strrep(text, '/', '_');
+    text = 'sun_samples';
     figpos=getpixelposition(f); %dont need to change anything here    
     set(f,'paperunits','inches','papersize',figpos(3:4)/resolution,'paperposition',[0 0 figpos(3:4)/resolution]); %dont need to change anything here
-    print(f,strcat('C:\data\cav\power_plots\',text),'-djpeg',['-r',num2str(rez)],'-opengl') %save file 
+    print(f,strcat('C:\data\cav\',text),'-djpeg',['-r',num2str(rez)],'-opengl') %save file 
 
     %saveas(f, strcat('C:\data\cav\log_data\power_plots\',text), 'jpg') % save the figure with the title as the file name 
 end
+
