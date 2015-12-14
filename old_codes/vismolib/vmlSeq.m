@@ -1140,6 +1140,21 @@ function showThres(obj,j)
       sun_zenith = sun.zenith;
     end
     
+    function [p, sun_zenith] = sunpos_realworld_v3(obj,tm)
+      %position of the sun in the world coordinates
+      t = [];
+      [t.year,t.month,t.day,t.hour,t.min,t.sec]=datevec(tm);
+      t.UTC = obj.calib.model3D.UTC;
+      % for Daylight saving
+      if ~isdst(datetime(t.year,t.month,t.day,t.hour,t.min,t.sec,'TimeZone',obj.conf.timezone))
+        t.hour = t.hour + 1;
+      end  
+      sun = sun_position(t, obj.calib.model3D.Location);
+      [x,y,z] = sph2cart(sun.azimuth*pi/180,(90-sun.zenith)*pi/180,1);
+      p = [x y z]';
+      sun_zenith = sun.zenith;
+    end
+    
     function yx = sunpos_im(obj,j)
       %position of the sun in image pixels
       yx = obj.camworld2im(obj.calib.Rext'*obj.sunpos_realworld(j));
