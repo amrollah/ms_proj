@@ -1234,6 +1234,53 @@ function showThres(obj,j)
       %figure(55);imagesc(x);hold on;plot(q,p,'gx');hold off
     end
     
+    function sat_sun_pos=detect_saturated_sun_v2(obj,j)
+      sat_sun_pos=[];
+      sun_pos = obj.sun_pos([2 3],j);
+      sat_sun_pos_old = obj.detect_saturated_sun(j);
+      if norm(sat_sun_pos_old-sun_pos)<30
+        sun_pos = sat_sun_pos_old;
+      end
+      
+      eccthresh = 0.6;
+      areaThresh = 600;
+      
+      cx=floor(sun_pos(1)); cy=floor(sun_pos(2)); R=30;
+      im = obj.imread(j);
+      sun_p = im(cx-R:cx+R,cy-R:cy+R,:); 
+      
+      xg=rgb2gray(sun_p);
+      xg=vmlGaussianBlur(xg,obj.conf.gaussblur4sundect_px);
+      gthres=0.4*mean(mean(xg));
+      xg2=xg;
+      xg(xg2>gthres)=0;
+      xg(xg2<=gthres)=255;
+
+        %Boundary Label the Filtered Image
+        [L, num]=bwlabel(xg);
+        STATS=regionprops(L,'all');
+        removed=0;
+        %Remove the noisy regions 
+        for j=1:num
+            dd=STATS(j).Area;
+            if (dd < 5 || (dd > areaThresh && STATS(j).Eccentricity > eccthresh))
+                L(L==j)=0;
+                removed = removed + 1; 
+            end
+        end
+        if removed>0
+            [L2, num]=bwlabel(L);
+            STATS=regionprops(L2,'all');
+        end
+        max_area=0;
+        for j=1:num
+            if STATS(j).Area > max_area
+                sat_sun_pos = STATS(j).Centroid + [cy-R,cx-R];
+                max_area=STATS(j).Area;
+            end
+        end
+    end
+    
     function R = kabsch(obj,R,frame_nos)
       %Kabsch algorithm for compution rotation matrix such that
       %detected sun position and acutal sun position coincide

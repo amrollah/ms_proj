@@ -1,6 +1,6 @@
-% close all; 
+close all; 
 clear all; 
-% clc;
+clc;
 
 %% settings
 addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'))
@@ -12,18 +12,18 @@ show_plant=false;
 %% Path of data
 % base folder for Cavriglia image and data files
 cav_data_path = 'U:\HDRImages_Cavriglia\img\';
-local_cav_data_path = 'C:\data\cav\suns\';
+local_cav_data_path = 'C:\data\cav\log_data\';
 
-suns = dir('C:\data\cav\sun\');
+suns = dir('C:\data\cav\tt\');
 suns = suns(~vertcat(suns.isdir));
 start_date = '2015_08_03'; 
-start_date_found = false;
+start_date_found = true;
 
 dstr='yyyy_mm_dd_HH_MM_SS';
 last_date = '';
 sun_patches = {};
 % loop
-f=figure(1);
+% f=figure(1);
 %  maxfig(f,1);
 % set(f,'units','normalized','outerposition',[0 0 1 1]);
 
@@ -50,13 +50,25 @@ for d=1:numel(suns)
     [~,j] = min(abs(s.ti-tm));
 %     s.showframe(j);
     s.loadframe(j);
+    im = s.imread(j);
+    sun_p = s.detect_saturated_sun_v2(j);
+    figure;
+    imshow(im);
+    if(sun_p)
+        hold on;
+        plot(sun_p(1),sun_p(2),'ro','markersize',10);
+    else
+        disp('Sun is blocked.');
+    end
+    continue;
+    
     sat_sun_pos = s.detect_saturated_sun(j);
     sun_pos = s.sun_pos([2 3],j);
     if norm(sat_sun_pos-sun_pos)<30
         sun_pos = sat_sun_pos;
     end
    
-    cx=sun_pos(1); cy=sun_pos(2); R=20;   
+    cx=floor(sun_pos(1)); cy=floor(sun_pos(2)); R=30;   
 %     cc=1:s.sz(2); 
 %     rr=(1:s.sz(1))';
 %     f=@(xx,yy) (xx-cx1).^2+(yy-cy1).^2 <=R^2; 
@@ -68,11 +80,11 @@ for d=1:numel(suns)
     sun_patch = im(cx-R:cx+R,cy-R:cy+R,:); 
 %     figure;
 %     subplot(14,15,d);
-    imshow(sun_patch);
-    set(f,'position',get(0,'screensize'));
-    sun_rect = getrect(f);
+%     imshow(sun_patch);
+%     set(f,'position',get(0,'screensize'));
+%     sun_rect = getrect(f);
     sun_patches{1,d} = sun_patch;
-    sun_patches{2,d} = sun_rect;
+%     sun_patches{2,d} = sun_rect;
     
     if show_plant
         f=s.xcur.r2b>=s.xcur.thres.vmfi;
@@ -88,7 +100,7 @@ for d=1:numel(suns)
         shadow = g2&g;
         figure(130);imshow(shadow);
     end
-    pause(1);
+%     pause(0.2);
 end
 
 

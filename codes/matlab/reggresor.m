@@ -48,8 +48,8 @@ for d=1:numel(days)
 end
 dt = [all_Irr, all_temp, all_sun_zth];
 nan_idx = sum(isnan(dt),2);
-X=normc(dt(find(nan_idx==0),:));
-y=normc(all_pw(find(nan_idx==0)));
+X=dt(find(nan_idx==0),:);
+y=all_pw(find(nan_idx==0));
 % figure;subplot(1,3,1);plot(X(:,1),y);
 % subplot(1,3,2);plot(X(:,2),y);
 % subplot(1,3,3);plot(X(:,3),y);
@@ -83,14 +83,18 @@ for d=1:numel(test_days)
 end
 dt = [test_Irr, test_temp, test_sun_zth];
 nan_idx = sum(isnan(dt),2);
-X_t=normc(dt(find(nan_idx==0),:));
-y_t=normc(test_pw(find(nan_idx==0)));
+X_t=dt(find(nan_idx==0),:);
+y_t=test_pw(find(nan_idx==0));
 
 save('Data.mat', 'X','y','X_t','y_t');
 end
 
+X=normc(X);
+Y=normc(Y);
 X = [X(:,[1,3]), sqrt(X(:,2))];
 X_t = [X_t(:,[1,3]), sqrt(X_t(:,2))];
+X_t=normc(normc);
+y_t=normc(y_t);
 model = fitlm(X,y,'linear','RobustOpts','on');
 
 est_pw = predict(model,X_t);
