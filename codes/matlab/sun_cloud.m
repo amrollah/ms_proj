@@ -14,7 +14,8 @@ show_plant=false;
 cav_data_path = 'U:\HDRImages_Cavriglia\img\';
 local_cav_data_path = 'C:\data\cav\log_data\';
 
-suns = dir('C:\data\cav\tt\');
+% suns = dir('C:\data\cav\sun_detect_test\');
+suns = dir('C:\data\cav\n\');
 suns = suns(~vertcat(suns.isdir));
 start_date = '2015_08_03'; 
 start_date_found = true;
@@ -52,12 +53,15 @@ for d=1:numel(suns)
     s.loadframe(j);
     im = s.imread(j);
     sun_p = s.detect_saturated_sun_v2(j);
-    figure;
-    imshow(im);
+    
     if(sun_p)
-        hold on;
-        plot(sun_p(1),sun_p(2),'ro','markersize',10);
+       figure;
+        imshow(im); 
     else
+%         figure;
+%         imshow(im);
+%         hold on;
+%         plot(sun_p(1),sun_p(2),'ro','markersize',10);
         disp('Sun is blocked.');
     end
     continue;

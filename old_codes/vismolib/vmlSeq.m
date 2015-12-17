@@ -1247,7 +1247,8 @@ function showThres(obj,j)
       
       cx=floor(sun_pos(1)); cy=floor(sun_pos(2)); R=30;
       im = obj.imread(j);
-      sun_p = im(cx-R:cx+R,cy-R:cy+R,:); 
+      
+      sun_p = im(max(cx-R,0):min(cx+R,size(im,1)),max(cy-R,0):min(cy+R,size(im,2)),:); 
       
       xg=rgb2gray(sun_p);
       xg=vmlGaussianBlur(xg,obj.conf.gaussblur4sundect_px);
