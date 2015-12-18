@@ -1280,6 +1280,7 @@ function showThres(obj,j)
                 max_area=STATS(j).Area;
             end
         end
+        
     end
     
     function R = kabsch(obj,R,frame_nos)

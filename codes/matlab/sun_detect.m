@@ -13,7 +13,7 @@ xbins = linspace(0,255,nbins+1);
 xbins = xbins+(xbins(2)-xbins(1))/2;
 xbins=xbins(1:nbins);
 % load('sun_patches.mat');
-load('sun_patches_temp.mat');
+load('sun_patches_test.mat');
 
 p_w = 4;
 xgrid=1:p_w:40;
