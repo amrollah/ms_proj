@@ -49,7 +49,8 @@ if ~isempty(idstr) && exist(powerfile,'file')
   disp(['READING FROM POWER LOG FILE ' powerfile]);
   x1 = swallowcsv(powerfile,char(9));
   tm = tm1+x1(:,1)/86400;
-  if size(x1,2)>=111
+  data_Power_ncols = size(x1,2);
+  if data_Power_ncols>=111
     pp = x1(:,[4 30 56 82]);
     converter_flag = x1(:,[26 52 78 104]);
   else

@@ -3,8 +3,12 @@ clear all;
 clc;
 
 %% settings
-addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'))
+% addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'));
+addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib_v3'))
 addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\solvers'));
+addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\lib\'));
+addpath(genpath('C:\data\dlib-18.18\'));
+
 vmlconfig_cavriglia;
 conf = evalin('base','VMLCONF');
 show_plant=false;
@@ -14,8 +18,8 @@ show_plant=false;
 cav_data_path = 'U:\HDRImages_Cavriglia\img\';
 local_cav_data_path = 'C:\data\cav\log_data\';
 
-% suns = dir('C:\data\cav\sun_detect_test\');
-suns = dir('C:\data\cav\n\');
+suns = dir('C:\data\cav\sun_detect_test\');
+% suns = dir('C:\data\cav\n\');
 suns = suns(~vertcat(suns.isdir));
 start_date = '2015_08_03'; 
 start_date_found = true;
@@ -48,7 +52,7 @@ for d=1:numel(suns)
         last_date = date;
     end
     tm = datenum(im,dstr);
-    [~,j] = min(abs(s.ti-tm));
+    [~,j] = min(abs(s.data.ti-tm));
 %     s.showframe(j);
     s.loadframe(j);
     im = s.imread(j);
