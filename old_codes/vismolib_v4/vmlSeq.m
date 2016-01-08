@@ -189,6 +189,10 @@ classdef vmlSeq < handle
         obj.calib.UTC),obj.calib.model3D.Location)];
     end
     
+    function print(obj,txt,printlevel)
+      if obj.uidata.printlevel>=printlevel, disp(txt); end
+    end
+    
     function x = imread(obj,j)
       %read a single frame
       x = imread([obj.data.folder obj.data.files{j} obj.conf.img_ext]);
@@ -213,6 +217,39 @@ classdef vmlSeq < handle
       %get the clear sky irradiation for time(s) t
       if any(t<obj.data.ti(1)-1), t=obj.data.ti(t); end
       y = interp1(obj.data.IrrClear(:,1),obj.data.IrrClear(:,2),t);
+    end
+    
+    function P1 = getPclearsky(obj,t)
+      %compute the clear sky power model for time(s) t
+      if any(t<obj.data.ti(1)-1), t=obj.data.ti(t); end
+      tt = t(:)'-floor(obj.data.ti(1));
+      P1 = sim_nn_nf(obj.Pclearsky.w,tt);
+    end
+    
+    function [jZ, tpred] = getZidx(obj,tpred,accept_empty)
+      if nargin<3, accept_empty = 0; end
+      if isempty(obj.Z_tpred)
+        if accept_empty, jZ = []; return;
+        else error('no features computed yet'); end
+      end
+      if isempty(tpred), tpred = obj.Z_tpred(1); end
+      jZ = find(tpred==obj.Z_tpred);
+      if isempty(jZ) && ~accept_empty, error('no features computed for this tpred'); end
+    end
+    
+    function [jW, tpred, tblur, usepow] = getWidx(obj,PBP,accept_empty)
+      if nargin<3, accept_empty = 0; end
+      if isempty(obj.Z_tpred), error('no features computed yet'); end
+      if isempty(obj.W_PBP)
+        if accept_empty, jW = []; return;
+        else error('no weights trained yet'); end
+      end
+      if isempty(PBP), tpred = obj.Z_tpred(1); tblur = [];
+      else tpred = PBP(1); tblur = PBP(2); usepow = PBP(3); end
+      if isempty(tblur), jW = find(obj.W_PBP(1,:)==tpred,1);
+      else jW = find(obj.W_PBP(1,:)==tpred & obj.W_PBP(2,:)==tblur & obj.W_PBP(3,:)==usepow); end
+      if isempty(jW) && ~accept_empty, error('no weights for this PBP'); end
+      if ~isempty(jW),  tblur = obj.W_PBP(2,jW); usepow = obj.W_PBP(3,jW); end
     end
     
     function data = export(obj)
@@ -328,9 +365,7 @@ classdef vmlSeq < handle
         obj.curseg.thres = [];
         obj.curseg.thres.v = reshape(obj.calc.thres_v(:,j),ngrid,ngrid);
       else
-        if obj.uidata.printlevel>=1
-          disp(['performing cloud segmentation for frame #' num2str(j)]);
-        end
+        obj.print(['performing cloud segmentation for frame #' num2str(j)],1);
         r2b_midrange = obj.conf.seg.r2b_midrange;
         r2b = obj.curseg.r2b; r2b(~sm) = NaN;
         r2bmin = min(r2b_midrange(1),min(obj.curseg.r2b(obj.mfi.sm)));
@@ -416,18 +451,23 @@ classdef vmlSeq < handle
         end
         
         if ~any(~isnan(obj.curseg.thres.j0(:)))
-          %uniform sky, decide if to initialize uniformly cloudy or clear
-          allnn = allnn/sum(allnn);
-          if sum(obj.curseg.thres.zzh'.*allnn)>mean(obj.conf.seg.r2b_midrange)
-            j0 = find(cumsum(allnn)<=obj.conf.seg.extreme_outside_mass,1,'last');
+          %uniform sky, decide if uniformly cloudy or clear
+          %allnn = allnn/sum(allnn);
+          %if sum(obj.curseg.thres.zzh'.*allnn)>mean(obj.conf.seg.r2b_midrange)
+          if obj.curseg.clear_sun_flag<=2
+            j0 = 1; %max(1,find(cumsum(allnn)<=obj.conf.seg.extreme_outside_mass,1,'last')-1);
           else
-            disp(['WARNING: uniformly clear sky in frame #' num2str(j) ', this is unlikely']);
-            j0 = find(cumsum(allnn)>=1-obj.conf.seg.extreme_outside_mass,1);
+            %disp(['WARNING: uniformly clear sky in frame #' num2str(j) ', this is unlikely']);
+            j0 = NN; %min(NN,find(cumsum(allnn)>=1-obj.conf.seg.extreme_outside_mass,1)+1);
           end
           obj.curseg.thres.j0 = zeros(obj.conf.seg.ngrid)+j0;
           obj.curseg.thres.j0(~obj.thres.have_v) = NaN;
+          obj.curseg.thres.v = zeros(obj.conf.seg.ngrid)+obj.curseg.thres.zzh(j0);
+          obj.curseg.thres.v(~obj.thres.have_v) = NaN;
+        else
+          obj.curseg.thres.v = vmlSmoothThresMap(obj.curseg.thres,obj.thres.have_v,obj.conf.seg);
         end
-        obj.curseg.thres.v = vmlSmoothThresMap(obj.curseg.thres,obj.thres.have_v,obj.conf.seg);
+        
         obj.calc.thres_v(:,j) = obj.curseg.thres.v(:);
       end
       
@@ -456,9 +496,10 @@ classdef vmlSeq < handle
 
 %% process sequence
 
-    function [jstart,jend] = find_daylight_range(obj)
+    function [jstart,jend] = find_daylight_range(obj,extend)
+      if nargin<2, extend=0; end
       jj = obj.data.IrrClear(:,2)>=max(obj.data.IrrClear(:,2))*obj.conf.daylight_thres;
-      jstart = obj.getidx(obj.data.IrrClear(find(jj,1),1));
+      jstart = obj.getidx(obj.data.IrrClear(find(jj,1),1)-extend*max(obj.conf.pred.tpred)/86400);
       jend = obj.getidx(obj.data.IrrClear(find(jj,1,'last'),1));
     end
 
@@ -469,11 +510,16 @@ classdef vmlSeq < handle
       xof(~obj.curseg.sm) = NaN;
     end
     
-    function update_scal(obj,fn,r,c,v)
-      wnew = obj.conf.scal.w_newest;
-      wold = obj.curpred.(['w' fn])(r,c)*(1-wnew);
-      obj.curpred.(fn)(r,c) = (wold*obj.curpred.(fn)(r,c)+wnew*v)/(wold+wnew);
-      obj.curpred.(['w' fn])(r,c) = wold+wnew;
+    function update_scal(obj,fn,upd,vupd)
+      wold = obj.curpred.(['w' fn]);
+      v = obj.curpred.(fn);
+      wnew = repmat(obj.conf.scal.w_newest(:),size(wold,1)/length(obj.conf.scal.w_newest),2);
+      wold = wold.*(1-wnew);
+      wold(~upd) = max(wold(~upd),min(1,wnew(~upd)./(1-wnew(~upd))));
+      wnew(~upd) = 0;
+      v(upd) = (wold(upd).*v(upd)+wnew(upd).*vupd)./(wold(upd)+wnew(upd));
+      obj.curpred.(fn) = v;
+      obj.curpred.(['w' fn]) = wold+wnew;
     end
     
     function calc_cur_avgcc(obj)
@@ -484,19 +530,16 @@ classdef vmlSeq < handle
       
       %adapt scaling avgcc to irr / power
       irr = obj.getIrr(j)/obj.getIrrClear(j);
-      if obj.calc.avgcc_sun(j)<=obj.conf.scal.thres && obj.curseg.clear_sun_flag==4
-        obj.update_scal('sun_avgcc2irr',1,1,irr);
-      elseif obj.calc.avgcc_sun(j)>=1-obj.conf.scal.thres && obj.curseg.clear_sun_flag==1
-        obj.update_scal('sun_avgcc2irr',1,2,irr);
-      end
+      upd = repmat([(obj.calc.avgcc_sun(j)<=obj.conf.scal.thres && obj.curseg.clear_sun_flag==4) ...
+        (obj.calc.avgcc_sun(j)>=1-obj.conf.scal.thres && obj.curseg.clear_sun_flag==1)],...
+        length(obj.conf.scal.w_newest),1);
+      obj.update_scal('sun_avgcc2irr',upd,irr);
+
       p = obj.getP(j)/obj.getIrrClear(j);
-      for i=1:size(obj.curpred.plant_avgcc2p,1)
-        if obj.calc.avgcc(i,j)<=obj.conf.scal.thres
-          obj.update_scal('plant_avgcc2p',i,1,p);
-        elseif obj.calc.avgcc(i,j)>=1-obj.conf.scal.thres
-          obj.update_scal('plant_avgcc2p',i,2,p);
-        end
-      end
+      upd = repmat([obj.calc.avgcc(:,j)<=obj.conf.scal.thres obj.calc.avgcc(:,j)>=1-obj.conf.scal.thres],...
+        [1 1 length(obj.conf.scal.w_newest)]);
+      obj.update_scal('plant_avgcc2p',reshape(permute(upd,[3 1 2]),numel(upd)/2,2),p);
+
       obj.calc.sun_avgcc2irr(:,j) = obj.curpred.sun_avgcc2irr(:);
       obj.calc.plant_avgcc2p(:,j) = obj.curpred.plant_avgcc2p(:);
     end
@@ -504,70 +547,84 @@ classdef vmlSeq < handle
     function update_pred(obj)
       j = obj.curmot.j;
       cc0 = obj.curmot.cc; cc0(isinf(obj.curmot.age_cc)) = nan;
-      j_p = repmat(1:length(obj.conf.plantproj.heights),...
-        length(obj.conf.plantproj.extensions)*obj.conf.pred.n_cc2pow,1);
-      j_p = j_p(:);
+      [j_p1,j_p2] = vmlMakeIndexPair(length(obj.conf.plantproj.extensions)*obj.conf.pred.n_cc2pow,...
+        length(obj.conf.scal.w_newest),length(obj.conf.plantproj.heights));
+      [j_irr1,j_irr2] = vmlMakeIndexPair(length(obj.conf.pred.rsun_px),length(obj.conf.scal.w_newest));
       irc0 = obj.getIrrClear(j);
       for i_t=1:length(obj.conf.pred.tpred)
         tpred = obj.conf.pred.tpred(i_t);
         irc1 = obj.getIrrClear(obj.data.ti(j)+tpred/86400);
-        obj.curpred.p(i_t).v = nan+obj.curpred.p(i_t).sc;
-        obj.curpred.irr(i_t).v = nan+obj.curpred.irr(i_t).sc;
-        k_p = 0; k_irr = 0; bb=[];
-        for i_v = 1:obj.conf.pred.n_mvec
-          if any(isnan(obj.calc.mvec(:,j+1-i_v))), break; end
-          cc = vmlShift(obj.mfi,mean(obj.calc.mvec(:,j+1-i_v:j),2)*tpred,cc0);
-          [p1,bb] = obj.calc_avgcc_plant(obj.data.ti(j)+tpred/86400,cc,bb);
-          p1 = vml_cc2pow(p1);
-          p1 = irc1*(obj.curpred.plant_avgcc2p(j_p,2).*(1-p1)+obj.curpred.plant_avgcc2p(j_p,1).*p1);
-          obj.curpred.p(i_t).v(k_p+(1:length(p1))) = p1;
-          k_p = k_p+length(p1);
-          irr1 = 1-obj.calc_avgcc_sun(obj.data.ti(j)+tpred/86400,cc);
-          irr1 = irc1*(obj.curpred.sun_avgcc2irr(2)*(1-irr1)+obj.curpred.sun_avgcc2irr(1)*irr1);
-          obj.curpred.irr(i_t).v(k_irr+(1:length(irr1))) = irr1;
-          k_irr = k_irr+length(irr1);
-        end
-        fupd = obj.conf.pred.f_upd_score;
+        obj.curpred.p_persist = obj.getP(j)*irc1/irc0;
+        obj.curpred.irr_persist = obj.getIrr(j)*irc1/irc0;
         p_true = obj.getP(obj.data.ti(j)+tpred/86400);
         irr_true = obj.getIrr(obj.data.ti(j)+tpred/86400);
-        if mean(~isnan(obj.curpred.p(i_t).v))<obj.conf.pred.min_nexperts
-          p_pred = NaN;
-        else
-          jj = ~isnan(obj.curpred.p(i_t).v);
-          w = exp(-obj.conf.pred.f_score*obj.curpred.p(i_t).sc(jj));
-          w = w/sum(w);
-          p_pred = dot(w,obj.curpred.p(i_t).v(jj));
-          sqe = (obj.curpred.p(i_t).v(jj)-p_true).^2;
-          sqe = sqe/max(1,mean(sqe));
-          obj.curpred.p(i_t).sc(jj) = (1-fupd)*obj.curpred.p(i_t).sc(jj)+fupd*sqe;
-          obj.curpred.p(i_t).sc(~jj) = (1-fupd)*obj.curpred.p(i_t).sc(~jj)+fupd*mean(sqe);
-        end
-        obj.calc.p_pred(i_t,j) = p_pred;
-        obj.calc.p_abserr(i_t,j) = abs(p_pred-p_true);
         
-        if mean(~isnan(obj.curpred.irr(i_t).v))<obj.conf.pred.min_nexperts
-          irr_pred = NaN;
+        if tpred<=obj.conf.pred.tpred_persist
+          obj.curpred.p_agg(i_t) = obj.curpred.p_persist;
+          obj.curpred.irr_agg(i_t) = obj.curpred.irr_persist;
         else
-          jj = ~isnan(obj.curpred.irr(i_t).v);
-          w = exp(-obj.conf.pred.f_score*obj.curpred.irr(i_t).sc(jj));
-          w = w/sum(w);
-          irr_pred = dot(w,obj.curpred.irr(i_t).v(jj));          
-          sqe = (obj.curpred.irr(i_t).v(jj)-irr_true).^2;
-          sqe = sqe/max(1,mean(sqe));
-          obj.curpred.irr(i_t).sc(jj) = (1-fupd)*obj.curpred.irr(i_t).sc(jj)+fupd*sqe;
-          obj.curpred.irr(i_t).sc(~jj) = (1-fupd)*obj.curpred.irr(i_t).sc(~jj)+fupd*mean(sqe);
+          obj.curpred.p(i_t).v = nan+obj.curpred.p(i_t).sc;
+          obj.curpred.p(i_t).v(end) = obj.curpred.p_persist;
+          obj.curpred.irr(i_t).v = nan+obj.curpred.irr(i_t).sc;
+          obj.curpred.irr(i_t).v(end) = obj.curpred.irr_persist;
+          k_p = 0; k_irr = 0; bb=[];
+          for i_v = 1:length(obj.conf.pred.n_mvec)
+            n_mvec1 = obj.conf.pred.n_mvec(i_v);
+            if any(isnan(obj.calc.mvec(:,j+1-n_mvec1))), break; end
+            mvec1 = mean(obj.calc.mvec(:,j+1-n_mvec1:j),2);
+            if norm(mvec1)<=obj.conf.mot.zero_tol
+              p1 = obj.curpred.p_persist;
+              irr1 = obj.curpred.irr_persist;
+            else
+              cc = vmlShift(obj.mfi,mvec1*tpred,cc0);
+              [p1,bb] = obj.calc_avgcc_plant(obj.data.ti(j)+tpred/86400,cc,bb);
+              p1 = vml_cc2pow(p1);
+              p1 = irc1*(obj.curpred.plant_avgcc2p(j_p2,2).*(1-p1(j_p1))+obj.curpred.plant_avgcc2p(j_p2,1).*p1(j_p1));
+              irr1 = 1-obj.calc_avgcc_sun(obj.data.ti(j)+tpred/86400,cc);
+              irr1 = irc1*(obj.curpred.sun_avgcc2irr(j_irr2,2).*(1-irr1(j_irr1))+obj.curpred.sun_avgcc2irr(j_irr2,1).*irr1(j_irr1));
+            end
+            obj.curpred.p(i_t).v(k_p+(1:length(j_p1))) = p1;
+            k_p = k_p+length(j_p1);
+            obj.curpred.irr(i_t).v(k_irr+(1:length(j_irr1))) = irr1;
+            k_irr = k_irr+length(j_irr1);
+          end
+          fupd = obj.conf.pred.upd_score;
+          if mean(~isnan(obj.curpred.p(i_t).v))<obj.conf.pred.min_nexperts
+            obj.curpred.p_agg(i_t) = NaN;
+          else
+            jj = ~isnan(obj.curpred.p(i_t).v);
+            sc1 = obj.curpred.p(i_t).sc(jj); sc1=sc1-min(sc1);
+            w = exp(-sc1/quantil(sc1,obj.conf.pred.quantil_score)); w = w/sum(w);
+            obj.curpred.p_agg(i_t) = dot(w,obj.curpred.p(i_t).v(jj));
+            err1 = abs(obj.curpred.p(i_t).v(jj)-p_true);
+            obj.curpred.p(i_t).sc(jj) = (1-fupd)*obj.curpred.p(i_t).sc(jj)+fupd*err1;
+            obj.curpred.p(i_t).sc(~jj) = (1-fupd)*obj.curpred.p(i_t).sc(~jj)+fupd*mean(err1);
+          end
+          obj.calc.p_pred(i_t,j) = obj.curpred.p_agg(i_t);
+          
+          if mean(~isnan(obj.curpred.irr(i_t).v))<obj.conf.pred.min_nexperts
+            obj.curpred.irr_agg(i_t) = NaN;
+          else
+            jj = ~isnan(obj.curpred.irr(i_t).v);
+            sc1 = obj.curpred.irr(i_t).sc(jj); sc1=sc1-min(sc1);
+            w = exp(-sc1/quantil(sc1,obj.conf.pred.quantil_score)); w = w/sum(w);
+            obj.curpred.irr_agg(i_t) = dot(w,obj.curpred.irr(i_t).v(jj));
+            err1 = abs(obj.curpred.irr(i_t).v(jj)-irr_true);
+            obj.curpred.irr(i_t).sc(jj) = (1-fupd)*obj.curpred.irr(i_t).sc(jj)+fupd*err1;
+            obj.curpred.irr(i_t).sc(~jj) = (1-fupd)*obj.curpred.irr(i_t).sc(~jj)+fupd*mean(err1);
+          end
+          obj.calc.irr_pred(i_t,j) = obj.curpred.irr_agg(i_t);
         end
-        obj.calc.irr_pred(i_t,j) = irr_pred;
-        obj.calc.irr_abserr(i_t,j) = abs(irr_pred-irr_true);
         
-        obj.calc.p_persist_abserr(i_t,j) = abs(obj.getP(j)-p_true);
-        obj.calc.irr_persist_abserr(i_t,j) = abs(obj.getIrr(j)-irr_true);
-        obj.calc.p_corr_persist_abserr(i_t,j) = abs(obj.getP(j)*irc1/irc0-p_true);
-        obj.calc.irr_corr_persist_abserr(i_t,j) = abs(obj.getIrr(j)*irc1/irc0-irr_true);
+        obj.calc.p_abserr(i_t,j) = abs(obj.curpred.p_agg(i_t)-p_true);
+        obj.calc.p_persist_abserr(i_t,j) = abs(obj.curpred.p_persist-p_true);
+        obj.calc.irr_abserr(i_t,j) = abs(obj.curpred.irr_agg(i_t)-irr_true);
+        obj.calc.irr_persist_abserr(i_t,j) = abs(obj.curpred.irr_persist-irr_true);
       end
     end
     
     function startframe(obj, j)
+      obj.print(['starting at frame #' num2str(j)],1);
       obj.loadframe(j);
       obj.curmot.x = obj.get_xof;
       obj.curmot.j = j;
@@ -583,6 +640,7 @@ classdef vmlSeq < handle
     
     function nextframe(obj)
       assert(~isempty(obj.curmot.x),'nextframe called without startframe');
+      obj.print(['processing frame #' num2str(obj.curmot.j+1)],1);
       curmot1 = obj.curmot;
       j = curmot1.j+1;
       curmot1.j = j;
@@ -622,42 +680,36 @@ classdef vmlSeq < handle
     
     function process(obj,oldpred,jstart,jend)
       if nargin<4
-        [jstart1,jend] = obj.find_daylight_range;
+        [jstart1,jend] = obj.find_daylight_range(1);
         if nargin<3, jstart = jstart1; end
       end
       obj.curpred = [];
-      
-      if nargin<=2
-        obj.curpred.sun_avgcc2irr = [0 0];
-        obj.curpred.wsun_avgcc2irr = [0 0];
-        obj.curpred.plant_avgcc2p = zeros(length(obj.conf.plantproj.heights),2);
-        obj.curpred.wplant_avgcc2p = zeros(length(obj.conf.plantproj.heights),2);
+      n_sun_avgcc2irr = length(obj.conf.scal.w_newest);
+      n_plant_avgcc2p = length(obj.conf.plantproj.heights)*length(obj.conf.scal.w_newest);
+      if nargin<2
+        obj.curpred.sun_avgcc2irr = zeros(n_sun_avgcc2irr,2);
+        obj.curpred.wsun_avgcc2irr = zeros(n_sun_avgcc2irr,2);
+        obj.curpred.plant_avgcc2p = zeros(n_plant_avgcc2p,2);
+        obj.curpred.wplant_avgcc2p = zeros(n_plant_avgcc2p,2);
       else
-        w0 = min(1,obj.conf.scal.w_newest/(1-obj.conf.scal.w_newest));
+        assert(size(oldpred.sun_avgcc2irr,1)==n_sun_avgcc2irr,'size of oldpred.sun_avgcc2irr does not match');
+        assert(size(oldpred.plant_avgcc2p,1)==n_plant_avgcc2p,'size of oldpred.plant_avgcc2p does not match');
+        w0 = min(1,obj.conf.scal.w_newest(:)./(1-obj.conf.scal.w_newest(:)));
         obj.curpred.sun_avgcc2irr = oldpred.sun_avgcc2irr;
-        obj.curpred.wsun_avgcc2irr = [0 0]+w0;
+        obj.curpred.wsun_avgcc2irr = repmat(w0,1,2);
         obj.curpred.plant_avgcc2p = oldpred.plant_avgcc2p;
-        obj.curpred.wplant_avgcc2p = zeros(length(obj.conf.plantproj.heights),2)+w0;
-        assert(all(size(obj.curpred.plant_avgcc2p)==size(obj.curpred.wplant_avgcc2p)),...
-          'number of plant projection heights in oldpred does not match');
+        obj.curpred.wplant_avgcc2p = repmat(w0,length(obj.conf.plantproj.heights),2);
       end
-      nexperts = length(obj.conf.plantproj.heights)*length(obj.conf.plantproj.extensions)*...
-        obj.conf.pred.n_cc2pow*obj.conf.pred.n_mvec;
-      nexperts_sun = length(obj.conf.pred.rsun_px)*obj.conf.pred.n_mvec;
+      nexperts = n_plant_avgcc2p*length(obj.conf.plantproj.extensions)*...
+        obj.conf.pred.n_cc2pow*length(obj.conf.pred.n_mvec)+1;
+      nexperts_sun = n_sun_avgcc2irr*length(obj.conf.pred.rsun_px)*...
+        length(obj.conf.pred.n_mvec)+1;
       for i=1:length(obj.conf.pred.tpred)
         obj.curpred.p(i).sc = zeros(nexperts,1);
         obj.curpred.irr(i).sc = zeros(nexperts_sun,1);
       end
-      if obj.uidata.printlevel>=1
-        disp(['starting at frame #' num2str(jstart)]);
-      end
       obj.startframe(jstart);
-      while obj.curmot.j<jend
-        if obj.uidata.printlevel>=1
-          disp(['processing frame #' num2str(obj.curmot.j+1)]);
-        end
-        obj.nextframe; 
-      end
+      while obj.curmot.j<jend, obj.nextframe; end
     end
     
 % end process sequence
@@ -871,7 +923,7 @@ classdef vmlSeq < handle
       jj = find(all(~isnan(obj.calc.mvec)));
       if isempty(jj), error('no motion vectors computed yet'); end
       plot(obj.data.ti(jj),obj.calc.mvec(1,jj),'-b.',obj.data.ti(jj),obj.calc.mvec(2,jj),'-r.');
-      datetick;
+      datetickzoom;
       title(obj.uidata.strtitle,'interpreter','none');
       show_mvec_upd(jj(1));
       dcmobj = datacursormode(gcf);
@@ -880,7 +932,7 @@ classdef vmlSeq < handle
         if nargin>=2, [~,j] = min(abs(event_obj.Position(1)-obj.data.ti)); end
         figure(figno);
         subplot(3,2,1:4); 
-        obj.showtraj(j,0);
+        obj.showtraj(j);
         drawnow;
         if nargin<2, out=[]; 
         else out = datestr(event_obj.Position(1),'HH:MM:SS'); end
@@ -969,7 +1021,7 @@ classdef vmlSeq < handle
             end
           end
         end
-        if vv{5}
+        if vv{5} && length(unique(obj.curseg.thres.vmfi(~isnan(obj.curseg.thres.vmfi))))>1
           hold on;
           [~,ih] = contour(obj.mfi.XX,obj.mfi.YY,obj.curseg.thres.vmfi,20);
           set(gca,'clim',[min(obj.curseg.thres.vmfi(:)) max(obj.curseg.thres.vmfi(:))]);
@@ -978,7 +1030,7 @@ classdef vmlSeq < handle
           pos = get(gca,'Position');
           colorbar('vert');
           set(gca,'Position',pos);
-        elseif vv{6}
+        elseif vv{6} && length(unique(obj.curseg.cc(~isnan(obj.curseg.cc))))>1
           hold on;
           [~,ih] = contour(obj.mfi.XX,obj.mfi.YY,obj.curseg.cc,[.5 .5],'g','linewidth',1);
           hold off;
@@ -1196,12 +1248,10 @@ classdef vmlSeq < handle
       obj.calib.kabsch.im_detect = pp;
       obj.calib.kabsch.im_model = obj.camworld2im(R'*QQ);
       obj.calib.kabsch.R = R;
-      if obj.uidata.printlevel>0
-        disp(['#frames = ' num2str(length(frame_nos)) ', pixel RMSE = ' ...
-          num2str(sqrt(mean(sum((pp-obj.calib.kabsch.im_model).^2,1))),'%.1f') ...
-          ', RMSE on 1 m unit sphere = ' ...
-          num2str(1000*sqrt(mean(sum((R*PP-QQ).^2,1))),'%.1f') ' mm']);
-      end
+      obj.print(['#frames = ' num2str(length(frame_nos)) ', pixel RMSE = ' ...
+        num2str(sqrt(mean(sum((pp-obj.calib.kabsch.im_model).^2,1))),'%.1f') ...
+        ', RMSE on 1 m unit sphere = ' ...
+        num2str(1000*sqrt(mean(sum((R*PP-QQ).^2,1))),'%.1f') ' mm'],1);
     end
     
 % end sun detection
@@ -1211,9 +1261,7 @@ classdef vmlSeq < handle
     function v = optical_flow(obj, curmot1)
       if nargin<2, curmot1 = obj.curmot; end
       j = curmot1.j;
-      if obj.uidata.printlevel>=1
-        disp(['computing motion vector for frame #' num2str(j)]);
-      end
+      obj.print(['computing motion vector for frame #' num2str(j)],1);
       if curmot1.count<=2
         curmot1.v = vmlOpticalFlow(obj.mfi,obj.conf.oflow,curmot1.x,...
           obj.data.ti(j-size(curmot1.x,3)+1:j),curmot1.v);

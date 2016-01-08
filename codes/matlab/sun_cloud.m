@@ -4,10 +4,9 @@ clc;
 
 %% settings
 % addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'));
-addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib_v3'))
+addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib_v4'))
 addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\solvers'));
 addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\lib\'));
-addpath(genpath('C:\data\dlib-18.18\'));
 
 vmlconfig_cavriglia;
 conf = evalin('base','VMLCONF');

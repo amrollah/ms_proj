@@ -1,0 +1,13 @@
+whats is obj.oi.spx for?
+
+I don't understand this part:  %compute border of the sky mask
+also this:  %compute minimum distances of neighboring pixels on unit plane
+
+What's this part in  vmlMedianDownscale that calcs xx and yy?
+
+don't understand the math behind: %compute a regular grid on the plane and the indexes of the closest points in obj.mfi.ppx
+	  %tiles for the local thresholding
+	  
+getPclearsky function?
+weights4oflow?
+wlsq?
