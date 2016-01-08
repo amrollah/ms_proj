@@ -679,6 +679,7 @@ classdef vmlSeq < handle
     end
     
     function process(obj,oldpred,jstart,jend)
+      if nargin<2, oldpred=[]; end
       if nargin<4
         [jstart1,jend] = obj.find_daylight_range(1);
         if nargin<3, jstart = jstart1; end
@@ -686,7 +687,7 @@ classdef vmlSeq < handle
       obj.curpred = [];
       n_sun_avgcc2irr = length(obj.conf.scal.w_newest);
       n_plant_avgcc2p = length(obj.conf.plantproj.heights)*length(obj.conf.scal.w_newest);
-      if nargin<2
+      if isempty(oldpred)
         obj.curpred.sun_avgcc2irr = zeros(n_sun_avgcc2irr,2);
         obj.curpred.wsun_avgcc2irr = zeros(n_sun_avgcc2irr,2);
         obj.curpred.plant_avgcc2p = zeros(n_plant_avgcc2p,2);
@@ -761,21 +762,35 @@ classdef vmlSeq < handle
       line(xx,yy,'color',col,'linestyle',ls);
     end
     
-    function showframe(obj,j,show_sun_or_skymask)
+    function showframe(obj,j,show_sun_or_skymask,h_fig)
       %show the frame, part which does not belong to the sky is
       %greened out
       if nargin<2, j=obj.curseg.j; end
       if nargin<3, show_sun_or_skymask = 0; end
+      if nargin<4, h_fig = figure; end
       if ~isscalar(show_sun_or_skymask), sm = show_sun_or_skymask;
       elseif show_sun_or_skymask>=2, sm = obj.skymask_wo_sun(j);
       else sm = obj.oi.sm; 
       end
       x = vmlColorify(obj.imread(j),~sm,2,64);
       image(x); axis off;
+      set(h_fig,'KeyPressFcn',@(h_obj,evt) changeframe(evt));
       if isscalar(show_sun_or_skymask) && show_sun_or_skymask==1
         obj.plotSun(j,'g','.','x');
       end
       title([datestr(obj.data.ti(j),'HH:MM:SS') ' (#' num2str(j) ')']);
+      function changeframe(evt)
+          if numel(evt.Modifier)==1 && strcmp('shift',evt.Modifier{1})
+              stepSize = 10;
+          else
+              stepSize = 1;
+          end
+          if strcmp(evt.Key, 'rightarrow')
+              showframe(obj,min(j+stepSize,size(obj.data.ti,2)),show_sun_or_skymask,h_fig)
+          elseif strcmp(evt.Key, 'leftarrow')
+              showframe(obj,max(1,j-stepSize),show_sun_or_skymask,h_fig)
+          end
+      end
     end
     
     function ShowEcalib(obj)

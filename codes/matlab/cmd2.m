@@ -1,0 +1,1 @@
+figure; plot(s.calc.avgcc_sun(5339:5400),s.calc.irr_pred(5,5339:5400)./s.data.Irr(5339:5400,2)','.-')
