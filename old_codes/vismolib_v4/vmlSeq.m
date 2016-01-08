@@ -594,7 +594,7 @@ classdef vmlSeq < handle
           else
             jj = ~isnan(obj.curpred.p(i_t).v);
             sc1 = obj.curpred.p(i_t).sc(jj); sc1=sc1-min(sc1);
-            w = exp(-sc1/quantil(sc1,obj.conf.pred.quantil_score)); w = w/sum(w);
+            w = exp(-sc1/quantile(sc1,obj.conf.pred.quantil_score)); w = w/sum(w);
             obj.curpred.p_agg(i_t) = dot(w,obj.curpred.p(i_t).v(jj));
             err1 = abs(obj.curpred.p(i_t).v(jj)-p_true);
             obj.curpred.p(i_t).sc(jj) = (1-fupd)*obj.curpred.p(i_t).sc(jj)+fupd*err1;
@@ -607,7 +607,7 @@ classdef vmlSeq < handle
           else
             jj = ~isnan(obj.curpred.irr(i_t).v);
             sc1 = obj.curpred.irr(i_t).sc(jj); sc1=sc1-min(sc1);
-            w = exp(-sc1/quantil(sc1,obj.conf.pred.quantil_score)); w = w/sum(w);
+            w = exp(-sc1/quantile(sc1,obj.conf.pred.quantil_score)); w = w/sum(w);
             obj.curpred.irr_agg(i_t) = dot(w,obj.curpred.irr(i_t).v(jj));
             err1 = abs(obj.curpred.irr(i_t).v(jj)-irr_true);
             obj.curpred.irr(i_t).sc(jj) = (1-fupd)*obj.curpred.irr(i_t).sc(jj)+fupd*err1;
