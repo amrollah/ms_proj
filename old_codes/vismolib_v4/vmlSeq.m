@@ -355,9 +355,9 @@ classdef vmlSeq < handle
       g2b = vmlGreen2Blue(obj.curseg.x);
       center = obj.mfi.sz'/2;
       sunp = obj.calc.yx_mfi_sun_detected(:,j);
-      glare_ct = center + 1.1*(center-sunp);
+      glare_ct = center + (center-sunp);
       [xx_g,yy_g] = ndgrid((1:obj.mfi.sz(1))-glare_ct(1),(1:obj.mfi.sz(2))-glare_ct(2));
-      glare_mask = (xx_g.^2 + yy_g.^2) < (2*obj.conf.sundetect.r_mfi_px)^2;
+      glare_mask = (xx_g.^2 + yy_g.^2) < (2.2*obj.conf.sundetect.r_mfi_px)^2;
       m1 = (sunp(2)-center(2))/(sunp(1)-center(1));
       m2 = -1/m1;
       dir_vect =(center-sunp)./norm(center-sunp);
@@ -379,11 +379,12 @@ classdef vmlSeq < handle
       
       P=[p1',p2',p3',p4',p1'];
       P=round(P);
-      glare_rect = inpolygon(xx_g,yy_g,P(1,:),P(2,:));
-%       figure;
-%       plot(P(1,:),P(2,:),'b--')  
+      [xx,yy] = ndgrid(1:obj.mfi.sz(1),1:obj.mfi.sz(2));
+      glare_rect = inpolygon(xx,yy,P(1,:),P(2,:));
       figure;
-      image(glare_mask | glare_rect); axis off;
+      plot(P(1,:),P(2,:),'b--')  
+      figure;
+      image(glare_rect | glare_mask); axis off;
       
       jj = find(sm & (glare_mask | glare_rect) & g2b<=0 & obj.curseg.r2b>0);
       
