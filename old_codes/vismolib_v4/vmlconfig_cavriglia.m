@@ -31,6 +31,8 @@ VMLCONF.sundetect.satsun_thres = 50;
 VMLCONF.sundetect.star_thres_cov = 0.05;
 VMLCONF.sundetect.star_thres_clear = 0.08;
 VMLCONF.sundetect.maxerr_px = 12;
+VMLCONF.glare_rect_w = 40;
+VMLCONF.sundetect.r_mfi_px = 20;
 
 VMLCONF.mot.nframes = 5; %number of recent frames to use
 VMLCONF.mot.w_cc_newest = 1/3; %weight of the most recent cloud coverage
@@ -77,7 +79,7 @@ VMLCONF.pred.min_nexperts = 0.5;
 VMLCONF.pred.tpred = [12:12:300 600 900 1200 1800];
 VMLCONF.pred.tpred_persist = 45;
 
-VMLCONF.prj_path = 'E:\ms_proj\';
-run([VMLCONF.prj_path 'local_conf.m']);
+% VMLCONF.prj_path = 'E:\ms_proj\';
+% run([VMLCONF.prj_path 'local_conf.m']);
 
     

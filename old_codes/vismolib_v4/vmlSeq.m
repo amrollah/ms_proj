@@ -358,6 +358,11 @@ classdef vmlSeq < handle
       glare_ct = center + (center-sunp);
       [xx_g,yy_g] = ndgrid((1:obj.mfi.sz(1))-glare_ct(1),(1:obj.mfi.sz(2))-glare_ct(2));
       glare_mask = (xx_g.^2 + yy_g.^2) < (2.2*obj.conf.sundetect.r_mfi_px)^2;
+      
+      glare_ct2 = sunp - 0.3*(sunp-center);
+      [xx_g,yy_g] = ndgrid((1:obj.mfi.sz(1))-glare_ct2(1),(1:obj.mfi.sz(2))-glare_ct2(2));
+      glare_mask2 = (xx_g.^2 + yy_g.^2) < (1*obj.conf.sundetect.r_mfi_px)^2;
+      
       m1 = (sunp(2)-center(2))/(sunp(1)-center(1));
       m2 = -1/m1;
       dir_vect =(center-sunp)./norm(center-sunp);
@@ -370,7 +375,7 @@ classdef vmlSeq < handle
       p1(2) = -m2*(p1(1)- mid_st(1))+ mid_st(2);
       
       
-      mid_end = glare_ct+ dir_vect*3*obj.conf.sundetect.r_mfi_px;
+      mid_end = glare_ct+ dir_vect*5*obj.conf.sundetect.r_mfi_px;
       p3(1) = sqrt(obj.conf.glare_rect_w/m2^2+1) + mid_end(1);
       p3(2) = m2*(p3(1)- mid_end(1))+ mid_end(2);
       
@@ -401,19 +406,20 @@ classdef vmlSeq < handle
       obj.curseg.g = vmlChannelRatio(obj.curseg.x,2);
       obj.curseg.b = vmlChannelRatio(obj.curseg.x,3);
       obj.curseg.gray_x = rgb2gray(obj.curseg.x);
-%       color_spaces = {'YPbPr','YCbCr','JPEG-YCbCr','YDbDr','YIQ','YUV','HSV',...
-%       'HSL','HSI','XYZ','Lab','Luv','LCH','CAT02LMS'};
-%       for k=1:length(color_spaces)
-%           figure;
-%           obj.curseg.x_colorSpace{k} = colorspace(['RGB->',color_spaces{k}], obj.curseg.x);
-%           
-%           obj.curseg.r2g = vmlChannelRatio(obj.curseg.x_colorSpace{k},1,2);
-%           obj.curseg.r = vmlChannelRatio(obj.curseg.x_colorSpace{k},1);
-%           obj.curseg.g = vmlChannelRatio(obj.curseg.x_colorSpace{k},2);
-%           obj.curseg.b = vmlChannelRatio(obj.curseg.x_colorSpace{k},3);
-% 
-%           title(color_spaces{k});
-%       end
+      color_spaces = {'YPbPr','YCbCr','JPEG-YCbCr','YDbDr','YIQ','YUV','HSV',...
+      'HSL','HSI','XYZ','Lab','Luv','LCH','CAT02LMS'};
+      for k=1:length(color_spaces)
+          figure;
+          obj.curseg.x_colorSpace{k} = colorspace(['RGB->',color_spaces{k}], double(obj.curseg.x));
+          
+          obj.curseg.r2g = vmlChannelRatio(obj.curseg.x_colorSpace{k},1,2);
+          obj.curseg.r = vmlChannelRatio(obj.curseg.x_colorSpace{k},1);
+          obj.curseg.g = vmlChannelRatio(obj.curseg.x_colorSpace{k},2);
+          obj.curseg.b = vmlChannelRatio(obj.curseg.x_colorSpace{k},3);
+
+          image(obj.curseg.x_colorSpace{k});
+          title(color_spaces{k});
+      end
       
       %end of amrollah edit
       
