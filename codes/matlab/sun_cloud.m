@@ -3,10 +3,10 @@ clear all;
 clc;
 
 %% settings
-% addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'));
-addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib_v4'))
-addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\solvers'));
-addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\lib\'));
+prj_path = 'E:\ms_proj\';
+addpath(genpath([prj_path,'\old_codes\vismolib_v4']));
+addpath(genpath([prj_path,'\old_codes\solvers']));
+addpath(genpath([prj_path,'\lib']));
 
 vmlconfig_cavriglia;
 conf = evalin('base','VMLCONF');
@@ -14,7 +14,7 @@ show_plant=false;
 
 %% Path of data
 % base folder for Cavriglia image and data files
-cav_data_path = 'U:\HDRImages_Cavriglia\img\';
+% cav_data_path = 'U:\HDRImages_Cavriglia\img\';
 local_cav_data_path = 'C:\data\cav\log_data\';
 
 suns = dir('C:\data\cav\sun_detect_test\');
@@ -50,6 +50,7 @@ for d=1:numel(suns)
         s = vmlSeq(date);
         last_date = date;
     end
+    return;
     tm = datenum(im,dstr);
     [~,j] = min(abs(s.data.ti-tm));
 %     s.showframe(j);

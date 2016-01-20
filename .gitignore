@@ -102,3 +102,6 @@ fabric.properties
 lib/PV_LIB Version 1_2 Release/html/helpsearch-v3/segments_1
 codes/matlab/RMSE_mat.mat
 data/Cavriglia/LinkeTurbidities.mat
+
+local_conf.m
+lib/mexopencv-master/+cv/*

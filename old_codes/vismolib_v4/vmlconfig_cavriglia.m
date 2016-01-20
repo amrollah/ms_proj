@@ -45,7 +45,7 @@ VMLCONF.oflow.low_weight = 0.2; %low weight value (heigh weight value is 1)
 
 VMLCONF.mfi.nfilter = 5;
 
-VMLCONF.seg.ngrid = 15;
+VMLCONF.seg.ngrid = 25;
 VMLCONF.seg.tile_max_nan = 0.5;
 VMLCONF.seg.alpha = 0.1;
 VMLCONF.seg.outside_mass = 0.1;
@@ -76,3 +76,8 @@ VMLCONF.pred.quantil_score = .1;
 VMLCONF.pred.min_nexperts = 0.5;
 VMLCONF.pred.tpred = [12:12:300 600 900 1200 1800];
 VMLCONF.pred.tpred_persist = 45;
+
+VMLCONF.prj_path = 'E:\ms_proj\';
+run([VMLCONF.prj_path 'local_conf.m']);
+
+    
