@@ -355,43 +355,41 @@ classdef vmlSeq < handle
       g2b = vmlGreen2Blue(obj.curseg.x);
       center = obj.mfi.sz'/2;
       sunp = obj.calc.yx_mfi_sun_detected(:,j);
-      glare_ct = center + (center-sunp);
+      glare_ct = center + 0.8*(center-sunp);
       [xx_g,yy_g] = ndgrid((1:obj.mfi.sz(1))-glare_ct(1),(1:obj.mfi.sz(2))-glare_ct(2));
       glare_mask = (xx_g.^2 + yy_g.^2) < (2.2*obj.conf.sundetect.r_mfi_px)^2;
       
-      glare_ct2 = sunp - 0.3*(sunp-center);
+      glare_ct2 = sunp + 0.3*(sunp-center);
       [xx_g,yy_g] = ndgrid((1:obj.mfi.sz(1))-glare_ct2(1),(1:obj.mfi.sz(2))-glare_ct2(2));
       glare_mask2 = (xx_g.^2 + yy_g.^2) < (1*obj.conf.sundetect.r_mfi_px)^2;
       
-      m1 = (sunp(2)-center(2))/(sunp(1)-center(1));
-      m2 = -1/m1;
       dir_vect =(center-sunp)./norm(center-sunp);
+      m = [-dir_vect(2); dir_vect(1)];
+      
       mid_st = sunp + dir_vect*obj.conf.sundetect.r_mfi_px;
+      mid_end = glare_ct+ dir_vect*3*obj.conf.sundetect.r_mfi_px;
+      p1 = mid_st - obj.conf.glare_rect_w * m;
+      p2 = mid_st + obj.conf.glare_rect_w * m;      
+      p3 = mid_end + obj.conf.glare_rect_w * m;      
+      p4 = mid_end - obj.conf.glare_rect_w * m;
       
-      p2(1) = sqrt(obj.conf.glare_rect_w/m2^2+1) + mid_st(1);
-      p2(2) = m2*(p2(1)- mid_st(1))+ mid_st(2);
-      
-      p1(1) = -sqrt(obj.conf.glare_rect_w/m2^2+1) + mid_st(1);
-      p1(2) = -m2*(p1(1)- mid_st(1))+ mid_st(2);
-      
-      
-      mid_end = glare_ct+ dir_vect*5*obj.conf.sundetect.r_mfi_px;
-      p3(1) = sqrt(obj.conf.glare_rect_w/m2^2+1) + mid_end(1);
-      p3(2) = m2*(p3(1)- mid_end(1))+ mid_end(2);
-      
-      p4(1) = -sqrt(obj.conf.glare_rect_w/m2^2+1) + mid_end(1);
-      p4(2) = -m2*(p4(1)- mid_end(1))+ mid_end(2);
-      
-      P=[p1',p2',p3',p4',p1'];
-      P=round(P);
+      P=round([p1,p2,p3,p4,p1]);
       [xx,yy] = ndgrid(1:obj.mfi.sz(1),1:obj.mfi.sz(2));
       glare_rect = inpolygon(xx,yy,P(1,:),P(2,:));
+%       figure;
+%       plot(P(1,:),P(2,:),'b--')  
       figure;
-      plot(P(1,:),P(2,:),'b--')  
-      figure;
-      image(glare_rect | glare_mask); axis off;
+      image(glare_rect | glare_mask | glare_mask2); axis off;
       
-      jj = find(sm & (glare_mask | glare_rect) & g2b<=0 & obj.curseg.r2b>0);
+      sky = repmat((sm & obj.curseg.r2b<0),[1,1,3]).*double(obj.curseg.x);
+      sky_avg = [mean(sky(:,1)),mean(sky(:,2)),mean(sky(:,3))];
+      cloud = repmat((sm & obj.curseg.r2b>0),[1,1,3]).*double(obj.curseg.x);
+      cloud_avg =[mean(cloud(:,1)),mean(cloud(:,2)),mean(cloud(:,3))];
+      
+      obj.curseg.x_LUV = colorspace(['RGB->','Luv'], double(obj.curseg.x));
+      luv_glare = obj.curseg.x_LUV(:,:,2)./obj.curseg.x_LUV(:,:,3);
+      
+      jj = find(sm & (glare_mask | glare_mask2 | glare_rect) & ((obj.curseg.r2b<0 & luv_glare<0) | (obj.curseg.r2b>0 & obj.curseg.x(:,:,1)>190)));
       
       n = min(length(jj),round(sum(sm(:))*obj.conf.seg.max_sunglare_remove));
       if n<length(jj)
@@ -401,25 +399,25 @@ classdef vmlSeq < handle
       obj.curseg.r2b(jj) = NaN;
       
       %amrollah added
-      obj.curseg.r2g = vmlChannelRatio(obj.curseg.x,1,2);
-      obj.curseg.r = vmlChannelRatio(obj.curseg.x,1);
-      obj.curseg.g = vmlChannelRatio(obj.curseg.x,2);
-      obj.curseg.b = vmlChannelRatio(obj.curseg.x,3);
-      obj.curseg.gray_x = rgb2gray(obj.curseg.x);
-      color_spaces = {'YPbPr','YCbCr','JPEG-YCbCr','YDbDr','YIQ','YUV','HSV',...
-      'HSL','HSI','XYZ','Lab','Luv','LCH','CAT02LMS'};
-      for k=1:length(color_spaces)
-          figure;
-          obj.curseg.x_colorSpace{k} = colorspace(['RGB->',color_spaces{k}], double(obj.curseg.x));
-          
-          obj.curseg.r2g = vmlChannelRatio(obj.curseg.x_colorSpace{k},1,2);
-          obj.curseg.r = vmlChannelRatio(obj.curseg.x_colorSpace{k},1);
-          obj.curseg.g = vmlChannelRatio(obj.curseg.x_colorSpace{k},2);
-          obj.curseg.b = vmlChannelRatio(obj.curseg.x_colorSpace{k},3);
-
-          image(obj.curseg.x_colorSpace{k});
-          title(color_spaces{k});
-      end
+%       obj.curseg.r2g = vmlChannelRatio(obj.curseg.x,1,2);
+%       obj.curseg.r = vmlChannelRatio(obj.curseg.x,1);
+%       obj.curseg.g = vmlChannelRatio(obj.curseg.x,2);
+%       obj.curseg.b = vmlChannelRatio(obj.curseg.x,3);
+%       obj.curseg.gray_x = rgb2gray(obj.curseg.x);
+%       color_spaces = {'YPbPr','YCbCr','JPEG-YCbCr','YDbDr','YIQ','YUV','HSV',...
+%       'HSL','HSI','XYZ','Lab','Luv','LCH','CAT02LMS'};
+%       for k=1:length(color_spaces)
+%           figure;
+%           obj.curseg.x_colorSpace{k} = colorspace(['RGB->',color_spaces{k}], double(obj.curseg.x));
+%           
+%           obj.curseg.r2g = vmlChannelRatio(obj.curseg.x_colorSpace{k},1,2);
+%           obj.curseg.r = vmlChannelRatio(obj.curseg.x_colorSpace{k},1);
+%           obj.curseg.g = vmlChannelRatio(obj.curseg.x_colorSpace{k},2);
+%           obj.curseg.b = vmlChannelRatio(obj.curseg.x_colorSpace{k},3);
+% 
+%           image(obj.curseg.x_colorSpace{k});
+%           title(color_spaces{k});
+%       end
       
       %end of amrollah edit
       

@@ -31,7 +31,7 @@ VMLCONF.sundetect.satsun_thres = 50;
 VMLCONF.sundetect.star_thres_cov = 0.05;
 VMLCONF.sundetect.star_thres_clear = 0.08;
 VMLCONF.sundetect.maxerr_px = 12;
-VMLCONF.glare_rect_w = 40;
+VMLCONF.glare_rect_w = 8;
 VMLCONF.sundetect.r_mfi_px = 20;
 
 VMLCONF.mot.nframes = 5; %number of recent frames to use
