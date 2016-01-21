@@ -357,7 +357,7 @@ classdef vmlSeq < handle
       sunp = obj.calc.yx_mfi_sun_detected(:,j);
       glare_ct = center + 0.8*(center-sunp);
       [xx_g,yy_g] = ndgrid((1:obj.mfi.sz(1))-glare_ct(1),(1:obj.mfi.sz(2))-glare_ct(2));
-      glare_mask = (xx_g.^2 + yy_g.^2) < (2.2*obj.conf.sundetect.r_mfi_px)^2;
+      glare_mask = (xx_g.^2 + yy_g.^2) < (2.4*obj.conf.sundetect.r_mfi_px)^2;
       
       glare_ct2 = sunp + 0.3*(sunp-center);
       [xx_g,yy_g] = ndgrid((1:obj.mfi.sz(1))-glare_ct2(1),(1:obj.mfi.sz(2))-glare_ct2(2));
@@ -367,7 +367,7 @@ classdef vmlSeq < handle
       m = [-dir_vect(2); dir_vect(1)];
       
       mid_st = sunp + dir_vect*obj.conf.sundetect.r_mfi_px;
-      mid_end = glare_ct+ dir_vect*3*obj.conf.sundetect.r_mfi_px;
+      mid_end = glare_ct+ dir_vect*2.8*obj.conf.sundetect.r_mfi_px;
       p1 = mid_st - obj.conf.glare_rect_w * m;
       p2 = mid_st + obj.conf.glare_rect_w * m;      
       p3 = mid_end + obj.conf.glare_rect_w * m;      
@@ -378,25 +378,37 @@ classdef vmlSeq < handle
       glare_rect = inpolygon(xx,yy,P(1,:),P(2,:));
 %       figure;
 %       plot(P(1,:),P(2,:),'b--')  
-      figure;
-      image(glare_rect | glare_mask | glare_mask2); axis off;
+%       figure; image(glare_rect | glare_mask | glare_mask2); axis off;
       
-      sky = repmat((sm & obj.curseg.r2b<0),[1,1,3]).*double(obj.curseg.x);
-      sky_avg = [mean(sky(:,1)),mean(sky(:,2)),mean(sky(:,3))];
-      cloud = repmat((sm & obj.curseg.r2b>0),[1,1,3]).*double(obj.curseg.x);
-      cloud_avg =[mean(cloud(:,1)),mean(cloud(:,2)),mean(cloud(:,3))];
+      [xx,yy] = ndgrid((1:obj.mfi.sz(1))-center(1),(1:obj.mfi.sz(2))-center(2));
+      center_mask = (xx.^2 + yy.^2) < (3*obj.conf.sundetect.r_mfi_px)^2;
+%       figure;imshow(center_mask);
+      outer_mask = (xx.^2 + yy.^2) > (3.5*obj.conf.sundetect.r_mfi_px)^2;
       
       obj.curseg.x_LUV = colorspace(['RGB->','Luv'], double(obj.curseg.x));
       luv_glare = obj.curseg.x_LUV(:,:,2)./obj.curseg.x_LUV(:,:,3);
       
-      jj = find(sm & (glare_mask | glare_mask2 | glare_rect) & ((obj.curseg.r2b<0 & luv_glare<0) | (obj.curseg.r2b>0 & obj.curseg.x(:,:,1)>190)));
+      glare = (sm & (glare_mask | glare_mask2 | glare_rect) & ((obj.curseg.r2b<0 & luv_glare<0) | (obj.curseg.r2b>0 & obj.curseg.x(:,:,1)>110) | g2b<0));
+      jj=find(glare);
       
       n = min(length(jj),round(sum(sm(:))*obj.conf.seg.max_sunglare_remove));
       if n<length(jj)
         [~,jj1]=sort(obj.curseg.r2b(jj),1,'descend');
         jj = jj(jj1(1:n));
       end
-      obj.curseg.r2b(jj) = NaN;
+      xflat = reshape(obj.curseg.x,size(obj.curseg.x,1)*size(obj.curseg.x,2),size(obj.curseg.x,3));
+      sky = (sm & center_mask & obj.curseg.r2b<0 & ~glare)>0;
+%       figure;imshow(sky);
+      sky_avg = round(mean(xflat(sky,:)));
+%       cloud = (sm & center_mask & obj.curseg.r2b>0)>0;
+%       cloud_avg = round(mean(xflat(cloud,:)));
+      
+      sky_r2b_avg = mean(obj.curseg.r2b(sky));
+%       cloud_r2b_avg = mean(obj.curseg.r2b(cloud));
+      
+      obj.curseg.r2b(jj) = repmat(sky_r2b_avg,[numel(jj),1]);
+%       xflat(jj,:) = repmat(sky_avg,[numel(jj),1]);
+%       obj.curseg.x = reshape(xflat,size(obj.curseg.x,1),size(obj.curseg.x,2),size(obj.curseg.x,3));
       
       %amrollah added
 %       obj.curseg.r2g = vmlChannelRatio(obj.curseg.x,1,2);

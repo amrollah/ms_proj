@@ -62,7 +62,7 @@ VMLCONF.seg.w_boundary = 8;
 VMLCONF.seg.r2b_dmax = 0.2;
 VMLCONF.seg.rsun_mfi4outer = 80;
 VMLCONF.seg.r2b_multistart_step = .3;
-VMLCONF.seg.max_sunglare_remove = 0.02;
+VMLCONF.seg.max_sunglare_remove = 0.1; %orig value = 0.02
 
 VMLCONF.scal.w_newest = [0.25 0.004 0.0004];
 VMLCONF.scal.thres = 0.05;
@@ -79,7 +79,7 @@ VMLCONF.pred.min_nexperts = 0.5;
 VMLCONF.pred.tpred = [12:12:300 600 900 1200 1800];
 VMLCONF.pred.tpred_persist = 45;
 
-% VMLCONF.prj_path = 'E:\ms_proj\';
-% run([VMLCONF.prj_path 'local_conf.m']);
+VMLCONF.prj_path = 'E:\ms_proj\';
+run([VMLCONF.prj_path 'local_conf.m']);
 
     
