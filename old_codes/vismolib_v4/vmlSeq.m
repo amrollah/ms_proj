@@ -296,6 +296,7 @@ classdef vmlSeq < handle
       obj.curseg.r2b = vmlRed2Blue(obj.curseg.x);
       
       sunp = obj.sunpos_im(j);
+      sunp_mfi = round(sunp.*(obj.mfi.sz./obj.oi.sz)');
       yx = round(sunp);
       if any(yx<1) || any(yx'>obj.oi.sz)
         obj.calc.satsun(j) = 0;
@@ -354,20 +355,26 @@ classdef vmlSeq < handle
       %remove sunglare
       g2b = vmlGreen2Blue(obj.curseg.x);
       center = obj.mfi.sz'/2;
-      sunp = obj.calc.yx_mfi_sun_detected(:,j);
-      glare_ct = center + 0.8*(center-sunp);
+%       sunp = obj.calc.yx_mfi_sun_detected(:,j);
+      glare_ct = center + 0.7*(center-sunp_mfi);
+      scale = 145/norm(center-sunp_mfi);
       [xx_g,yy_g] = ndgrid((1:obj.mfi.sz(1))-glare_ct(1),(1:obj.mfi.sz(2))-glare_ct(2));
-      glare_mask = (xx_g.^2 + yy_g.^2) < (2.4*obj.conf.sundetect.r_mfi_px)^2;
+      glare_mask = (xx_g.^2 + yy_g.^2) < (scale*1.2*obj.conf.sundetect.r_mfi_px)^2;
       
-      glare_ct2 = sunp + 0.3*(sunp-center);
+      glare_ct2 = sunp_mfi + 0.4*(sunp_mfi-center);
       [xx_g,yy_g] = ndgrid((1:obj.mfi.sz(1))-glare_ct2(1),(1:obj.mfi.sz(2))-glare_ct2(2));
-      glare_mask2 = (xx_g.^2 + yy_g.^2) < (1*obj.conf.sundetect.r_mfi_px)^2;
+      glare_mask2 = (xx_g.^2 + yy_g.^2) < (scale*.8*obj.conf.sundetect.r_mfi_px)^2;
       
-      dir_vect =(center-sunp)./norm(center-sunp);
+%       glare_ct3 = sunp - 0.4*(sunp-center);
+%       [xx_g,yy_g] = ndgrid((1:obj.mfi.sz(1))-glare_ct3(1),(1:obj.mfi.sz(2))-glare_ct3(2));
+%       glare_mask3 = (xx_g.^2 + yy_g.^2) < (scale*.8*obj.conf.sundetect.r_mfi_px)^2;
+      
+      
+      dir_vect =(center-sunp_mfi)./norm(center-sunp_mfi);
       m = [-dir_vect(2); dir_vect(1)];
       
-      mid_st = sunp + dir_vect*obj.conf.sundetect.r_mfi_px;
-      mid_end = glare_ct+ dir_vect*2.8*obj.conf.sundetect.r_mfi_px;
+      mid_st = sunp_mfi + dir_vect*obj.conf.sundetect.r_mfi_px;
+      mid_end = glare_ct+ dir_vect*1.8*obj.conf.sundetect.r_mfi_px;
       p1 = mid_st - obj.conf.glare_rect_w * m;
       p2 = mid_st + obj.conf.glare_rect_w * m;      
       p3 = mid_end + obj.conf.glare_rect_w * m;      
@@ -376,63 +383,31 @@ classdef vmlSeq < handle
       P=round([p1,p2,p3,p4,p1]);
       [xx,yy] = ndgrid(1:obj.mfi.sz(1),1:obj.mfi.sz(2));
       glare_rect = inpolygon(xx,yy,P(1,:),P(2,:));
-%       figure;
-%       plot(P(1,:),P(2,:),'b--')  
-%       figure; image(glare_rect | glare_mask | glare_mask2); axis off;
       
       [xx,yy] = ndgrid((1:obj.mfi.sz(1))-center(1),(1:obj.mfi.sz(2))-center(2));
-      center_mask = (xx.^2 + yy.^2) < (3*obj.conf.sundetect.r_mfi_px)^2;
-%       figure;imshow(center_mask);
-      outer_mask = (xx.^2 + yy.^2) > (3.5*obj.conf.sundetect.r_mfi_px)^2;
-      
+      center_mask = (xx.^2 + yy.^2) < (6*obj.conf.sundetect.r_mfi_px)^2;
+
       obj.curseg.x_LUV = colorspace(['RGB->','Luv'], double(obj.curseg.x));
       luv_glare = obj.curseg.x_LUV(:,:,2)./obj.curseg.x_LUV(:,:,3);
       
-      glare = (sm & (glare_mask | glare_mask2 | glare_rect) & ((obj.curseg.r2b<0 & luv_glare<0) | (obj.curseg.r2b>0 & obj.curseg.x(:,:,1)>110) | g2b<0));
+%       t1=(obj.curseg.r2b<0 & luv_glare<0);
+      t2=(obj.curseg.r2b>0 & (g2b<0));
+      glare = (sm & (glare_mask | glare_mask2 | glare_rect) & (t2));
       jj=find(glare);
       
+      obj.curseg.glare = glare;
       n = min(length(jj),round(sum(sm(:))*obj.conf.seg.max_sunglare_remove));
       if n<length(jj)
         [~,jj1]=sort(obj.curseg.r2b(jj),1,'descend');
         jj = jj(jj1(1:n));
       end
-      xflat = reshape(obj.curseg.x,size(obj.curseg.x,1)*size(obj.curseg.x,2),size(obj.curseg.x,3));
-      sky = (sm & center_mask & obj.curseg.r2b<0 & ~glare)>0;
-%       figure;imshow(sky);
-      sky_avg = round(mean(xflat(sky,:)));
-%       cloud = (sm & center_mask & obj.curseg.r2b>0)>0;
-%       cloud_avg = round(mean(xflat(cloud,:)));
-      
-      sky_r2b_avg = mean(obj.curseg.r2b(sky));
-%       cloud_r2b_avg = mean(obj.curseg.r2b(cloud));
-      
-      obj.curseg.r2b(jj) = repmat(sky_r2b_avg,[numel(jj),1]);
+%       xflat = reshape(obj.curseg.x,size(obj.curseg.x,1)*size(obj.curseg.x,2),size(obj.curseg.x,3));
+%       sky = (sm & center_mask & obj.curseg.r2b<0 & ~glare)>0;
+%       obj.curseg.r2b(jj) = repmat(sky_r2b_avg,[numel(jj),1]);
+      obj.curseg.r2b(jj) = nan;
 %       xflat(jj,:) = repmat(sky_avg,[numel(jj),1]);
 %       obj.curseg.x = reshape(xflat,size(obj.curseg.x,1),size(obj.curseg.x,2),size(obj.curseg.x,3));
-      
-      %amrollah added
-%       obj.curseg.r2g = vmlChannelRatio(obj.curseg.x,1,2);
-%       obj.curseg.r = vmlChannelRatio(obj.curseg.x,1);
-%       obj.curseg.g = vmlChannelRatio(obj.curseg.x,2);
-%       obj.curseg.b = vmlChannelRatio(obj.curseg.x,3);
-%       obj.curseg.gray_x = rgb2gray(obj.curseg.x);
-%       color_spaces = {'YPbPr','YCbCr','JPEG-YCbCr','YDbDr','YIQ','YUV','HSV',...
-%       'HSL','HSI','XYZ','Lab','Luv','LCH','CAT02LMS'};
-%       for k=1:length(color_spaces)
-%           figure;
-%           obj.curseg.x_colorSpace{k} = colorspace(['RGB->',color_spaces{k}], double(obj.curseg.x));
-%           
-%           obj.curseg.r2g = vmlChannelRatio(obj.curseg.x_colorSpace{k},1,2);
-%           obj.curseg.r = vmlChannelRatio(obj.curseg.x_colorSpace{k},1);
-%           obj.curseg.g = vmlChannelRatio(obj.curseg.x_colorSpace{k},2);
-%           obj.curseg.b = vmlChannelRatio(obj.curseg.x_colorSpace{k},3);
-% 
-%           image(obj.curseg.x_colorSpace{k});
-%           title(color_spaces{k});
-%       end
-      
-      %end of amrollah edit
-      
+            
       ngrid = obj.conf.seg.ngrid;
       if ~redo_thres_calc && any(~isnan(obj.calc.thres_v(:,j)))
         obj.curseg.thres = [];
@@ -552,7 +527,7 @@ classdef vmlSeq < handle
       [YY,XX] = ndgrid(1:length(obj.mfi.yy),1:length(obj.mfi.xx));
       obj.curseg.thres.vmfi = interp2(XXg,YYg,VVg,XX,YY);
       obj.curseg.thres.vmfi(~obj.mfi.sm) = NaN;
-
+      
       obj.curseg.d2sun = (obj.mfi.YY-sunp(1)).^2+(obj.mfi.XX-sunp(2)).^2;
       obj.curseg.d2sun_im = double(255*obj.curseg.d2sun/norm(obj.curseg.d2sun));
       obj.curseg.cc = double(obj.curseg.r2b>obj.curseg.thres.vmfi);
@@ -561,6 +536,11 @@ classdef vmlSeq < handle
         obj.curseg.cc(obj.curseg.r2b<obj.curseg.thres.vmfi & ...
           obj.curseg.d2sun>=obj.conf.rsun_px_close^2 & obj.curseg.d2sun<=obj.conf.rsun_px^2) = 0;
       end
+      
+      % amrollah: reflection
+        obj.curseg.reflect= obj.curseg.cc .* double(rgb2gray(obj.curseg.x)-150);
+        obj.curseg.reflect_fact = sum(sum(obj.curseg.reflect));
+%         figure;imshow(reflect);
       
       obj.curseg.j = j;      
     end
@@ -577,6 +557,7 @@ classdef vmlSeq < handle
     end
 
     function xof = get_xof(obj)
+        % for motion vector
       xof = double(obj.curseg.x(:,:,1));
       xof = xof-mean(xof(obj.curseg.sm));
       xof = xof/std(xof(obj.curseg.sm))+1j*obj.curseg.cc;
@@ -584,6 +565,7 @@ classdef vmlSeq < handle
     end
     
     function update_scal(obj,fn,upd,vupd)
+        % update weigh of predict adaptation
       wold = obj.curpred.(['w' fn]);
       v = obj.curpred.(fn);
       wnew = repmat(obj.conf.scal.w_newest(:),size(wold,1)/length(obj.conf.scal.w_newest),2);
@@ -596,6 +578,7 @@ classdef vmlSeq < handle
     end
     
     function calc_cur_avgcc(obj)
+        % calc cloud coverage of plant at frame j
       j = obj.curmot.j;
       assert(j==obj.curseg.j,'can do calc_cur_avgcc only if curmot and curmot point to the same frame');
       obj.calc.avgcc_sun(j) = obj.calc_avgcc_sun;
@@ -852,13 +835,6 @@ classdef vmlSeq < handle
         obj.plotSun(j,'g','.','x');
       end
       
-      sunp = obj.sunpos_im(j);
-      yx = round(sunp);
-      center = obj.oi.sz/2;
-      glare_ct = center' + 1.1*(center'-yx);
-      hold on;
-      plot(glare_ct(2),glare_ct(1),'ro', 'markersize',2*obj.conf.sundetect.r_roi_px);
-      
       title([datestr(obj.data.ti(j),'HH:MM:SS') ' (#' num2str(j) ')']);
       function changeframe(evt)
           if numel(evt.Modifier)==1 && strcmp('shift',evt.Modifier{1})
@@ -1104,7 +1080,8 @@ classdef vmlSeq < handle
         end
         x = vmlColorify(x,~obj.mfi.sm,1:3,-255);
         if vv{2}
-          x = vmlColorify(x,isnan(obj.curseg.r2b) & ~isnan(obj.curseg.sm),2,80); 
+            x = vmlColorify(x,obj.curseg.glare,2,80); 
+%           x = vmlColorify(x,isnan(obj.curseg.r2b) & ~isnan(obj.curseg.sm),2,80); 
         end
         if vv{4}
           x = vmlColorify(x,obj.curseg.cc==0,1,-40);
@@ -1193,6 +1170,11 @@ classdef vmlSeq < handle
       yx = obj.camworld2im(obj.calib.Rext'*obj.sunpos_realworld(t));
     end
     
+    function yx = sunpos_mfi(obj,t)
+      %position of the sun in mfi image pixels
+      yx = round(obj.sunpos_im(t).*(obj.mfi.sz./obj.oi.sz)');
+    end
+    
     function p = sunpos_plane(obj,t)
       %position of the sun in the unit plane
       p = obj.calib.Rext'*obj.sunpos_realworld(t);
@@ -1234,13 +1216,13 @@ classdef vmlSeq < handle
       if nargin<3
         cc = obj.curmot.cc; 
         cc(isinf(obj.curmot.age_cc)) = nan;
-        y = mean(cc(obj.curseg.d2sun<=obj.conf.pred.rsun_px(1)^2));
+        y = mean(cc(~isnan(cc) & obj.curseg.d2sun<=obj.conf.pred.rsun_px(3)^2)); %amri added the first ~isnan
       else
         sunp = obj.sunpos_im(t);
         d2sun = (obj.mfi.YY-sunp(1)).^2+(obj.mfi.XX-sunp(2)).^2;
         y = zeros(length(obj.conf.pred.rsun_px),1);
         for i=1:length(y)
-          y(i) = mean(cc(d2sun<=obj.conf.pred.rsun_px(i)^2));
+          y(i) = mean(cc(~isnan(cc) & d2sun<=obj.conf.pred.rsun_px(i)^2));%amri added the first ~isnan
         end
       end
     end
@@ -1258,7 +1240,7 @@ classdef vmlSeq < handle
       hh = obj.conf.plantproj.heights;
       y = zeros(length(ee)*length(hh),1);
       k = 0;
-      j1 = ~isnan(obj.mfi.ppx(:,1));
+      j1 = ~isnan(obj.mfi.ppx(:,1)) & ~isnan(cc(:));% amri added the secobd part
       ccv = cc(j1);
       for ih=1:length(hh)
         if ~has_bb, [p0,n0p] = obj.plant2plane(t,hh(ih)); end
