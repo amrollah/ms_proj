@@ -609,6 +609,7 @@ classdef vmlSeq < handle
       irc0 = obj.getIrrClear(j);
       for i_t=1:length(obj.conf.pred.tpred)
         tpred = obj.conf.pred.tpred(i_t);
+        % cheating part
         irc1 = obj.getIrrClear(obj.data.ti(j)+tpred/86400);
         obj.curpred.p_persist = obj.getP(j)*irc1/irc0;
         obj.curpred.irr_persist = obj.getIrr(j)*irc1/irc0;
@@ -896,7 +897,7 @@ classdef vmlSeq < handle
       if nargin<2, toffset=0; end
       toffset = toffset/86400;
       plot(obj.data.P(:,1),obj.getP(obj.data.P(:,1)+toffset),'b',...
-        obj.data.ti,obj.getP(obj.data.ti+toffset),'b.');
+        obj.data.ti,obj.getP(obj.data.ti+toffset),'r.');
       ylim = get(gca,'ylim'); ylim(1) = 0;
       set(gca,'ylim',ylim);
       grid on;

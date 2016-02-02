@@ -1,0 +1,1 @@
+setpref('StartupDirectory','LastWorkingDirectory',pwd)
