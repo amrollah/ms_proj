@@ -213,9 +213,13 @@ classdef vmlSeq < handle
       
       %clear sky irradiation
       tt = (obj.data.tmin:6/86400:obj.data.tmax)';
-      obj.data.IrrClear = [tt pvl_clearsky_ineichen(pvl_maketimestruct(tt, ...
-        obj.calib.UTC),obj.calib.model3D.Location)];
+      [ClearSkyGHI, ClearSkyDNI, ClearSkyDHI, Zenith] = pvl_clearsky_ineichen(pvl_maketimestruct(tt, ...
+        obj.calib.UTC),obj.calib.model3D.Location);
+      obj.data.IrrClear = [tt, ClearSkyGHI, ClearSkyDNI, ClearSkyDHI];
+      obj.data.Zenith = [tt, Zenith];
       
+      obj.calc.Irr = NaN(length(obj.data.ti),4);
+      obj.calc.Irr(:,1) = obj.data.ti(:);
       %clear sky power model
       switch lower(plantid)
         case 'cavriglia'
@@ -270,6 +274,18 @@ classdef vmlSeq < handle
       y = interp1(obj.data.Irr(:,1),obj.data.Irr(:,2),t);
     end
     
+    function y = getDiffuseIrr(obj,t,tpred)
+      %get the irradiation data for time(s) t
+      if nargin<2
+          y = obj.calc.Irr(:,2);
+          return;
+      elseif any(t<obj.data.ti(1)-1), t=obj.data.ti(t); 
+      end
+      if nargin>=3, t = t+tpred/86400; end
+      [~, idt] = arrayfun(@(ti) min(abs(obj.calc.Irr(:,1)-ti)),t);
+      y = obj.calc.Irr(idt,2);
+    end
+    
     function y = getIrrClear(obj,t,tpred)
       %get the clear sky irradiation for time(s) t
       if nargin<2, t = obj.data.ti;
@@ -277,6 +293,15 @@ classdef vmlSeq < handle
       end
       if nargin>=3, t = t+tpred/86400; end
       y = interp1(obj.data.IrrClear(:,1),obj.data.IrrClear(:,2),t);
+    end
+    
+    function y = getDiffuseIrrClear(obj,t,tpred)
+      %get the clear sky diffuse irradiation for time(s) t
+      if nargin<2, t = obj.data.ti;
+      elseif any(t<obj.data.ti(1)-1), t=obj.data.ti(t); 
+      end
+      if nargin>=3, t = t+tpred/86400; end
+      y = interp1(obj.data.IrrClear(:,1),obj.data.IrrClear(:,4),t);
     end
     
     function y = getPrelClear(obj,t,tpred)
@@ -514,6 +539,14 @@ classdef vmlSeq < handle
         end
         
         obj.calc.thres_v(:,j) = obj.curseg.thres.v(:);
+        
+        % amri: diffuse irradiance calcualtion
+        % obj.calc.Irr = [time, Diffuse, Direct, Global]
+        % Diffuse = GHI-DNI*cosd(Z)*(1|0)
+        [~,idt] = min(abs(obj.data.IrrClear(:,1)-obj.data.ti(j)));
+        diffuse = obj.data.Irr(j,2)-obj.data.IrrClear(idt,3)*cosd(obj.data.Zenith(idt,2))*obj.sunFlagToCoef(j);
+        obj.calc.Irr(j,2) = diffuse;
+        obj.print(1,['Diffuse Irr: ' num2str(diffuse)]);
       end
       
       if ~isfield(obj.curseg.thres,'r2brange')
@@ -531,9 +564,27 @@ classdef vmlSeq < handle
       end
       obj.curseg.sdf = cv.resize(vmlMakeSDF(obj.curseg.cc,obj.conf.sdf),obj.mfi.sz);
       
+      % amrollah: reflection
+        cloud_shine = obj.curseg.cc .* double(rgb2gray(obj.curseg.x)-150);
+        cloud_shine(cloud_shine<0)=0;
+%         obj.calc.seg.cloud_shine(:,j) = cloud_shine(:);
+        obj.calc.seg.cloud_shine_fact(j) = nansum(nansum(cloud_shine));
+        obj.calc.seg.clouds_fact(j) = floor(100*nansum(nansum(obj.curseg.cc))/numel(obj.curseg.cc));
+%     figure;imshow(obj.curseg.cloud_shine);
+
       obj.curseg.j = j;      
     end
-
+    
+    function coef = sunFlagToCoef(obj, j)
+      switch lower(obj.calc.seg.clear_sun_flag(j))
+        case 1 % no visible sun, DNI~0
+          coef = 0;
+        case 4 % complete star shape sun, DNI~1
+          coef = 1;
+        otherwise
+          coef = NaN;
+      end
+    end
 % end cloud segmentation
 
 %% update clear / cloudy to power / irr scaling
@@ -950,9 +1001,19 @@ classdef vmlSeq < handle
     end
     
     function plotirr(obj)
-      %plot the power profiles
+      %plot the irradiation profiles
       plot(obj.data.ti,obj.getIrrClear(obj.data.ti),'r',...
-        obj.data.ti,obj.getIrr(obj.data.ti),'b.');
+        obj.data.ti,obj.getIrr(obj.data.ti),'b.-');
+      ylim = get(gca,'ylim'); ylim(1) = 0;
+      set(gca,'ylim',ylim);
+      grid on;
+      datetickzoom;
+    end
+    
+    function plotdiffuse(obj)
+      %plot the diffuse irradiance
+      plot(obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'r',...
+        obj.data.ti,obj.getDiffuseIrr(obj.data.ti),'b.-');
       ylim = get(gca,'ylim'); ylim(1) = 0;
       set(gca,'ylim',ylim);
       grid on;
@@ -1031,6 +1092,36 @@ classdef vmlSeq < handle
         drawnow;
         if nargin<2, out=[]; 
         else out = datestr(event_obj.Position(1),'HH:MM:SS'); end
+      end
+    end
+    
+    function ShowD(obj, method)
+      if nargin<2, method = 'showtraj'; end
+      figno = 11; obj.newfig(figno,'Diffuse vs Global irradiation');
+      ax(1) = subplot(2,4,3:4); obj.plotdiffuse;
+      title(obj.data.day,'interpreter','none');
+      ax(2) = subplot(2,4,7:8); obj.plotirr;
+      linkaxes(ax,'x');
+      j = find(all(~isnan(obj.calc.mvec),1),1);
+      if isempty(j), j=1; end
+      show_upd(j);
+      dcmobj = datacursormode(gcf); 
+      set(dcmobj,'UpdateFcn',@show_upd);
+      function out = show_upd( j, event_obj)
+        if nargin>=2
+          [~,j] = min(abs(event_obj.Position(1)-obj.data.ti));
+        end
+        figure(figno);
+        subplot(2,4,[1 2 5 6]); 
+        obj.(method)(j);
+        if ~isfield(obj.calc, 'seg') || length(obj.calc.seg.clear_sun_flag)<j || obj.calc.seg.clear_sun_flag(j)==0
+            obj.loadframe(j);
+            subplot(2,4,3:4); obj.plotdiffuse;
+        end
+        drawnow;
+        if nargin<2, out=[]; 
+        else out = {datestr(event_obj.Position(1),'HH:MM:SS'), ['clouds: ',num2str(obj.calc.seg.clouds_fact(j)),'%'], ['cloud-shine: ', num2str(obj.calc.seg.cloud_shine_fact(j))]};
+        end
       end
     end
     
