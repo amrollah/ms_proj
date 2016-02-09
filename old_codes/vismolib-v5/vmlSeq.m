@@ -228,6 +228,11 @@ classdef vmlSeq < handle
       
     end
     
+    function idt = getClearId(obj, j)
+        [~,idt] = min(abs(obj.data.IrrClear(:,1)-obj.data.ti(j)));
+        obj.calc.clearId(j) = idt;
+    end
+    
     function print(obj,printlevel,txt)
       if obj.uidata.printlevel>=printlevel, disp(txt); end
     end
@@ -543,7 +548,8 @@ classdef vmlSeq < handle
         % amri: diffuse irradiance calcualtion
         % obj.calc.Irr = [time, Diffuse, Direct, Global]
         % Diffuse = GHI-DNI*cosd(Z)*(1|0)
-        [~,idt] = min(abs(obj.data.IrrClear(:,1)-obj.data.ti(j)));
+        
+        idt=obj.getClearId(j);
         diffuse = obj.data.Irr(j,2)-obj.data.IrrClear(idt,3)*cosd(obj.data.Zenith(idt,2))*obj.sunFlagToCoef(j);
         obj.calc.Irr(j,2) = diffuse;
         obj.print(1,['Diffuse Irr: ' num2str(diffuse)]);
