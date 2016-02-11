@@ -134,15 +134,16 @@ classdef vmlSeq < handle
       obj.data.tmax = max(obj.data.ti);
       
       %remove outliers in power
-      count = 0;
-      while count<3
-        count = count+1;
-        absdiff=abs(median([obj.data.P(1:end-2,2) obj.data.P(2:end-1,2) obj.data.P(3:end,2)],2)-obj.data.P(2:end-1,2));
-        remove = [false absdiff'>mean(absdiff)+6*std(absdiff) false];
-        if ~any(remove), break; end
-        obj.data.P(remove,:) = [];
+      if size(obj.data.P,1) > 0
+          count = 0;
+          while count<3
+            count = count+1;
+            absdiff=abs(median([obj.data.P(1:end-2,2) obj.data.P(2:end-1,2) obj.data.P(3:end,2)],2)-obj.data.P(2:end-1,2));
+            remove = [false absdiff'>mean(absdiff)+6*std(absdiff) false];
+            if ~any(remove), break; end
+            obj.data.P(remove,:) = [];
+          end
       end
-      
       %assign title and day in date time format
       obj.data.day = folder;
       obj.data.dt_day = datenum(obj.data.day,'yyyy_mm_dd');
@@ -228,9 +229,12 @@ classdef vmlSeq < handle
       
     end
     
-    function idt = getClearId(obj, j)
-        [~,idt] = min(abs(obj.data.IrrClear(:,1)-obj.data.ti(j)));
-        obj.calc.clearId(j) = idt;
+    function idt = getClearId(obj,j)
+        if ~isfield(obj.calc, 'clearId') || length(obj.calc.clearId) < j
+            [~,idt] = min(abs(obj.data.IrrClear(:,1)-obj.data.ti(j)));
+            obj.calc.clearId(j) = idt;
+        end
+        idt = obj.calc.clearId(j);
     end
     
     function print(obj,printlevel,txt)
@@ -263,11 +267,14 @@ classdef vmlSeq < handle
         
     function P1 = getP(obj,t,tpred)
       %get the power data for time(s) t
+      if size(obj.data.P,1) == 0, P1=NaN; 
+      else
       if nargin<2, t = obj.data.ti;
       elseif any(t<obj.data.ti(1)-1), t=obj.data.ti(t); 
       end
       if nargin>=3, t = t+tpred/86400; end
       P1 = interp1(obj.data.P(:,1),obj.data.P(:,2),t);
+      end
     end
     
     function y = getIrr(obj,t,tpred)
