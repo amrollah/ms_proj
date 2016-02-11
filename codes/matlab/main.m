@@ -1,4 +1,4 @@
-close all; 
+% close all; 
 clear all; 
 clc;
 
@@ -12,5 +12,5 @@ addpath(genpath([prj_path,'\lib']));
 
 
 %
-date = '2015_07_29';
+date = '2015_12_19';
 s = vmlSeq('cavriglia',date);

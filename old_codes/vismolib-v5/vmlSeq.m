@@ -134,15 +134,16 @@ classdef vmlSeq < handle
       obj.data.tmax = max(obj.data.ti);
       
       %remove outliers in power
-      count = 0;
-      while count<3
-        count = count+1;
-        absdiff=abs(median([obj.data.P(1:end-2,2) obj.data.P(2:end-1,2) obj.data.P(3:end,2)],2)-obj.data.P(2:end-1,2));
-        remove = [false absdiff'>mean(absdiff)+6*std(absdiff) false];
-        if ~any(remove), break; end
-        obj.data.P(remove,:) = [];
+      if size(obj.data.P, 1) > 0
+          count = 0;
+          while count<3
+            count = count+1;
+            absdiff=abs(median([obj.data.P(1:end-2,2) obj.data.P(2:end-1,2) obj.data.P(3:end,2)],2)-obj.data.P(2:end-1,2));
+            remove = [false absdiff'>mean(absdiff)+6*std(absdiff) false];
+            if ~any(remove), break; end
+            obj.data.P(remove,:) = [];
+          end
       end
-      
       %assign title and day in date time format
       obj.data.day = folder;
       obj.data.dt_day = datenum(obj.data.day,'yyyy_mm_dd');
@@ -272,6 +273,15 @@ classdef vmlSeq < handle
       end
       if nargin>=3, t = t+tpred/86400; end
       y = interp1(obj.data.Irr(:,1),obj.data.Irr(:,2),t);
+    end
+    
+    function y = get45Irr(obj,t,tpred)
+      %get the irradiation data for time(s) t
+      if nargin<2, t = obj.data.ti;
+      elseif any(t<obj.data.ti(1)-1), t=obj.data.ti(t); 
+      end
+      if nargin>=3, t = t+tpred/86400; end
+      y = interp1(obj.data.Irr(:,1),obj.data.Irr(:,3),t);
     end
     
     function y = getDiffuseIrr(obj,t,tpred)
@@ -1010,6 +1020,17 @@ classdef vmlSeq < handle
       datetickzoom;
     end
     
+    function plot45irr(obj)
+      %plot the irradiation profiles
+      plot(obj.data.ti,obj.getIrr(obj.data.ti),'r',...
+        obj.data.ti,obj.get45Irr(obj.data.ti),'b.-', obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'g',...
+    obj.data.ti,obj.getDiffuseIrr(obj.data.ti),'c.');
+      ylim = get(gca,'ylim'); ylim(1) = 0;
+      set(gca,'ylim',ylim);
+      grid on;
+      datetickzoom;
+    end
+        
     function plotdiffuse(obj)
       %plot the diffuse irradiance
       plot(obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'r',...
