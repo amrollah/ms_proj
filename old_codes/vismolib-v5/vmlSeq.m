@@ -134,7 +134,7 @@ classdef vmlSeq < handle
       obj.data.tmax = max(obj.data.ti);
       
       %remove outliers in power
-      if size(obj.data.P, 1) > 0
+      if size(obj.data.P,1) > 0
           count = 0;
           while count<3
             count = count+1;
@@ -229,6 +229,14 @@ classdef vmlSeq < handle
       
     end
     
+    function idt = getClearId(obj,j)
+        if ~isfield(obj.calc, 'clearId') || length(obj.calc.clearId) < j
+            [~,idt] = min(abs(obj.data.IrrClear(:,1)-obj.data.ti(j)));
+            obj.calc.clearId(j) = idt;
+        end
+        idt = obj.calc.clearId(j);
+    end
+    
     function print(obj,printlevel,txt)
       if obj.uidata.printlevel>=printlevel, disp(txt); end
     end
@@ -259,11 +267,14 @@ classdef vmlSeq < handle
         
     function P1 = getP(obj,t,tpred)
       %get the power data for time(s) t
+      if size(obj.data.P,1) == 0, P1=NaN; 
+      else
       if nargin<2, t = obj.data.ti;
       elseif any(t<obj.data.ti(1)-1), t=obj.data.ti(t); 
       end
       if nargin>=3, t = t+tpred/86400; end
       P1 = interp1(obj.data.P(:,1),obj.data.P(:,2),t);
+      end
     end
     
     function y = getIrr(obj,t,tpred)
@@ -553,7 +564,8 @@ classdef vmlSeq < handle
         % amri: diffuse irradiance calcualtion
         % obj.calc.Irr = [time, Diffuse, Direct, Global]
         % Diffuse = GHI-DNI*cosd(Z)*(1|0)
-        [~,idt] = min(abs(obj.data.IrrClear(:,1)-obj.data.ti(j)));
+        
+        idt=obj.getClearId(j);
         diffuse = obj.data.Irr(j,2)-obj.data.IrrClear(idt,3)*cosd(obj.data.Zenith(idt,2))*obj.sunFlagToCoef(j);
         obj.calc.Irr(j,2) = diffuse;
         obj.print(1,['Diffuse Irr: ' num2str(diffuse)]);
