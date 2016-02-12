@@ -24,7 +24,6 @@ classdef vmlSeq < handle
       switch lower(plantid)
         case 'cavriglia'
           conf = vmlconfig_cavriglia;
-          conf = local_conf(conf);
         otherwise
           error(['unknown plantid ' plantid]);
       end
@@ -135,7 +134,11 @@ classdef vmlSeq < handle
       obj.data.tmax = max(obj.data.ti);
       
       %remove outliers in power
+<<<<<<< HEAD
+      if size(obj.data.P, 1) > 0
+=======
       if size(obj.data.P,1) > 0
+>>>>>>> 86ddae69a35771710d295f83c7db93f05df3772b
           count = 0;
           while count<3
             count = count+1;
@@ -231,7 +234,7 @@ classdef vmlSeq < handle
     end
     
     function idt = getClearId(obj,j)
-        if ~isfield(obj.calc, 'clearId') || length(obj.calc.clearId) < j || obj.calc.clearId(j)==0
+        if ~isfield(obj.calc, 'clearId') || length(obj.calc.clearId) < j
             [~,idt] = min(abs(obj.data.IrrClear(:,1)-obj.data.ti(j)));
             obj.calc.clearId(j) = idt;
         end
@@ -1035,7 +1038,7 @@ classdef vmlSeq < handle
     
     function plot45irr(obj)
       %plot the irradiation profiles
-      plot(obj.data.ti,obj.getIrrClear(obj.data.ti),'bl', obj.data.ti,obj.getIrr(obj.data.ti),'r',...
+      plot(obj.data.ti,obj.getIrr(obj.data.ti),'r',...
         obj.data.ti,obj.get45Irr(obj.data.ti),'b.-', obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'g',...
     obj.data.ti,obj.getDiffuseIrr(obj.data.ti),'c.');
       ylim = get(gca,'ylim'); ylim(1) = 0;

@@ -1,4 +1,4 @@
-close all; 
+% close all; 
 clear all; 
 clc;
 
@@ -7,10 +7,8 @@ clc;
 prj_path = 'E:\ms_proj\';
 addpath(genpath([prj_path,'\old_codes\vismolib_v5']));
 addpath(genpath([prj_path,'\lib']));
-% run([prj_path 'local_conf.m']);
-% conf = evalin('base','VMLCONF');
+addpath(prj_path);
 
 
-%
-date = '2015_07_29';
+date = '201_02_01';
 s = vmlSeq('cavriglia',date);
