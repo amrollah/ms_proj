@@ -1,5 +1,5 @@
 function diffuse()
-    load('img_data3.mat');
+    load('calc\img_data.mat');
     if nargin<2, method = 'showtraj'; end
     figno=11;
     figure(figno); title('Diffuse vs Global irradiation');

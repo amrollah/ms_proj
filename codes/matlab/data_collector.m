@@ -62,4 +62,4 @@ for d=1:numel(days)
     end
     clear s;
 end
-save('img_data.mat', 'data');
+save('calc\img_data.mat', 'data');
