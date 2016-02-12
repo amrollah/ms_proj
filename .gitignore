@@ -107,3 +107,5 @@ local_conf.m
 lib/mexopencv-master/+cv/
 old_codes/vismolib-v5/first_try_img_data.mat
 codes/matlab/img_data_10_2.mat
+codes/matlab/calc/*
+codes/matlab/main.m
