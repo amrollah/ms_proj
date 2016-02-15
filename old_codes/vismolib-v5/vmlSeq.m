@@ -592,7 +592,7 @@ classdef vmlSeq < handle
         cloud_shine(cloud_shine<0)=0;
 %         obj.calc.seg.cloud_shine(:,j) = cloud_shine(:);
         obj.calc.seg.cloud_shine_fact(j) = nansum(nansum(cloud_shine));
-        obj.calc.seg.clouds_fact(j) = floor(100*nansum(nansum(obj.curseg.cc))/numel(obj.curseg.cc));
+        obj.calc.seg.clouds_fact(j) = floor(100*nansum(obj.curseg.cc(:))/sum(obj.mfi.sm(:))); % numel(obj.curseg.cc));
 %     figure;imshow(obj.curseg.cloud_shine);
 
       obj.curseg.j = j;      

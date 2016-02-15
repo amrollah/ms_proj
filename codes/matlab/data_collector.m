@@ -7,6 +7,7 @@ clc;
 prj_path = 'C:\Users\chamsei\Documents\GitHub\ms_proj';
 addpath(genpath([prj_path,'\old_codes\vismolib_v5']));
 addpath(genpath([prj_path,'\lib']));
+addpath(prj_path);
 
 cav_img_path = 'U:\HDRImages_Cavriglia\img';
 days = dir(cav_img_path); % get all content of Cavriglia image folder
