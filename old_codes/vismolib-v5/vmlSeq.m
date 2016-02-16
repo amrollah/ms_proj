@@ -221,10 +221,12 @@ classdef vmlSeq < handle
       obj.data.Zenith = [tt, Zenith];
       obj.data.Azimuth = [tt, Azimuth];
       
-       [azimuth, ~, ApparentSunElevation, ~] = pvl_ephemeris(pvl_maketimestruct(obj.data.ti, ...
-        obj.calib.UTC),obj.calib.model3D.Location,pvl_alt2pres(obj.calib.model3D.Location.altitude));
-       obj.data.ti_elevation = ApparentSunElevation;
+      [ti_ClearSkyGHI, ti_ClearSkyDNI, ti_ClearSkyDHI, zenith, azimuth] = pvl_clearsky_ineichen(pvl_maketimestruct(obj.data.ti, ...
+        obj.calib.UTC),obj.calib.model3D.Location);
+       obj.data.ti_elevation = 90 - zenith;
+       obj.data.zenith = zenith;
        obj.data.ti_azimuth = azimuth;
+       obj.data.ti_IrrClear = [obj.data.ti', ti_ClearSkyGHI, ti_ClearSkyDNI, ti_ClearSkyDHI];
       
       obj.calc.Irr = NaN(length(obj.data.ti),4);
       obj.calc.Irr(:,1) = obj.data.ti(:);
@@ -572,8 +574,8 @@ classdef vmlSeq < handle
         % obj.calc.Irr = [time, Diffuse, Direct, Global]
         % Diffuse = GHI-DNI*cosd(Z)*(1|0)
         
-        idt=obj.getClearId(j);
-        diffuse = obj.data.Irr(j,2)-obj.data.IrrClear(idt,3)*cosd(obj.data.Zenith(idt,2))*obj.sunFlagToCoef(j);
+%         idt=obj.getClearId(j);
+        diffuse = obj.data.Irr(j,2)-obj.data.ti_IrrClear(j,3)*cosd(obj.data.zenith(j))*obj.sunFlagToCoef(j);
         obj.calc.Irr(j,2) = diffuse;
         obj.print(1,['Diffuse Irr: ' num2str(diffuse)]);
       end
@@ -1050,24 +1052,33 @@ classdef vmlSeq < handle
       datetickzoom;
     end
     
-    function d = get45diffuse(obj,t)
-        plate_cord = repmat([0,degtorad(45),1],[length(t),1]);
+    function [d,tilted_DHI] = get45diffuse(obj,t,az,elev)
+        plate_cord = repmat([deg2rad(az),deg2rad(elev),1],[length(t),1]);
         [px,py,pz] = sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3));
         plate_cord = [px,py,pz];
-        [sx,sy,sz] = sph2cart(degtorad(obj.data.ti_azimuth(t)),degtorad(obj.data.ti_elevation(t)),ones(size(t))');
+        [sx,sy,sz] = sph2cart(deg2rad(obj.data.ti_azimuth(t)),deg2rad(obj.data.ti_elevation(t)),ones(size(t))');
         sun_cords = [sx,sy,sz];
+%         figure; scatter3(px(1),py(1),pz(1),'r');
+%         hold on; scatter3(sx,sy,sz,'b');
         nrm=sqrt(sum(abs(cross(sun_cords,plate_cord,2)).^2,2));
         angles = atan2d(nrm, dot(sun_cords,plate_cord,2));
-%         cos_angles = acosd(dot(sph2cart(obj.data.ti_azimuth(t),obj.data.ti_elevation(t),ones(size(t))'),sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3)),2));
-        DNI = interp1(obj.data.IrrClear(:,1),obj.data.IrrClear(:,3),obj.data.ti(t));
-        d = obj.get45Irr(t)-DNI.*max(0,cosd(angles))';%.*obj.sunFlagToCoef;
+        tilted_DHI = obj.data.ti_IrrClear(t,3).*max(0,cosd(angles));
+        d = obj.get45Irr(t)-tilted_DHI';%.*obj.sunFlagToCoef;
     end
     
-    function plot45diffuse(obj)
+    function plot45diffuse(obj,az,elev)
       %plot the diffuse irradiance derived from 45 degree sensor
-      plot(obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'r',...
-        obj.data.ti,obj.get45diffuse((1:length(obj.data.ti))),'b.-',...
-        obj.data.ti,obj.get45Irr((1:length(obj.data.ti))),'g.-');
+      if nargin==1
+          az = -2;
+          elev = 30;
+      end
+      [df,DHI] = obj.get45diffuse((1:length(obj.data.ti)),az,elev);
+      
+      other_df= obj.getIrr()'-obj.data.ti_IrrClear(:,3).*cosd(obj.data.zenith(:));
+      plot(obj.data.ti,obj.getIrr,obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'r',...
+        obj.data.ti,df,'b.-',obj.data.ti,DHI,'c.-',...
+        obj.data.ti,obj.get45Irr((1:length(obj.data.ti))),'g.-',...
+        obj.data.ti,other_df,'k.-');
       ylim = get(gca,'ylim'); ylim(1) = 0;
       set(gca,'ylim',ylim);
       grid on;
