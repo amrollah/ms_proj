@@ -1,4 +1,4 @@
-function [ClearSkyGHI, ClearSkyDNI, ClearSkyDHI, ApparentZenith]= pvl_clearsky_ineichen(Time, Location, varargin)
+function [ClearSkyGHI, ClearSkyDNI, ClearSkyDHI, ApparentZenith, SunAzimuth]= pvl_clearsky_ineichen(Time, Location, varargin)
 % PVL_CLEARSKY_INEICHEN Determine clear sky GHI, DNI, and DHI from Ineichen/Perez model
 %
 % Syntax
@@ -110,7 +110,7 @@ I0 = pvl_extraradiation(DayOfYear);
 % Assumptions made in this step: 
 % 1. Pressure is local standard pressure (per pvl_alt2pres)
 % 2. Temperature is 12C (default for pvl_ephemeris)
-[~, ~, ApparentSunElevation, ~]=pvl_ephemeris(Time, Location, pvl_alt2pres(Location.altitude));
+[SunAzimuth, ~, ApparentSunElevation, ~]=pvl_ephemeris(Time, Location, pvl_alt2pres(Location.altitude));
 
 ApparentZenith = 90-ApparentSunElevation;
 

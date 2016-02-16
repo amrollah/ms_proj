@@ -93,4 +93,8 @@
 % 
 %     %saveas(f, strcat('C:\data\cav\log_data\power_plots\',text), 'jpg') % save the figure with the title as the file name 
 % end
-
+coef=90000/70450;
+for i=1:length(data)
+    disp(data{i}.clouds);
+%     data{i}.clouds=data{i}.clouds*coef;
+end

@@ -10,5 +10,5 @@ addpath(genpath([prj_path,'\lib']));
 addpath(prj_path);
 
 
-date = '201_02_01';
+date = '2015_08_03';
 s = vmlSeq('cavriglia',date);

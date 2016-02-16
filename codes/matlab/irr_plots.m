@@ -17,7 +17,7 @@ days = days(8:end-1)';
 
 start_date = '2015_08_27';
 
-start_date_found = false;
+start_date_found = true;
 for d=1:numel(days)
     date = days(d).name;
     if strcmp(start_date, date) || start_date_found

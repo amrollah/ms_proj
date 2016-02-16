@@ -1,5 +1,6 @@
 function diffuse()
-    img_save_path = 'E:\ABB\cav\diffuse\';
+%     img_save_path = 'E:\ABB\cav\diffuse\';
+    img_save_path = 'C:\data\diffuse\';
     load('calc\img_data.mat', 'data');
     times = cellfun(@(d) d.time, data);
     irr = cellfun(@(d) d.irr(1), data);

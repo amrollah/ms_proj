@@ -215,10 +215,16 @@ classdef vmlSeq < handle
       
       %clear sky irradiation
       tt = (obj.data.tmin:6/86400:obj.data.tmax)';
-      [ClearSkyGHI, ClearSkyDNI, ClearSkyDHI, Zenith] = pvl_clearsky_ineichen(pvl_maketimestruct(tt, ...
+      [ClearSkyGHI, ClearSkyDNI, ClearSkyDHI, Zenith, Azimuth] = pvl_clearsky_ineichen(pvl_maketimestruct(tt, ...
         obj.calib.UTC),obj.calib.model3D.Location);
       obj.data.IrrClear = [tt, ClearSkyGHI, ClearSkyDNI, ClearSkyDHI];
       obj.data.Zenith = [tt, Zenith];
+      obj.data.Azimuth = [tt, Azimuth];
+      
+       [azimuth, ~, ApparentSunElevation, ~] = pvl_ephemeris(pvl_maketimestruct(obj.data.ti, ...
+        obj.calib.UTC),obj.calib.model3D.Location,pvl_alt2pres(obj.calib.model3D.Location.altitude));
+       obj.data.ti_elevation = ApparentSunElevation;
+       obj.data.ti_azimuth = azimuth;
       
       obj.calc.Irr = NaN(length(obj.data.ti),4);
       obj.calc.Irr(:,1) = obj.data.ti(:);
@@ -1043,6 +1049,30 @@ classdef vmlSeq < handle
       grid on;
       datetickzoom;
     end
+    
+    function d = get45diffuse(obj,t)
+        plate_cord = repmat([0,degtorad(45),1],[length(t),1]);
+        [px,py,pz] = sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3));
+        plate_cord = [px,py,pz];
+        [sx,sy,sz] = sph2cart(degtorad(obj.data.ti_azimuth(t)),degtorad(obj.data.ti_elevation(t)),ones(size(t))');
+        sun_cords = [sx,sy,sz];
+        nrm=sqrt(sum(abs(cross(sun_cords,plate_cord,2)).^2,2));
+        angles = atan2d(nrm, dot(sun_cords,plate_cord,2));
+%         cos_angles = acosd(dot(sph2cart(obj.data.ti_azimuth(t),obj.data.ti_elevation(t),ones(size(t))'),sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3)),2));
+        DNI = interp1(obj.data.IrrClear(:,1),obj.data.IrrClear(:,3),obj.data.ti(t));
+        d = obj.get45Irr(t)-DNI.*max(0,cosd(angles))';%.*obj.sunFlagToCoef;
+    end
+    
+    function plot45diffuse(obj)
+      %plot the diffuse irradiance derived from 45 degree sensor
+      plot(obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'r',...
+        obj.data.ti,obj.get45diffuse((1:length(obj.data.ti))),'b.-',...
+        obj.data.ti,obj.get45Irr((1:length(obj.data.ti))),'g.-');
+      ylim = get(gca,'ylim'); ylim(1) = 0;
+      set(gca,'ylim',ylim);
+      grid on;
+      datetickzoom;
+    end
         
     function plotdiffuse(obj)
       %plot the diffuse irradiance
@@ -1053,7 +1083,7 @@ classdef vmlSeq < handle
       grid on;
       datetickzoom;
     end
-    
+        
     function showtraj(obj,j)
       %plot the motion trajectory for frame j
       obj.showframe(j,1);
