@@ -24,7 +24,6 @@ classdef vmlSeq < handle
       switch lower(plantid)
         case 'cavriglia'
           conf = vmlconfig_cavriglia;
-          conf = local_conf(conf);
         otherwise
           error(['unknown plantid ' plantid]);
       end
@@ -91,12 +90,7 @@ classdef vmlSeq < handle
       [obj.oi.YY,obj.oi.XX] = ndgrid(1:obj.oi.sz(1),1:obj.oi.sz(2));
       
       %compute border of the sky mask
-      obj.oi.sm_border = false(obj.oi.sz);
-      obj.oi.sm_border(1:end-1,:) = obj.oi.sm_border(1:end-1,:) | obj.oi.sm(2:end,:);
-      obj.oi.sm_border(2:end,:) = obj.oi.sm_border(2:end,:) | obj.oi.sm(1:end-1,:);
-      obj.oi.sm_border(:,1:end-1) = obj.oi.sm_border(:,1:end-1) | obj.oi.sm(:,2:end);
-      obj.oi.sm_border(:,2:end) = obj.oi.sm_border(:,2:end) | obj.oi.sm(:,1:end-1);
-      obj.oi.sm_border(obj.oi.sm) = false;
+      obj.oi.sm_border = vmlExtend1Px(obj.oi.sm) & ~obj.oi.sm;
       
       %reduce pixels on unit sphere to final bounding box and map
       %them to unit plane
@@ -135,16 +129,15 @@ classdef vmlSeq < handle
       obj.data.tmax = max(obj.data.ti);
       
       %remove outliers in power
-      if size(obj.data.P,1) > 0
-          count = 0;
-          while count<3
-            count = count+1;
-            absdiff=abs(median([obj.data.P(1:end-2,2) obj.data.P(2:end-1,2) obj.data.P(3:end,2)],2)-obj.data.P(2:end-1,2));
-            remove = [false absdiff'>mean(absdiff)+6*std(absdiff) false];
-            if ~any(remove), break; end
-            obj.data.P(remove,:) = [];
-          end
+      count = 0;
+      while count<3
+        count = count+1;
+        absdiff=abs(median([obj.data.P(1:end-2,2) obj.data.P(2:end-1,2) obj.data.P(3:end,2)],2)-obj.data.P(2:end-1,2));
+        remove = [false absdiff'>mean(absdiff)+6*std(absdiff) false];
+        if ~any(remove), break; end
+        obj.data.P(remove,:) = [];
       end
+      
       %assign title and day in date time format
       obj.data.day = folder;
       obj.data.dt_day = datenum(obj.data.day,'yyyy_mm_dd');
@@ -191,14 +184,6 @@ classdef vmlSeq < handle
       rr = ((1:obj.conf.seg.ngrid)-.5)/obj.conf.seg.ngrid;
       obj.thres.xxg = [1 round(1+(obj.mfi.sz(2)-1)*rr) obj.mfi.sz(2)]; 
       obj.thres.yyg = [1 round(1+(obj.mfi.sz(1)-1)*rr) obj.mfi.sz(1)]; 
-      obj.thres.have_v = zeros(obj.conf.seg.ngrid);
-      for ix=1:obj.conf.seg.ngrid
-        for iy=1:obj.conf.seg.ngrid
-          if any(any(obj.mfi.sm(obj.thres.yyg(iy):obj.thres.yyg(iy+2),obj.thres.xxg(ix):obj.thres.xxg(ix+2))))
-            obj.thres.have_v(iy,ix) = 1;
-          end
-        end
-      end
       rr = (0:obj.conf.seg.ngrid)/obj.conf.seg.ngrid;
       obj.thres.xxgb = round(obj.mfi.sz(2)*rr); 
       obj.thres.yygb = round(obj.mfi.sz(1)*rr); 
@@ -207,6 +192,24 @@ classdef vmlSeq < handle
       [YY,XX]=ndgrid(yy,xx);
       obj.thres.d2center = sqrt(XX.^2+YY.^2);
       obj.thres.isouter = obj.thres.d2center>=min(max(abs(yy)),max(abs(xx)));
+      obj.thres.have_v = zeros(obj.conf.seg.ngrid);
+      for ix=1:obj.conf.seg.ngrid
+        for iy=1:obj.conf.seg.ngrid
+          if mean(mean(obj.mfi.sm(obj.thres.yygb(iy)+1:obj.thres.yygb(iy+1),obj.thres.xxgb(ix)+1:obj.thres.xxgb(ix+1))))>0.1
+            obj.thres.have_v(iy,ix) = 1;
+          end
+        end
+      end
+      r = obj.conf.seg.rneigh;
+      q = uint8(ones(round(obj.mfi.sz/obj.conf.seg.ngrid)+2*r));
+      q(1:round(size(q,1)/2),:)=3;
+      obj.thres.norm_segcrit = max(vmlCalcSegCrit(q,3,[r+1 size(q,2)-r],[r+1 size(q,1)-r],r,0));
+      c = [mean(obj.mfi.yy) mean(obj.mfi.xx)];
+      d2sun = (obj.mfi.YY-c(1)).^2+(obj.mfi.XX-c(2)).^2;
+      q = d2sun>obj.conf.r0sun_px^2 & d2sun<=obj.conf.rsun_px^2;
+      q = double(q(any(q,2),any(q,1)));
+      q = q+2*q.*(repmat(1:size(q,2),size(q,1),1)>size(q,2)/2);
+      obj.thres.norm_segcrit_circ = max(vmlCalcSegCrit(uint8(q),3,[1 size(q,2)],[1 size(q,1)],r,0));
       
       %compute data for the SDF
       [~,xx,yy,obj.mfi.sdf.ksize]=vmlDownscale(double(obj.mfi.sm),obj.conf.sdf.sz);
@@ -215,35 +218,15 @@ classdef vmlSeq < handle
       
       %clear sky irradiation
       tt = (obj.data.tmin:6/86400:obj.data.tmax)';
-      [ClearSkyGHI, ClearSkyDNI, ClearSkyDHI, Zenith, Azimuth] = pvl_clearsky_ineichen(pvl_maketimestruct(tt, ...
-        obj.calib.UTC),obj.calib.model3D.Location);
-      obj.data.IrrClear = [tt, ClearSkyGHI, ClearSkyDNI, ClearSkyDHI];
-      obj.data.Zenith = [tt, Zenith];
-      obj.data.Azimuth = [tt, Azimuth];
+      obj.data.IrrClear = [tt pvl_clearsky_ineichen(pvl_maketimestruct(tt, ...
+        obj.calib.UTC),obj.calib.model3D.Location)];
       
-      [ti_ClearSkyGHI, ti_ClearSkyDNI, ti_ClearSkyDHI, zenith, azimuth] = pvl_clearsky_ineichen(pvl_maketimestruct(obj.data.ti, ...
-        obj.calib.UTC),obj.calib.model3D.Location);
-       obj.data.ti_elevation = 90 - zenith;
-       obj.data.zenith = zenith;
-       obj.data.ti_azimuth = azimuth;
-       obj.data.ti_IrrClear = [obj.data.ti', ti_ClearSkyGHI, ti_ClearSkyDNI, ti_ClearSkyDHI];
-      
-      obj.calc.Irr = NaN(length(obj.data.ti),4);
-      obj.calc.Irr(:,1) = obj.data.ti(:);
       %clear sky power model
       switch lower(plantid)
         case 'cavriglia'
           obj.data.PrelClear = [tt vml_prel_clear_cavriglia(obj,tt)];
       end
       
-    end
-    
-    function idt = getClearId(obj,j)
-        if ~isfield(obj.calc, 'clearId') || length(obj.calc.clearId) < j || obj.calc.clearId(j)==0
-            [~,idt] = min(abs(obj.data.IrrClear(:,1)-obj.data.ti(j)));
-            obj.calc.clearId(j) = idt;
-        end
-        idt = obj.calc.clearId(j);
     end
     
     function print(obj,printlevel,txt)
@@ -276,14 +259,11 @@ classdef vmlSeq < handle
         
     function P1 = getP(obj,t,tpred)
       %get the power data for time(s) t
-      if size(obj.data.P,1) == 0, P1=NaN; 
-      else
       if nargin<2, t = obj.data.ti;
       elseif any(t<obj.data.ti(1)-1), t=obj.data.ti(t); 
       end
       if nargin>=3, t = t+tpred/86400; end
       P1 = interp1(obj.data.P(:,1),obj.data.P(:,2),t);
-      end
     end
     
     function y = getIrr(obj,t,tpred)
@@ -295,27 +275,6 @@ classdef vmlSeq < handle
       y = interp1(obj.data.Irr(:,1),obj.data.Irr(:,2),t);
     end
     
-    function y = get45Irr(obj,t,tpred)
-      %get the irradiation data for time(s) t
-      if nargin<2, t = obj.data.ti;
-      elseif any(t<obj.data.ti(1)-1), t=obj.data.ti(t); 
-      end
-      if nargin>=3, t = t+tpred/86400; end
-      y = interp1(obj.data.Irr(:,1),obj.data.Irr(:,3),t);
-    end
-    
-    function y = getDiffuseIrr(obj,t,tpred)
-      %get the irradiation data for time(s) t
-      if nargin<2
-          y = obj.calc.Irr(:,2);
-          return;
-      elseif any(t<obj.data.ti(1)-1), t=obj.data.ti(t); 
-      end
-      if nargin>=3, t = t+tpred/86400; end
-      [~, idt] = arrayfun(@(ti) min(abs(obj.calc.Irr(:,1)-ti)),t);
-      y = obj.calc.Irr(idt,2);
-    end
-    
     function y = getIrrClear(obj,t,tpred)
       %get the clear sky irradiation for time(s) t
       if nargin<2, t = obj.data.ti;
@@ -323,15 +282,6 @@ classdef vmlSeq < handle
       end
       if nargin>=3, t = t+tpred/86400; end
       y = interp1(obj.data.IrrClear(:,1),obj.data.IrrClear(:,2),t);
-    end
-    
-    function y = getDiffuseIrrClear(obj,t,tpred)
-      %get the clear sky diffuse irradiation for time(s) t
-      if nargin<2, t = obj.data.ti;
-      elseif any(t<obj.data.ti(1)-1), t=obj.data.ti(t); 
-      end
-      if nargin>=3, t = t+tpred/86400; end
-      y = interp1(obj.data.IrrClear(:,1),obj.data.IrrClear(:,4),t);
     end
     
     function y = getPrelClear(obj,t,tpred)
@@ -411,137 +361,200 @@ classdef vmlSeq < handle
       end
       obj.curseg.j = [];
       obj.curseg.x0 = obj.imread(j);
-      obj.curseg.x = vmlMedianDownscale(obj.curseg.x0,obj.conf.mfi.sz);
-      obj.curseg.r2b = vmlRed2Blue(obj.curseg.x);
+      obj.curseg.x1 = double(obj.curseg.x0);
+      obj.curseg.thres.pre_cc = zeros(obj.mfi.sz);
       
+      %detect clear sun by saturation and star shape
       sunp = obj.sunpos_im(j);
-      yx = round(sunp);
-      if any(yx<1) || any(yx'>obj.oi.sz)
-        obj.calc.seg.satsun(j) = 0;
-        obj.calc.seg.star_crit(j) = 0; 
-      else
-        r = obj.conf.sundetect.r_roi_px+obj.conf.sundetect.r2_px;
-        yy = max(1,yx(1)-r):min(obj.oi.sz(1),yx(1)+r);
-        xx = max(1,yx(2)-r):min(obj.oi.sz(2),yx(2)+r);
-        rsq = bsxfun(@plus,(yy-yx(1))'.^2,(xx-yx(2)).^2);
-        x0 = mean(obj.curseg.x0(:,:,2:3),3);
-        x1 = x0(yy,xx);
-        x1 = vmlGaussianBlur(x1,obj.conf.sundetect.blur2_px);
-        x2 = x1; x2(rsq>obj.conf.sundetect.r_roi_px^2) = inf;
-        v_in = min(x2(:));
-        [my,mx]=find(x1==v_in);
-        my = round(mean(my)); mx = round(mean(mx));
-        obj.calc.seg.yx_sun_detected(:,j) = [yy(my);xx(mx)];
-        obj.calc.seg.sunpos_err(j) = norm(obj.calc.seg.yx_sun_detected(:,j)-sunp);
-        rsq=bsxfun(@plus,(yy'-yy(my)).^2,(xx-xx(mx)).^2);
-        v_out = median(x1(rsq>=obj.conf.sundetect.r1_px^2 & rsq<=obj.conf.sundetect.r2_px^2));
-        obj.calc.seg.satsun(j) = v_out-v_in;
-        star_rmax = min([obj.conf.sundetect.star_r2_px obj.oi.sz(1)-yy(my) yy(my)-1 obj.oi.sz(2)-xx(mx) xx(mx)-1]);
-        if star_rmax<obj.conf.sundetect.star_r1_px || ...
-          obj.calc.seg.satsun(j)<obj.conf.sundetect.satsun_thres
-          obj.calc.seg.star_crit(j) = 0;
-        else
-          aa = (1:360)'/180*pi;
-          rr = obj.conf.sundetect.star_r1_px:star_rmax;
-          ww = (10.^-((rr-rr(1))'/(rr(end)-rr(1)))); ww = ww/sum(ww);
-          zz=interp2(obj.oi.XX-xx(mx),obj.oi.YY-yy(my),mean(obj.curseg.x0(:,:,1:2),3),...
-            bsxfun(@times,cos(aa),rr),bsxfun(@times,sin(aa),rr));
-          zz = bsxfun(@minus,zz,mean(zz)); zz = bsxfun(@rdivide,zz,std(zz));
-          obj.calc.seg.star_crit(j) = 1-vmlHexFit(aa,ww,zz);
-        end
-      end
-      
-      if obj.calc.seg.satsun(j)>=obj.conf.sundetect.satsun_thres
-        rsun_px = obj.conf.rsun_px;
-        if obj.calc.seg.sunpos_err(j)>obj.conf.sundetect.maxerr_px
-          obj.curseg.clear_sun_flag = -1;
-        elseif obj.calc.seg.star_crit(j)>=obj.conf.sundetect.star_thres_cov
-          obj.curseg.clear_sun_flag = 3+(obj.calc.seg.star_crit(j)>=obj.conf.sundetect.star_thres_clear);
-        else
-          obj.curseg.clear_sun_flag = 2;
-          rsun_px = obj.conf.rsun_px_close;
-        end
-        obj.curseg.sm = obj.skymask_wo_sun(j,obj.mfi,rsun_px);
-      else 
-        obj.curseg.clear_sun_flag = 1;
-        obj.curseg.sm = obj.mfi.sm;
-      end
+      [obj.curseg.clear_sun_flag,obj.calc.seg.yx_sun_detected(:,j),bestalpha_hex] = ...
+        vmlDetectSun(obj.curseg.x0,obj.conf.sundetect,sunp);
       obj.calc.seg.clear_sun_flag(j) = obj.curseg.clear_sun_flag;
+
+      if obj.curseg.clear_sun_flag == -1
+        warning('sun could not be detected (outside image) ');
+        obj.curseg.sm = obj.skymask_wo_sun(j,obj.mfi,obj.conf.rsun_px);
+      elseif obj.curseg.clear_sun_flag == 1
+        obj.curseg.sm = obj.skymask_wo_sun(j,obj.mfi,obj.conf.r0sun_px);
+      else
+        %correct bias close to sun
+        sunp = obj.calc.seg.yx_sun_detected(:,j);
+        d2sun = sqrt((obj.oi.YY-sunp(1)).^2+(obj.oi.XX-sunp(2)).^2);
+        aa = (1:360)/180*pi;
+        nflt = obj.conf.corr_sun_bias.nfilter;
+        rr = obj.conf.r0sun_px-nflt+1:obj.conf.rsun_px+nflt;
+        prgb=vmlImage2Polar(obj.oi,sunp,aa,rr,cat(3,obj.curseg.x1,obj.oi.sm));
+        prgb = prgb(all(prgb(:,:,4)==1,2),:,1:3); %cut out directions which are not fully in sm
+        pr2b = vmlRed2Blue(prgb);
+        [~,jj] = sort(mean(pr2b(:,1+nflt:end-nflt),2));
+        c0 = [0 0]; c_im = zeros([obj.oi.sz 2]); 
+        c_im1 = zeros([size(pr2b) 2]);
+        n = round(obj.conf.corr_sun_bias.clear_frac*size(pr2b,1));
+        fcorr = obj.oi.sm; fcorr1 = ones(size(pr2b));
+        for i=1:2
+          c = filter(ones(1,1+2*nflt)/(1+2*nflt),1,mean(prgb(jj(1:n),:,i)));
+          c = c(1+2*nflt:end);
+          [c0(i),j1] = min(c); [cmax, j2] = max(c);
+          if j2>j1, fcorr = zeros(size(fcorr)); break; end %no characteristic bias present
+          c(j1+1:end) = c0(i); c(1:j2-1) = cmax;
+          c_im(:,:,i) = interp1(0:obj.conf.rsun_px,...
+            [cmax+zeros(1,1+obj.conf.r0sun_px) c],d2sun,'linear',c0(i));
+          c_im1(:,:,i) = interp1(0:obj.conf.rsun_px,...
+            [cmax+zeros(1,1+obj.conf.r0sun_px) c],repmat(rr,size(pr2b,1),1),'linear',c0(i));
+          fcorr = min(fcorr,max(0,min(1,(obj.curseg.x1(:,:,i)-c0(i))./(c_im(:,:,i)-c0(i)))));
+          fcorr1 = min(fcorr1,max(0,min(1,(prgb(:,:,i)-c0(i))./(c_im1(:,:,i)-c0(i)))));
+        end
+        for i=1:2
+          obj.curseg.x1(:,:,i) = max(0,obj.curseg.x1(:,:,i))-fcorr.*(c_im(:,:,i)-c0(i));
+        end
+        if obj.curseg.clear_sun_flag>=3
+          obj.curseg.sm = obj.skymask_wo_sun(j,obj.mfi,obj.conf.r0sun_px,sunp,bestalpha_hex);
+        else
+          obj.curseg.sm = obj.skymask_wo_sun(j,obj.mfi,obj.conf.r0sun_px,sunp);
+        end
+      end
+      obj.curseg.x1 = uint8(obj.curseg.x1);
+      
       sm = obj.curseg.sm;
+      obj.curseg.x = vmlMedianDownscale(obj.curseg.x1,obj.conf.mfi.sz);
+      obj.curseg.r2b = vmlRed2Blue(obj.curseg.x);
+      obj.curseg.r2b(~sm) = NaN;
       
       %remove sunglare
       g2b = vmlGreen2Blue(obj.curseg.x);
-      jj = find(sm & g2b<=0 & obj.curseg.r2b>0);
+      jj = find(sm & obj.curseg.x(:,:,2)<min(obj.curseg.x(:,:,1),obj.curseg.x(:,:,3)) & ...
+        (obj.curseg.r2b>=0 | g2b<2*obj.curseg.r2b));
       n = min(length(jj),round(sum(sm(:))*obj.conf.seg.max_sunglare_remove));
       if n<length(jj)
-        [~,jj1]=sort(obj.curseg.r2b(jj),1,'descend');
+        [~,jj1]=sort(obj.curseg.r2b(jj)-g2b(jj),1,'descend');
         jj = jj(jj1(1:n));
       end
       obj.curseg.r2b(jj) = NaN;
       
-      ngrid = obj.conf.seg.ngrid;
-      if ~redo_thres_calc && any(~isnan(obj.calc.thres_v(:,j)))
-        obj.curseg.thres = [];
-        obj.curseg.thres.v = reshape(obj.calc.thres_v(:,j),ngrid,ngrid);
-      else
-        obj.print(1,['performing cloud segmentation for frame #' num2str(j)]);
-        r2b = obj.curseg.r2b; r2b(~sm) = NaN;
-        %red_ch = double(obj.curseg.x(:,:,1)); red_ch(~sm) = NaN;
-        green_ch = double(obj.curseg.x(:,:,2)); green_ch(~sm) = NaN;
-
-        obj.curseg.thres.scale = prod(2*obj.mfi.sz/ngrid);
-        obj.curseg.thres.bb = nan(ngrid);
-        obj.curseg.thres.bb0 = nan(ngrid);
-        obj.curseg.thres.j0 = nan(ngrid);
-        obj.curseg.thres.localvar = nan(ngrid);
-        obj.curseg.thres.r2brange = nan(ngrid);
-        obj.curseg.thres.isouter = obj.thres.isouter;
-        obj.curseg.thres.v0_mask = zeros(size(obj.curseg.sm));
+      %r2b map for current frame is now finalized
+      r2b = obj.curseg.r2b;
+      obj.curseg.d2sun = sqrt((obj.mfi.YY-sunp(1)).^2+(obj.mfi.XX-sunp(2)).^2);
+      
+      res = obj.conf.seg.r2b_resolution;
+      resh = obj.conf.seg.r2b_hist_resolution;
+      
+      %identify clear sky areas close to sun, to be treated extra
+      if obj.curseg.clear_sun_flag>=3
+        jj = obj.curseg.d2sun<=obj.conf.rsun_px;
+        r2b1 = obj.curseg.r2b; r2b1(~jj)=nan;
+        r2b1 = r2b1(any(~isnan(r2b1),2),any(~isnan(r2b1),1));
+        r2bmin = quantil(r2b1(:),obj.conf.seg.minmax_quantil);
+        r2bmax = quantil(r2b1(:),1-obj.conf.seg.minmax_quantil);
+        zzh = r2bmin-resh*1.5:resh:r2bmax+resh*2;
+        r2b1q = median_filter_2d(vmlQuantize(r2b1,zzh),obj.conf.seg.rneigh,1,1);
+        segcrit = vmlCalcSegCrit(r2b1q,length(zzh),[1 size(r2b1,2)],...
+          [1 size(r2b1,1)],obj.conf.seg.rneigh,obj.conf.seg.halfgap)/obj.thres.norm_segcrit_circ;
+        [s,j1] = max(segcrit);
+        s = (s-obj.conf.seg.segcrit_close2sun(1))/diff(obj.conf.seg.segcrit_close2sun);
+        if s>0 || obj.curseg.clear_sun_flag>=4
+          if s>0
+            obj.curseg.thres.pre_cc(jj) = -min(1,s)*(r2b(jj) < zzh(j1)); 
+          end
+          if obj.curseg.clear_sun_flag>=4
+            obj.curseg.thres.pre_cc(obj.curseg.d2sun<=obj.conf.seg.rsun_fillclear_precc)=-1;
+          end
+          jj = obj.curseg.d2sun<=obj.conf.seg.rsun_fillclear;
+          r2b1 = r2b(obj.curseg.thres.pre_cc<0);
+          r2blo = quantil(r2b1,obj.conf.seg.minmax_quantil);
+          r2bhi = quantil(r2b1,1-obj.conf.seg.minmax_quantil);
+          r2b(jj) = r2blo+(0:nnz(jj)-1)/(nnz(jj)-1)*(r2bhi-r2blo);
+        end
+      end
         
-        %first identify r2b range to consider
-        r2bmin = inf; r2bmax = -inf;
-        for ix=1:ngrid
-          for iy=1:ngrid
-            r2b1 = r2b(obj.thres.yygb(iy)+1:obj.thres.yygb(iy+1),obj.thres.xxgb(ix)+1:obj.thres.xxgb(ix+1));
-            if mean(~isnan(r2b1(:)))>=1-obj.conf.seg.tile_max_nan
-              r2b1 = r2b1(~isnan(r2b1));
-              qmin = quantil(r2b1,obj.conf.seg.minmax_quantil);
-              qmax = quantil(r2b1,1-obj.conf.seg.minmax_quantil);
-              obj.curseg.thres.r2brange(iy,ix) = qmax - qmin;
-              r2bmin = min(r2bmin,qmin-obj.conf.seg.r2b_pad);
-              r2bmax = max(r2bmax,qmax+obj.conf.seg.r2b_pad);
-            end
+      ngrid = obj.conf.seg.ngrid;
+      if all(isnan(obj.calc.thres_v(:,j))), redo_thres_calc = true; end
+      if redo_thres_calc, obj.print(1,['performing cloud segmentation for frame #' num2str(j)]); end
+      
+      obj.curseg.thres.j0 = nan(ngrid);
+      obj.curseg.thres.maxsegcrit = nan(ngrid);
+      obj.curseg.thres.p_tanh_cumsum = nan(ngrid,ngrid,3);
+      obj.curseg.thres.single_peak_crit = nan(ngrid);
+      obj.curseg.thres.plot_data = cell(ngrid);
+      obj.curseg.thres.isouter = obj.thres.isouter;
+      obj.curseg.thres.v0_mask = nan(size(sm));
+      obj.curseg.thres.v0lo = nan(ngrid);
+      obj.curseg.thres.v0hi = nan(ngrid);
+      obj.curseg.thres.hist_left_open_crit = nan(ngrid);
+      obj.curseg.thres.hist_right_open_crit = nan(ngrid);
+      
+      obj.curseg.thres.norm_segcrit = obj.thres.norm_segcrit;
+      obj.curseg.thres.yygb = obj.thres.yygb;
+      obj.curseg.thres.xxgb = obj.thres.xxgb;
+      
+      %first identify r2b range to consider
+      r2bmin = inf; r2bmax = -inf;
+      for ix=1:ngrid
+        for iy=1:ngrid
+          r2b1 = r2b(obj.thres.yygb(iy)+1:obj.thres.yygb(iy+1),...
+            obj.thres.xxgb(ix)+1:obj.thres.xxgb(ix+1));
+          if mean(isnan(r2b1(:)))<=obj.conf.seg.tile_max_nan
+            r2b1 = r2b1(~isnan(r2b1));
+            obj.curseg.thres.v0lo(iy,ix) = quantil(r2b1,obj.conf.seg.minmax_quantil);
+            obj.curseg.thres.v0hi(iy,ix) = quantil(r2b1,1-obj.conf.seg.minmax_quantil);
+            r2bmin = min(r2bmin,obj.curseg.thres.v0lo(iy,ix)-obj.conf.seg.r2b_pad);
+            r2bmax = max(r2bmax,obj.curseg.thres.v0hi(iy,ix)+obj.conf.seg.r2b_pad);
           end
         end
-        obj.curseg.thres.r2b_minmax = [r2bmin r2bmax];
-        %initialize variables
-        res = obj.conf.seg.r2b_resolution;
-        resh = obj.conf.seg.r2b_hist_resolution;
-        N = round((r2bmax-r2bmin)/res)+2;
-        obj.curseg.thres.zz = r2bmin+(r2bmax-r2bmin-N*res)/2+res*(0:N);
-        obj.curseg.thres.zzh = r2bmin-resh*1.5:resh:r2bmax+resh*2;
-        NN = length(obj.curseg.thres.zzh);
-        obj.curseg.thres.ww0 = nan(N+1,ngrid,ngrid);
-        obj.curseg.thres.ww = nan(N+1,ngrid,ngrid);
-        obj.curseg.thres.X = tanh(bsxfun(@minus,obj.curseg.thres.zzh',obj.curseg.thres.zz)/res);
-        obj.curseg.thres.histn = zeros(NN,ngrid,ngrid);
-        [~,sunpy_mfi]=min(abs(obj.mfi.yy-sunp(1)));
-        [~,sunpx_mfi]=min(abs(obj.mfi.xx-sunp(2)));
-        sunp_mfi = [sunpy_mfi;sunpx_mfi];
+      end
+      obj.curseg.thres.r2b_minmax = [r2bmin r2bmax];
+      
+      %initialize variables
+      N = round((r2bmax-r2bmin)/res)+2;
+      obj.curseg.thres.zz = r2bmin+(r2bmax-r2bmin-N*res)/2+res*(0:N);
+      obj.curseg.thres.zzh = r2bmin-resh*1.5:resh:r2bmax+resh*2;
+      NN = length(obj.curseg.thres.zzh);
+      obj.curseg.thres.ww = nan(N+1,ngrid,ngrid);
+      obj.curseg.thres.X = tanh(bsxfun(@minus,obj.curseg.thres.zzh',obj.curseg.thres.zz)/res);
+      %obj.curseg.thres.w_prior = vmlMakeSegPrior(obj.curseg.thres,obj.conf.seg);
+      
+      r2bq = median_filter_2d(vmlQuantize(r2b,obj.curseg.thres.zzh),obj.conf.seg.rneigh,1,1);
+      obj.curseg.thres.r2bq = r2bq;
+      obj.curseg.r2b_medianfilt = nan(size(r2bq));
+      obj.curseg.r2b_medianfilt(r2bq>0) = obj.curseg.thres.zzh(r2bq(r2bq>0));
+      
+      ch1 = obj.curseg.x(:,:,2);
+      ch1_filt = median_filter_2d(ch1,obj.conf.seg.rneigh,0,1);
+      obj.curseg.thres.localvar = max(1,moving_avg_2d((ch1-ch1_filt).^2,obj.conf.seg.rneigh,1));
+      
+      if any(obj.curseg.clear_sun_flag==[1 2]), jj=true(obj.mfi.sz);
+      else jj = obj.curseg.d2sun>obj.conf.rsun_px; end
+      jj = find(jj(:));
+      
+      %pre_cc based on local variation
+      llv = log(obj.curseg.thres.localvar(jj));
+      th = obj.conf.seg.locvarthres;
+      jj1 = llv<th(1);
+      obj.curseg.thres.pre_cc(jj(jj1)) = -obj.conf.seg.locvarimpact(1)*(th(1)-llv(jj1))/th(1);
+      jj1 = llv>th(1);
+      obj.curseg.thres.pre_cc(jj(jj1)) = obj.conf.seg.locvarimpact(2)*min(1,(llv(jj1)-th(1))/diff(th));
+      
+      %pre_cc based on r2b prior
+      r2b1 = r2b(jj);
+      th = obj.conf.seg.prior_thres;
+      jj1 = r2b1<th(2);
+      obj.curseg.thres.pre_cc(jj(jj1)) = min(obj.curseg.thres.pre_cc(jj(jj1)),...
+        -obj.conf.seg.prior_impact(1)*min(1,(th(2)-r2b1(jj1))/(th(2)-th(1))));
+      jj1 = r2b1>th(3);
+      obj.curseg.thres.pre_cc(jj(jj1)) = max(obj.curseg.thres.pre_cc(jj(jj1)),...
+        obj.conf.seg.prior_impact(2)*min(1,(r2b1(jj1)-th(3))/(th(4)-th(3))));
+      
+      if redo_thres_calc
         for ix=1:ngrid
           for iy=1:ngrid
-            if sum(([obj.thres.yyg(iy+1);obj.thres.xxg(ix+1)]-sunp_mfi).^2) <= ...
-                obj.conf.seg.rsun_mfi4outer^2
-              obj.curseg.thres.isouter(iy,ix) = 0;
-            end
-            r2b1 = r2b(obj.thres.yyg(iy):obj.thres.yyg(iy+2),obj.thres.xxg(ix):obj.thres.xxg(ix+2));
             jjy = obj.thres.yygb(iy)+1:obj.thres.yygb(iy+1);
             jjx = obj.thres.xxgb(ix)+1:obj.thres.xxgb(ix+1);
-            if mean(isnan(r2b1(:)))>obj.conf.seg.tile_max_nan
+            d2sun1 = sqrt((obj.mfi.yy(obj.thres.yyg(iy+1))-sunp(1))^2+(obj.mfi.xx(obj.thres.xxg(ix+1))-sunp(2))^2);
+            if d2sun1<=obj.conf.seg.rsun_maxouter, obj.curseg.thres.isouter(iy,ix) = 0; end
+            
+            if mean(mean(isnan(r2b(jjy,jjx))))>obj.conf.seg.tile_max_nan
               obj.curseg.thres.v0_mask(jjy,jjx) = -2;
             else
-              obj.curseg.thres.localvar(iy,ix) = vmlLocalVariation(green_ch(jjy,jjx),obj.conf.seg.locvarpen.ksize); 
-              obj.curseg.thres = vmlMakeSegHist(obj.curseg.thres,obj.conf.seg,r2b1(~isnan(r2b1)),ix,iy);
+              obj.curseg.thres = vmlMakeSegHist(obj.curseg.thres,obj.conf.seg,ix,iy);
+              
               if isnan(obj.curseg.thres.j0(iy,ix))
                 obj.curseg.thres.v0_mask(jjy,jjx) = -1;
               else
@@ -557,65 +570,37 @@ classdef vmlSeq < handle
           if obj.curseg.clear_sun_flag<=2
             j0 = 1;
           else
+            if obj.curseg.clear_sun_flag==3, warning('ambiguous cloudiness situation'); end
             %disp(['WARNING: uniformly clear sky in frame #' num2str(j) ', this is unlikely']);
-            j0 = NN; 
+            j0 = NN;
           end
           obj.curseg.thres.j0 = zeros(obj.conf.seg.ngrid)+j0;
           obj.curseg.thres.j0(~obj.thres.have_v) = NaN;
-          obj.curseg.thres.v = zeros(obj.conf.seg.ngrid)+obj.curseg.thres.zzh(j0);
-          obj.curseg.thres.v(~obj.thres.have_v) = NaN;
+          v = zeros(obj.conf.seg.ngrid)+obj.curseg.thres.zzh(j0);
+          v(~obj.thres.have_v) = NaN;
         else
-          obj.curseg.thres.v = vmlSmoothThresMap(obj.curseg.thres,obj.thres.have_v,obj.conf.seg);
+          v = vmlSmoothThresMap(obj.curseg.thres,obj.thres.have_v,obj.conf.seg);          
         end
-        
+        obj.curseg.thres.v = extrapolate2nan(v);
         obj.calc.thres_v(:,j) = obj.curseg.thres.v(:);
-        
-        % amri: diffuse irradiance calcualtion
-        % obj.calc.Irr = [time, Diffuse, Direct, Global]
-        % Diffuse = GHI-DNI*cosd(Z)*(1|0)
-        
-%         idt=obj.getClearId(j);
-        diffuse = obj.data.Irr(j,2)-obj.data.ti_IrrClear(j,3)*cosd(obj.data.zenith(j))*obj.sunFlagToCoef(j);
-        obj.calc.Irr(j,2) = diffuse;
-        obj.print(1,['Diffuse Irr: ' num2str(diffuse)]);
-      end
-      
-      if ~isfield(obj.curseg.thres,'r2brange')
-        obj.curseg.thres.vmfi = obj.seggrid2mfi(obj.curseg.thres.v);
       else
-        [obj.curseg.thres.vmfi,obj.curseg.thres.vrange,obj.curseg.thres.vlocalvar] = ...
-          obj.seggrid2mfi(obj.curseg.thres.v,obj.curseg.thres.r2brange,obj.curseg.thres.localvar);
+        obj.curseg.thres.v = reshape(obj.calc.thres_v(:,j),ngrid,ngrid);
       end
-      obj.curseg.d2sun = (obj.mfi.YY-sunp(1)).^2+(obj.mfi.XX-sunp(2)).^2;
-      obj.curseg.cc = double(obj.curseg.r2b>obj.curseg.thres.vmfi);
-      obj.curseg.cc(isnan(obj.curseg.r2b) | ~obj.curseg.sm) = NaN;
-      if obj.curseg.clear_sun_flag>=3
-        obj.curseg.cc(obj.curseg.r2b<obj.curseg.thres.vmfi & ...
-          obj.curseg.d2sun>=obj.conf.rsun_px_close^2 & obj.curseg.d2sun<=obj.conf.rsun_px^2) = 0;
-      end
-      obj.curseg.sdf = cv.resize(vmlMakeSDF(obj.curseg.cc,obj.conf.sdf),obj.mfi.sz);
       
-      % amrollah: reflection
-        cloud_shine = obj.curseg.cc .* double(rgb2gray(obj.curseg.x)-150);
-        cloud_shine(cloud_shine<0)=0;
-%         obj.calc.seg.cloud_shine(:,j) = cloud_shine(:);
-        obj.calc.seg.cloud_shine_fact(j) = nansum(nansum(cloud_shine));
-        obj.calc.seg.clouds_fact(j) = floor(100*nansum(obj.curseg.cc(:))/sum(obj.mfi.sm(:))); % numel(obj.curseg.cc));
-%     figure;imshow(obj.curseg.cloud_shine);
+      [obj.curseg.thres.vmfi,obj.curseg.thres.vsingle_peak_crit] = ...
+        obj.seggrid2mfi(obj.curseg.thres.v,obj.curseg.thres.single_peak_crit);
 
+      obj.curseg.cc = double(obj.curseg.r2b>obj.curseg.thres.vmfi);
+      obj.curseg.cc(isnan(obj.curseg.r2b) | ~sm) = NaN;
+      if obj.curseg.clear_sun_flag>=4
+        obj.curseg.cc(obj.curseg.d2sun<=obj.conf.seg.rsun_fillclear) = 0;
+      end
+      obj.curseg.sdf = vmlUpscale(vmlMakeSDF(obj.curseg.cc,obj.conf.sdf),obj.mfi.sz);
+      obj.curseg.sdf(~obj.mfi.sm) = nan;
+      
       obj.curseg.j = j;      
     end
-    
-    function coef = sunFlagToCoef(obj, j)
-      switch lower(obj.calc.seg.clear_sun_flag(j))
-        case 1 % no visible sun, DNI~0
-          coef = 0;
-        case 4 % complete star shape sun, DNI~1
-          coef = 1;
-        otherwise
-          coef = NaN;
-      end
-    end
+
 % end cloud segmentation
 
 %% update clear / cloudy to power / irr scaling
@@ -832,33 +817,38 @@ classdef vmlSeq < handle
 
 %% process sequence
 
+    function x = get_cur_xof(obj)
+      x = vmlNormalizedRedChannel(obj.curseg) + 1j*obj.curseg.cc;
+      x(~obj.curseg.sm) = NaN;
+    end
+
     function startframe(obj, j)
       obj.print(1,['starting at frame #' num2str(j)  ' / ' obj.data.day ' ' datestr(obj.data.ti(j),'HH:MM:SS')]);
       obj.loadframe(j);
-      obj.curmot.rbuf = vmlNormalizedRedChannel(obj.curseg);
-      obj.curmot.ccbuf = obj.curseg.cc;
+      obj.curmot.xofbuf = obj.get_cur_xof;
       obj.curmot.sdfbuf = obj.curseg.sdf;
       obj.curmot.j = j;
       obj.curmot.v = [0 0];
       obj.curmot.count = 1;
+      obj.curmot.sdf = obj.curseg.sdf;
       obj.curmot.cc = obj.curseg.cc;
       obj.curmot.cc(isnan(obj.curmot.cc)) = 0;
       obj.curmot.w_cc = ~isnan(obj.curseg.cc)*obj.conf.mot.w_cc_newest;
       obj.curmot.age_cc = ones(size(obj.curseg.sm));
       obj.curmot.age_cc(isnan(obj.curseg.cc)) = inf;
       obj.calc.scale.warned = {};
-      obj.update_scale;
+      %obj.update_scale;
     end
     
     function nextframe(obj)
-      assert(~isempty(obj.curmot.ccbuf),'nextframe called without startframe');
+      assert(~isempty(obj.curmot.xofbuf),'nextframe called without startframe');
       j = obj.curmot.j+1;
       obj.print(1,' ');
       obj.print(1,['processing frame #' num2str(j) ' / ' obj.data.day ...
         ' ' datestr(obj.data.ti(j),'HH:MM:SS')]);
       obj.compute_next_mot;
-      obj.update_scale;
-      obj.update_pred;
+      %obj.update_scale;
+      %obj.update_pred;
     end
     
     function process(obj,oldscale,jstart,jend)
@@ -939,16 +929,9 @@ classdef vmlSeq < handle
       if nargin<5, marker2 = []; end
       tt = (0:.1:360)*pi/180;
       yx = sunpos_im(obj,j);
-      rsun_px = obj.conf.rsun_px; ls = '-';
-      if isfield(obj.calc,'clear_sun_flag') && length(obj.calc.clear_sun_flag)>=j && ...
-          isnan(obj.calc.clear_sun_flag(j))
-        if obj.calc.clear_sun_flag(j)==1, ls = '--';
-        elseif obj.calc.clear_sun_flag(j)==2, rsun_px = obj.conf.rsun_px_close;
-        end
-      end
-      xx = yx(2)+cos(tt)*rsun_px;
+      xx = yx(2)+cos(tt)*obj.conf.rsun_px;
       xx(xx<1 | xx>obj.oi.sz(2)) = NaN;
-      yy = yx(1)+sin(tt)*rsun_px;
+      yy = yx(1)+sin(tt)*obj.conf.rsun_px;
       yy(yy<1 | yy>obj.oi.sz(1)) = NaN;
       if ~isempty(marker)
         line(yx(2),yx(1),'color',col,'marker',marker); 
@@ -958,7 +941,7 @@ classdef vmlSeq < handle
           all(obj.calc.yx_sun_detected(:,j)>0)
         line(obj.calc.yx_sun_detected(2,j),obj.calc.yx_sun_detected(1,j),'color',col,'marker',marker2); 
       end
-      line(xx,yy,'color',col,'linestyle',ls);
+      line(xx,yy,'color',col);
     end
     
     function showframe(obj,j,show_sun_or_skymask)
@@ -970,8 +953,7 @@ classdef vmlSeq < handle
       elseif show_sun_or_skymask>=2, sm = obj.skymask_wo_sun(j);
       else sm = obj.oi.sm; 
       end
-      x=obj.imread(j);
-      %x = vmlColorify(obj.imread(j),~sm,2,64);
+      x = vmlColorify(obj.imread(j),~sm,2,64);
       image(x); axis off;
       if isscalar(show_sun_or_skymask) && show_sun_or_skymask==1
         obj.plotSun(j,'g','.','x');
@@ -1033,74 +1015,15 @@ classdef vmlSeq < handle
     end
     
     function plotirr(obj)
-      %plot the irradiation profiles
+      %plot the power profiles
       plot(obj.data.ti,obj.getIrrClear(obj.data.ti),'r',...
-        obj.data.ti,obj.getIrr(obj.data.ti),'b.-');
+        obj.data.ti,obj.getIrr(obj.data.ti),'b.');
       ylim = get(gca,'ylim'); ylim(1) = 0;
       set(gca,'ylim',ylim);
       grid on;
       datetickzoom;
     end
     
-    function plot45irr(obj)
-      %plot the irradiation profiles
-      plot(obj.data.ti,obj.getIrrClear(obj.data.ti),'bl', obj.data.ti,obj.getIrr(obj.data.ti),'r',...
-        obj.data.ti,obj.get45Irr(obj.data.ti),'b.-', obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'g',...
-    obj.data.ti,obj.getDiffuseIrr(obj.data.ti),'c.');
-      ylim = get(gca,'ylim'); ylim(1) = 0;
-      set(gca,'ylim',ylim);
-      grid on;
-      datetickzoom;
-    end
-    
-    function [d,tilted_DNI] = get45diffuse(obj,t,az,elev)
-        plate_cord = repmat([deg2rad(az),deg2rad(elev),1],[length(t),1]);
-        [px,py,pz] = sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3));
-        plate_cord = [px,py,pz];
-        [sx,sy,sz] = sph2cart(deg2rad(obj.data.ti_azimuth(t)),deg2rad(obj.data.ti_elevation(t)),ones(size(t))');
-        sun_cords = [sx,sy,sz];
-%         figure; plot3([px(1),0],[py(1),0],[pz(1),0]);
-%         hold on; scatter3(sx,sy,sz,'b');
-        nrm=sqrt(sum(abs(cross(sun_cords,plate_cord,2)).^2,2));
-        angles = atan2d(nrm, dot(sun_cords,plate_cord,2));
-        tilted_DNI = obj.data.ti_IrrClear(t,3).*max(0,cosd(angles));
-        d = obj.get45Irr(t)-tilted_DNI';%.*obj.sunFlagToCoef;
-    end
-    
-    function plot45diffuse(obj,az,elev,plotdiff)
-        if nargin<4, plotdiff=0; end
-      %plot the diffuse irradiance derived from 45 degree sensor
-      if nargin==1
-          az = .7;
-          elev = 33.5;
-      end
-      [df,DNI] = obj.get45diffuse((1:length(obj.data.ti)),az,elev);
-      
-      other_df= obj.getIrr()'-obj.data.ti_IrrClear(:,3).*cosd(obj.data.zenith(:));
-      h = plot(obj.data.ti,obj.getIrr,obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'r',...
-        obj.data.ti,df,'b.',obj.data.ti,DNI,'c.-',...
-        obj.data.ti,obj.get45Irr((1:length(obj.data.ti))),'g--',...
-        obj.data.ti,other_df,'k.-');
-    legend(h, 'HGI', 'diffudse clear(HDI)', 'tilted diffuse', 'tilted effective DNI', 'tilted irradiation', 'diffuse analytic');
-    if plotdiff
-        h = plot(obj.data.ti,df,'-k',obj.data.ti,other_df,'-r',obj.data.ti,df-other_df','b.');
-    end
-      ylim = get(gca,'ylim'); ylim(1) = 0;
-      set(gca,'ylim',ylim);
-      grid on;
-      datetickzoom;
-    end
-        
-    function plotdiffuse(obj)
-      %plot the diffuse irradiance
-      plot(obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'r',...
-        obj.data.ti,obj.getDiffuseIrr(obj.data.ti),'b.-');
-      ylim = get(gca,'ylim'); ylim(1) = 0;
-      set(gca,'ylim',ylim);
-      grid on;
-      datetickzoom;
-    end
-        
     function showtraj(obj,j)
       %plot the motion trajectory for frame j
       obj.showframe(j,1);
@@ -1176,36 +1099,6 @@ classdef vmlSeq < handle
       end
     end
     
-    function ShowD(obj, method)
-      if nargin<2, method = 'showtraj'; end
-      figno = 11; obj.newfig(figno,'Diffuse vs Global irradiation');
-      ax(1) = subplot(2,4,3:4); obj.plotdiffuse;
-      title(obj.data.day,'interpreter','none');
-      ax(2) = subplot(2,4,7:8); obj.plotirr;
-      linkaxes(ax,'x');
-      j = find(all(~isnan(obj.calc.mvec),1),1);
-      if isempty(j), j=1; end
-      show_upd(j);
-      dcmobj = datacursormode(gcf); 
-      set(dcmobj,'UpdateFcn',@show_upd);
-      function out = show_upd( j, event_obj)
-        if nargin>=2
-          [~,j] = min(abs(event_obj.Position(1)-obj.data.ti));
-        end
-        figure(figno);
-        subplot(2,4,[1 2 5 6]); 
-        obj.(method)(j);
-        if ~isfield(obj.calc, 'seg') || length(obj.calc.seg.clear_sun_flag)<j || obj.calc.seg.clear_sun_flag(j)==0
-            obj.loadframe(j);
-            subplot(2,4,3:4); obj.plotdiffuse;
-        end
-        drawnow;
-        if nargin<2, out=[]; 
-        else out = {datestr(event_obj.Position(1),'HH:MM:SS'), ['clouds: ',num2str(obj.calc.seg.clouds_fact(j)),'%'], ['cloud-shine: ', num2str(obj.calc.seg.cloud_shine_fact(j))]};
-        end
-      end
-    end
-    
     function ShowMvec(obj)
       if all(isnan(obj.calc.mvec(:))), error('no motion vectors available'); end
       figno = 1324; obj.newfig(figno,'Motion vectors');
@@ -1229,6 +1122,28 @@ classdef vmlSeq < handle
       end
     end
     
+    function showseg(obj,j)
+      if nargin<2, 
+        j = obj.curseg.j;
+        assert(~isempty(j),'j not specified (previous computation was possibly aborted)');
+      else
+        obj.loadframe(j);
+      end
+      image(obj.mfi.xx,obj.mfi.yy,vmlColorify(obj.curseg.x,~obj.mfi.sm,1:3,0,1));
+      axis off;
+      axis([0.5 obj.oi.sky_area(4)-obj.oi.sky_area(3)+1.5 0.5 obj.oi.sky_area(2)-obj.oi.sky_area(1)+1.5]);
+      obj.plotSun(j);
+      for p=(1:obj.conf.seg.ngrid-1)/obj.conf.seg.ngrid
+        line(1+[p p]*(obj.oi.sz(2)-1),[1 obj.oi.sz(1)],'Color',[0 .5 0]);
+        line([1 obj.oi.sz(2)],1+[p p]*(obj.oi.sz(1)-1),'Color',[0 .5 0]);
+      end
+      hold on;
+      contour(obj.mfi.XX,obj.mfi.YY,obj.curseg.cc,[.5 .5],'g','linewidth',1);
+      hold off;
+      title([obj.data.day ', ' datestr(obj.data.ti(j),'HH:MM:SS') ' (#' num2str(j) ...
+        ') / clear_sun_flag=' num2str(obj.curseg.clear_sun_flag)],'interpreter','none');
+    end
+    
     function ShowSeg(obj,j)
       if nargin<2, 
         j = obj.curseg.j;
@@ -1236,15 +1151,16 @@ classdef vmlSeq < handle
       else
         obj.loadframe(j);
       end
-      figno = 1322; obj.newfig(figno,['Cloud thresholds, frame #' num2str(j) ' / ' ...
-        datestr(obj.data.ti(j)) ' clear_sun_flag=' num2str(obj.curseg.clear_sun_flag)]);
-      cb_text = {'r2b','glare','thres0','thres','th sdf','thres v','range','locvar','sdf','contour'};
+      figno = 1322; obj.newfig(figno,['Cloud thresholds, frame #' num2str(j) ' / ' datestr(obj.data.ti(j))]);
+      cb_text = {'r2b','r2b mf','sm','glare','thres0','thres','th_sdf','thresv','spcrit','locvar','sdf','cont'};
       hcb = zeros(1,length(cb_text));
-      htxt = uicontrol('Style','text','Position',[10 5 650 16]);
+      htxt = uicontrol('Style','text','Position',[1 5 650 16]);
       for i = 1:length(hcb)
         hcb(i) = uicontrol('Style','checkbox','Value',i==length(hcb),...
-          'Position',[i*55-50 24 55 16],'String',cb_text{i});
+          'Position',[(i-1)*47+1 24 47 16],'String',cb_text{i});
       end
+      reset_zoom = 1;
+      uicontrol('Style','pushbutton','Position',[5 45 60 20],'String','reset zoom','Callback',{@showSeg_upd1});
       auxplot_shown = [-1 -1];
       set(gcf,'toolbar','figure');
       set(hcb,'Callback',{@showSeg_upd}); %,hcb,hax
@@ -1256,61 +1172,78 @@ classdef vmlSeq < handle
         [~,jy] = min(abs(p(1,2)-obj.mfi.yy));
         ix = max(1,min(obj.conf.seg.ngrid,1+floor((p(1,1)-1)/(obj.oi.sz(2)-1)*obj.conf.seg.ngrid)));
         iy = max(1,min(obj.conf.seg.ngrid,1+floor((p(1,2)-1)/(obj.oi.sz(1)-1)*obj.conf.seg.ngrid)));
-        if isfield(obj.curseg.thres,'r2brange') && ~isnan((obj.curseg.thres.r2brange(iy,ix)))
-          strr2brange = [' r2brange = ' num2str(obj.curseg.thres.r2brange(iy,ix))];
+        if isfield(obj.curseg.thres,'single_peak_crit') && ~isnan((obj.curseg.thres.single_peak_crit(iy,ix)))
+          strsingle_peak_crit = [', spcrit = ' num2str(obj.curseg.thres.single_peak_crit(iy,ix))];
         else
-          strr2brange = '';
+          strsingle_peak_crit = '';
         end
-        if isfield(obj.curseg.thres,'localvar') && ~isnan((obj.curseg.thres.localvar(iy,ix)))
-          strlocalvar = [' localvar = ' num2str(obj.curseg.thres.localvar(iy,ix))];
-        else
-          strlocalvar = '';
-        end
-        set(htxt,'String',['xy = [' num2str(obj.mfi.xx(jx)) ', ' num2str(obj.mfi.yy(jy)) ...
+        set(htxt,'String',['xy = [' num2str(round(obj.mfi.xx(jx))) ', ' num2str(round(obj.mfi.yy(jy))) ...
            '] RGB = (' strjoin(cellfun(@num2str,squeeze(num2cell(obj.curseg.x(jy,jx,:))),'UniformOutput',0)',', ') ...
            ') R2B = ' num2str(obj.curseg.r2b(jy,jx),'%.2f') ' / ' ...
-           'xytile = [' num2str(ix) ', ' num2str(iy) ']' strr2brange strlocalvar]);
-        if any([ix iy]~=auxplot_shown) && isfield(obj.curseg.thres,'X')
-          nn = obj.curseg.thres.histn(:,iy,ix);
-          zzh = obj.curseg.thres.zzh;
-          yy0 = obj.curseg.thres.X*obj.curseg.thres.ww0(:,iy,ix)+obj.curseg.thres.bb0(iy,ix);
-          yy = obj.curseg.thres.X*obj.curseg.thres.ww(:,iy,ix)+obj.curseg.thres.bb(iy,ix);
+           'xytile = [' num2str(ix) ', ' num2str(iy) ']' strsingle_peak_crit ...
+           ', localvar = ' num2str(obj.curseg.thres.localvar(jy,jx))]);
+        if any([ix iy]~=auxplot_shown) && ~isempty(obj.curseg.thres.plot_data{iy,ix})
+          zzh = obj.curseg.thres.zzh; 
+          plot_data = obj.curseg.thres.plot_data{iy,ix};
+          hh = plot_data{1}; segc = plot_data{2};
+          wh = plot_data{3}; wc = plot_data{4}; w = plot_data{5};
+          yyh = max(0,obj.curseg.thres.X*wh(2:end)+wh(1));
+          yyc = max(0,obj.curseg.thres.X*wc(2:end)+wc(1));
+          yy = obj.curseg.thres.X*w(2:end)+w(1);
           j0 = obj.curseg.thres.j0(iy,ix);
           figure(13281); clf; hold on;
-          bar(zzh,nn,1); 
-          plot(zzh,yy0,'r',zzh,yy,'g--','linewidth',2);
-          if ~isnan(j0), plot(zzh(j0),max(0,yy0(j0)),'ro','linewidth',2); end
-          plot(obj.curseg.thres.v(iy,ix),0,'gd','linewidth',2);
+          if obj.curseg.thres.single_peak_crit(iy,ix)>0, bar(zzh,hh,1,'m'); 
+          else bar(zzh,hh,1,'r'); end
+          bar(zzh,-segc,1,'b'); 
+          plot(zzh,yyh,'r',zzh,-yyc,'b',zzh,yy,'k','linewidth',2);
+          if ~isnan(j0), plot(zzh(j0),yy(j0),'ko','linewidth',2); end
+          plot(obj.curseg.thres.v(iy,ix),interp1(zzh,yy,obj.curseg.thres.v(iy,ix)),'g*','linewidth',1);
           hold off; grid on;
         end
       end
       
+      function showSeg_upd1(varargin)
+        reset_zoom = 1;
+        showSeg_upd;
+      end
+      
       function showSeg_upd(varargin)
         figure(figno);
+        xlim = get(gca,'xlim'); ylim = get(gca,'ylim');
+        if reset_zoom || (all(xlim==[0 1]) && all(ylim==[0 1]))
+          xlim = [0.5 obj.oi.sky_area(4)-obj.oi.sky_area(3)+1.5];
+          ylim = [0.5 obj.oi.sky_area(2)-obj.oi.sky_area(1)+1.5];
+          reset_zoom = 0;
+        end
         vv = get(hcb,'value');
-        if ~vv{1}, x = obj.curseg.x;
-        else
-          x = obj.curseg.r2b; x = max(0,x-quantil(x(:),0.05));
+        if vv{1} || vv{2}
+          if vv{1}, x = obj.curseg.r2b; else x = obj.curseg.r2b_medianfilt; end
+          x = max(0,x-quantil(x(:),0.05));
           x = repmat(uint8(min(1,x/quantil(x(:),0.95))*192),[1 1 3]);
+        else
+          x = obj.curseg.x;
         end
         x = vmlColorify(x,~obj.mfi.sm,1:3,128,1);
-        if vv{2}
-          x = vmlColorify(x,isnan(obj.curseg.r2b) & ~isnan(obj.curseg.sm),2,80); 
+        if vv{3}
+          x = vmlColorify(x,obj.mfi.sm & ~obj.curseg.sm,2,80);
+        elseif vv{4}
+          x = vmlColorify(x,isnan(obj.curseg.r2b) & obj.curseg.sm,2,80); 
         end
-        if vv{3} && isfield(obj.curseg.thres,'v0_mask')
+        if vv{5} && any(~isnan(obj.curseg.thres.v0_mask(:)))
           x = vmlColorify(x,obj.curseg.thres.v0_mask==-2,1:3,-80);
           x = vmlColorify(x,obj.curseg.thres.v0_mask==-1,1:3,40);
           x = vmlColorify(x,obj.curseg.thres.v0_mask==0,1,-40);
           x = vmlColorify(x,obj.curseg.thres.v0_mask==1,1,40);
-        elseif vv{4}
+        elseif vv{6}
           x = vmlColorify(x,obj.curseg.cc==0,1,-40);
           x = vmlColorify(x,obj.curseg.cc==1,1,40);
-        elseif vv{5} && isfield(obj.curseg,'sdf')
+        elseif vv{7} && isfield(obj.curseg,'sdf')
           x = vmlColorify(x,obj.curseg.sdf<0,1,-40);
           x = vmlColorify(x,obj.curseg.sdf>0,1,40);
         end
         ih = image(obj.mfi.xx,obj.mfi.yy,x); axis off;
-        title([datestr(obj.data.ti(j),'HH:MM:SS') ' (#' num2str(j) ')']);
+        title([datestr(obj.data.ti(j),'HH:MM:SS') ' (#' num2str(j) ...
+          ') / clear_sun_flag=' num2str(obj.curseg.clear_sun_flag)],'interpreter','none');
         axis([0.5 obj.oi.sky_area(4)-obj.oi.sky_area(3)+1.5 0.5 obj.oi.sky_area(2)-obj.oi.sky_area(1)+1.5]);
         set(ih,'ButtonDownFcn',@showSeg_click)
         obj.plotSun(j);
@@ -1327,14 +1260,14 @@ classdef vmlSeq < handle
         end
         ih = [];
         hold on;
-        showthresval = (vv{6} && length(unique(obj.curseg.thres.vmfi(~isnan(obj.curseg.thres.vmfi))))>1);
-        showr2brange = (vv{7} && isfield(obj.curseg.thres,'vrange'));
-        showlocalvar = (vv{8} && isfield(obj.curseg.thres,'vlocalvar'));
-        showsdf = (vv{9} && isfield(obj.curseg,'sdf'));
-        if showthresval || showr2brange || showlocalvar || showsdf
+        showthresval = (vv{8} && length(unique(obj.curseg.thres.vmfi(~isnan(obj.curseg.thres.vmfi))))>1);
+        showsingle_peak_crit = vv{9};
+        showlocalvar = vv{10};
+        showsdf = vv{11};
+        if showthresval || showsingle_peak_crit || showlocalvar || showsdf
           if showthresval, zz = obj.curseg.thres.vmfi; 
-          elseif showr2brange, zz = obj.curseg.thres.vrange; 
-          elseif showlocalvar, zz = log(0.5+obj.curseg.thres.vlocalvar);
+          elseif showsingle_peak_crit, zz = obj.curseg.thres.vsingle_peak_crit; 
+          elseif showlocalvar, zz = log(0.5+obj.curseg.thres.localvar);
           elseif showsdf, zz = obj.curseg.sdf;
           end
           [~,ih] = contour(obj.mfi.XX,obj.mfi.YY,zz,20);
@@ -1342,7 +1275,7 @@ classdef vmlSeq < handle
           pos = get(gca,'Position'); 
           h = colorbar('vert');
           set(h,'AxisLocation','in');
-          if ~showthresval && ~showr2brange && showlocalvar
+          if ~showthresval && ~showsingle_peak_crit && showlocalvar
             set(h,'xticklabel',num2str(exp(get(h,'xtick')')-0.5,'%.1f'));
           end
           set(gca,'Position',pos);
@@ -1351,8 +1284,7 @@ classdef vmlSeq < handle
         end
         hold off;
         if ~isempty(ih), set(ih,'ButtonDownFcn',@showSeg_click); end
-        set(gca,'xlim',[0.5 obj.oi.sky_area(4)-obj.oi.sky_area(3)+1.5]);
-        set(gca,'ylim',[0.5 obj.oi.sky_area(2)-obj.oi.sky_area(1)+1.5]);
+        set(gca,'xlim',xlim); set(gca,'ylim',ylim);
       end
     end
     
@@ -1444,13 +1376,13 @@ classdef vmlSeq < handle
       if nargin<3
         cc = obj.curmot.cc; 
         cc(isinf(obj.curmot.age_cc)) = nan;
-        y = mean(cc(obj.curseg.d2sun<=obj.conf.pred.rsun_px(1)^2));
+        y = mean(cc(obj.curseg.d2sun<=obj.conf.pred.rsun_px(1)));
       else
         sunp = obj.sunpos_im(t);
-        d2sun = (obj.mfi.YY-sunp(1)).^2+(obj.mfi.XX-sunp(2)).^2;
+        d2sun = sqrt((obj.mfi.YY-sunp(1)).^2+(obj.mfi.XX-sunp(2)).^2);
         y = zeros(length(obj.conf.pred.rsun_px),1);
         for i=1:length(y)
-          y(i) = mean(cc(d2sun<=obj.conf.pred.rsun_px(i)^2));
+          y(i) = mean(cc(d2sun<=obj.conf.pred.rsun_px(i)));
         end
       end
     end
@@ -1488,14 +1420,23 @@ classdef vmlSeq < handle
     
 %% sky masks
     
-    function sm = skymask_wo_sun(obj,j,iminfo,rsun_px)
+    function sm = skymask_wo_sun(obj,j,iminfo,rsun_px,yx_sunpos,bestalpha_hex)
       %sky mask without sun, frame j (taking out a circle around 
       %the sun position)
       if nargin<3, iminfo = obj.oi; end
       if nargin<4, rsun_px = obj.conf.rsun_px; end
-      yx = sunpos_im(obj,j);
+      if nargin<5, yx_sunpos = sunpos_im(obj,j); end
+      if nargin<6, bestalpha_hex = []; end
       sm = iminfo.sm;
-      sm((iminfo.XX-yx(2)).^2+(iminfo.YY-yx(1)).^2<=rsun_px^2) = false;
+      XX = iminfo.XX-yx_sunpos(2); YY = iminfo.YY-yx_sunpos(1);
+      sm(XX.^2+YY.^2<=rsun_px^2) = false;
+      dx = iminfo.xx(2)-iminfo.xx(1);
+      if ~isempty(bestalpha_hex)
+        for a=0:60:120
+          sm(XX.^2+YY.^2<=obj.conf.rsun_px^2 & ...
+            abs(XX*sind(bestalpha_hex+a)-YY*cosd(bestalpha_hex+a))<dx) = false;
+        end
+      end
     end
     
     function w = weights4oflow(obj,j,mvec1,iminfo)
@@ -1582,75 +1523,76 @@ classdef vmlSeq < handle
       curmot1.j = j;
       curmot1.count = curmot1.count+1;
       obj.loadframe(j);
-      
-      curmot1.rbuf = cat(3,curmot1.rbuf,vmlNormalizedRedChannel(obj.curseg));
-      curmot1.ccbuf = cat(3,curmot1.ccbuf,obj.curseg.cc);
-      curmot1.sdfbuf = cat(3,curmot1.sdfbuf,obj.curseg.sdf);
-      nnax = max(obj.conf.oflow.nframes,obj.conf.sdf.nframes);
-      if size(curmot1.rbuf,3)>nnax, 
-        curmot1.rbuf = curmot1.rbuf(:,:,end-nnax+1:end);
-        curmot1.ccbuf = curmot1.ccbuf(:,:,end-nnax+1:end);
-        curmot1.sdfbuf = curmot1.sdfbuf(:,:,end-nnax+1:end);
+
+      %put last picture for optical flow and sdf into buffers
+      curmot1.xofbuf = cat(3,curmot1.xofbuf,obj.get_cur_xof);
+      if size(curmot1.xofbuf,3)>obj.conf.oflow.nframes
+        curmot1.xofbuf = curmot1.xofbuf(:,:,end-obj.conf.oflow.nframes+1:end);
       end
-      
+      curmot1.sdfbuf = cat(3,curmot1.sdfbuf,obj.curseg.sdf);
+      if size(curmot1.sdfbuf,3)>obj.conf.sdf.nframes
+        curmot1.sdfbuf = curmot1.sdfbuf(:,:,end-obj.conf.sdf.nframes+1:end);
+      end
+            
       %compute optical flow
       obj.calc.mvec = nan(2,length(obj.data.ti));
       if all(~isnan(obj.calc.mvec(:,j))) 
         curmot1.v = obj.calc.mvec(:,j);
       else
-        curmot1.v = obj.optical_flow(curmot1);
-        obj.calc.mvec(:,j) = curmot1.v(:);
+        obj.print(1,['computing optical flow for frame #' num2str(j)]);
+
+        n = size(curmot1.xofbuf,3);
+        tt = (obj.data.ti(j-n+1:j)-obj.data.ti(j))*86400;
+        while any(abs(tt-(tt(1)+mean(diff(tt))*(0:length(tt)-1)))>obj.conf.oflow.t_noise_lim)
+          n = n-1;
+          tt = tt(2:end);
+        end
+        
+        xof = curmot1.xofbuf(:,:,end+1-n:end);
+        cc1 = imag(xof(~isnan(xof))); 
+        if all(cc1==0) || all(cc1==1)
+          v = [0 0]; %all clear or covered ==> no motion
+        else
+          v = curmot1.v;
+          if curmot1.count<=2
+            v = vmlOpticalFlow(obj.mfi,obj.conf.oflow,xof,tt,v);
+          end
+          w = obj.weights4oflow(j,v);
+          v = vmlOpticalFlow(obj.mfi,obj.conf.oflow,xof,tt,v,w);
+        end
+        curmot1.v = v; obj.calc.mvec(:,j) = v(:);
       end
       
-      1;
-      
+      %shift past data according to optical flow
       [curmot1.cc,curmot1.w_cc,curmot1.age_cc,curmot1.sdfbuf(:,:,1:end-1)] = ...
         vmlShift(obj.mfi,curmot1.v*(obj.data.ti(j-1)-obj.data.ti(j))*86400,...
         curmot1.cc,curmot1.w_cc,curmot1.age_cc,curmot1.sdfbuf(:,:,1:end-1));
       
-      %sdf1 = curmot1.sdfbuf(:,:,end+1-obj.conf.sdf.nframes
-      jj = sum(~isnan(curmot1.sdfbuf),3)>=3;
-      sdf1 = reshape(seq,numel(curmot1.sdfbuf)/size(curmot1.sdfbuf,3),size(seq,3));
-      coeff=vmlPointwiseL1Regression(tt_sec,sdf1(jj,:)');
-      x = nan(size(x));x(jj)=coeff(1,:);
-      m = nan(size(x));m(jj)=coeff(2,:);
-      
+      %update present cc
       sm1 = ~isnan(obj.curseg.cc);
       wold_discounted = curmot1.w_cc(sm1)*(1-obj.conf.mot.w_cc_newest);
       curmot1.w_cc(sm1) = wold_discounted+obj.conf.mot.w_cc_newest;
       curmot1.cc(sm1) = (obj.curseg.cc(sm1)*obj.conf.mot.w_cc_newest+...
         curmot1.cc(sm1).*wold_discounted)./curmot1.w_cc(sm1);
-      age_cc1 = ones(size(obj.curseg.sm));
+      age_cc1 = ones(size(sm1));
       age_cc1(isnan(obj.curseg.cc)) = inf;
       curmot1.age_cc = min(curmot1.age_cc+1,age_cc1);
+      
+      %cloud shape tracking
+      if size(curmot1.sdfbuf,3)<obj.conf.sdf.nframes_min
+        curmot1.sdf = obj.curseg.sdf;
+        curmot1.m = obj.curseg.sdf*0;
+      else
+        jj = sum(~isnan(curmot1.sdfbuf),3)>=obj.conf.sdf.nframes_min;
+        sz = size(curmot1.sdfbuf);
+        sdf1 = reshape(curmot1.sdfbuf,sz(1)*sz(2),sz(3));
+        tt = (obj.data.ti(j-n+1:j)-obj.data.ti(j))*86400;
+        coeff=vmlPointwiseL1Regression(tt,sdf1(jj,:)');
+        curmot1.sdf = nan(obj.mfi.sz); curmot1.sdf(jj)=coeff(1,:);
+        curmot1.m = nan(obj.mfi.sz); curmot1.m(jj)=coeff(2,:);
+      end
             
       obj.curmot = curmot1;
-    end
-
-    function v = optical_flow(obj, curmot1)
-      if nargin<2, curmot1 = obj.curmot; end
-      j = curmot1.j;
-      obj.print(1,['computing motion vector for frame #' num2str(j)]);
-      
-      n = min(size(curmot1.rbuf,3),obj.conf.oflow.nframes);
-      tt = (obj.data.ti(j-n+1:j)-obj.data.ti(j))*86400;
-      while any(abs(tt-(tt(1)+mean(diff(tt))*(0:length(tt)-1)))>obj.conf.oflow.t_noise_lim)
-        n = n-1;
-        tt = tt(2:end);
-      end
-      
-      cc = curmot1.ccbuf(:,:,end+1-n:end); cc1 = cc(~isnan(cc));
-      if all(cc1==0) || all(cc1==1)
-        v = [0 0]; %all clear or covered ==> no motion
-      else
-        x = curmot1.ccbuf(:,:,end+1-n:end) + 1j*cc;
-        v = curmot1.v;
-        if curmot1.count<=2
-          v = vmlOpticalFlow(obj.mfi,obj.conf.oflow,x,tt,v);
-        end
-        w = obj.weights4oflow(j,v);
-        v = vmlOpticalFlow(obj.mfi,obj.conf.oflow,x,tt,v,w);
-      end
     end
   
 % end motion prediction

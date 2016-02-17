@@ -1,7 +1,12 @@
-function [status,x,fopt] = ipoptqp_tanh(x0,tanh_spec,Q,k,A,b,Aeq,beq,lb,ub,options)
+function [status,x,fopt] = ipoptqp_tanh(x0,tanh_spec,tanh_pairs_spec,Q,k,A,b,Aeq,beq,lb,ub,options)
 % ipoptqp: solve QP with IpOpt
 %
-% [status,x,fopt] = ipoptqp_tanh(x0,tanh_spec,Q,k,A,b,Aeq,beq,lb,ub,options)
+% [status,x,fopt] = ipoptqp_tanh(x0,tanh_spec,tanh_pairs_spec,Q,k,A,b,Aeq,beq,lb,ub,options)
+%
+% tanh_spec and tanh_pairs_spec must be matrices with 4 columns specifying
+% [i s b w] for the expressions w*tanh(s*x[i]+b) (indexing starts with 1).
+% In tanh_pairs_spec, two subsequent rows specify a pair
+% w1*w2*tanh(s1*x[i1]+b1)*tanh(s2*x[i2]+b2).
 %
 % Options structure
 %    options.maxabs           [double>0 (default Inf)]
@@ -20,15 +25,19 @@ function [status,x,fopt] = ipoptqp_tanh(x0,tanh_spec,Q,k,A,b,Aeq,beq,lb,ub,optio
 if nargin<2 || size(tanh_spec,2)~=4
   help ipoptqp_tanh; return; 
 end
-if nargin<3, Q = []; end
-if nargin<4, k = []; end
-if nargin<5, A = []; end
-if nargin<6, b = []; end;
-if nargin<7, Aeq = []; end;
-if nargin<8, beq = []; end
-if nargin<9, lb = []; end
-if nargin<10, ub = []; end
-if nargin<11, options = []; end
+if nargin<3, tanh_pairs_spec=[]; end
+if ~isempty(tanh_pairs_spec) && (size(tanh_pairs_spec,2)~=4 || rem(size(tanh_pairs_spec,1),2)~=0)
+  help ipoptqp_tanh; return; 
+end
+if nargin<4, Q = []; end
+if nargin<5, k = []; end
+if nargin<6, A = []; end
+if nargin<7, b = []; end;
+if nargin<8, Aeq = []; end;
+if nargin<9, beq = []; end
+if nargin<10, lb = []; end
+if nargin<11, ub = []; end
+if nargin<12, options = []; end
 
 A = [Aeq;A];
 b = [beq;b];
@@ -118,10 +127,26 @@ if extractbounds
 end
 
 [iA,jA,vA]=find(A); iA=iA-1; jA=jA-1;
-[iQ,jQ,vQ]=find(tril(Q,-1)); 
-iQ=[(0:nx-1)'; iQ-1];
-jQ=[(0:nx-1)'; jQ-1];
-vQ = [full(diag(Q)); vQ];
+
+spQ = logical(Q);
+tanh_spec = [tanh_pairs_spec;tanh_spec];
+spQ(sub2ind(size(Q),tanh_spec(:,1),tanh_spec(:,1)))=true;
+if ~isempty(tanh_pairs_spec)
+  spQ(sub2ind(size(Q),tanh_pairs_spec(1:2:end,1),tanh_pairs_spec(2:2:end,1)))=true;
+  spQ(sub2ind(size(Q),tanh_pairs_spec(2:2:end,1),tanh_pairs_spec(1:2:end,1)))=true;
+end
+[iQ,jQ]=find(tril(spQ)); 
+vQ = full(Q(sub2ind(size(Q),iQ,jQ)));
+JQ = sparse(size(Q)); JQ(sub2ind(size(Q),iQ,jQ)) = 1:length(iQ);
+tanh_spec = [tanh_spec full(JQ(sub2ind(size(Q),tanh_spec(:,1),tanh_spec(:,1))))'-1];
+if isempty(tanh_pairs_spec), jmixed=[]; else
+  jmixed = repmat(max(full(JQ(sub2ind(size(Q),tanh_pairs_spec(1:2:end,1),tanh_pairs_spec(2:2:end,1)))),...
+    full(JQ(sub2ind(size(Q),tanh_pairs_spec(2:2:end,1),tanh_pairs_spec(1:2:end,1))))),2,1);
+end
+tanh_spec = [tanh_spec [jmixed(:)-1;zeros(size(tanh_spec,1)-length(jmixed(:)),1)]];
+tanh_spec(:,1)=tanh_spec(:,1)-1;  
+iQ=iQ-1; jQ=jQ-1;
+
 if qfactor~=1, vQ=qfactor*vQ; end
 
 k = full(k(:))';
@@ -129,7 +154,8 @@ b = full(b(:))';
 lb = full(lb(:)');
 ub = full(ub(:)');
 
-[status,x1,fopt] = ipoptqp_tanh_mex(lb,ub,k,iQ,jQ,vQ,b,iA,jA,vA,neq,printlevel,x0,tanh_spec,options);
+[status,x1,fopt] = ipoptqp_tanh_mex(lb,ub,k,iQ,jQ,vQ,b,iA,jA,vA,neq,...
+  printlevel,x0,tanh_spec,size(tanh_pairs_spec,1),options);
 x(jp) = x1;
 if length(jp)<length(x)
   fopt = (qfactor/2)*x'*Q0*x+k0*x;

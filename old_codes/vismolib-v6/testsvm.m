@@ -1,0 +1,30 @@
+function testsvm(obj,j)
+obj.loadframe(j);
+yxsun = obj.sunpos_im(j);
+d2sun = sqrt((obj.mfi.YY-yxsun(1)).^2+(obj.mfi.XX-yxsun(2)).^2);
+jtr = d2sun>=obj.conf.rsun_px & d2sun<=160 & ~isnan(obj.curseg.r2b);
+ytr = obj.curseg.r2b(jtr)>obj.curseg.thres.vmfi(jtr);
+xtr = reshape(double(obj.curseg.x)/255,prod(obj.mfi.sz),3);
+xtr = xtr(jtr,:);
+yxnrm = [obj.mfi.YY(jtr)-yxsun(1) obj.mfi.XX(jtr)-yxsun(2)];
+yxnrm = bsxfun(@rdivide,yxnrm,sqrt(sum(yxnrm.^2,2)));
+%xtr = [xtr yxnrm];
+svm = cv.SVM;
+svm.train(xtr,ytr,'KernelType','Poly','Degree',2,'C',1000);
+
+jy = abs(obj.mfi.yy-yxsun(1))<160;
+jx = abs(obj.mfi.xx-yxsun(2))<160;
+x = obj.curseg.x(jy,jx,:);
+xte = double(reshape(x,numel(x)/3,3))/255;
+yxnrm1 = cat(3,obj.mfi.YY(jy,jx)-yxsun(1),obj.mfi.XX(jy,jx)-yxsun(2));
+yxnrm1 = reshape(yxnrm1,numel(yxnrm1)/2,2);
+yxnrm1 = bsxfun(@rdivide,yxnrm1,sqrt(sum(yxnrm1.^2,2)));
+%xte = [xte yxnrm1];
+ysvm = reshape(svm.predict(xte),size(x,1),size(x,2));
+x1 = vmlColorify(x,ysvm<0.5,1:3,0,1);
+r2b = obj.curseg.r2b(jy,jx);
+r2bthres = obj.curseg.thres.vmfi(jy,jx);
+figure(100);clf;
+subplot(1,3,1);imagesc(x);hold on; contour(r2b-r2bthres,[0 0],'k'); hold off;
+subplot(1,3,2);imagesc(x);hold on; contour(ysvm,[0.5 0.5],'k'); hold off;
+subplot(1,3,3);imagesc0(max(-1,min(1,r2b-r2bthres)));
