@@ -970,7 +970,8 @@ classdef vmlSeq < handle
       elseif show_sun_or_skymask>=2, sm = obj.skymask_wo_sun(j);
       else sm = obj.oi.sm; 
       end
-      x = vmlColorify(obj.imread(j),~sm,2,64);
+      x=obj.imread(j);
+      %x = vmlColorify(obj.imread(j),~sm,2,64);
       image(x); axis off;
       if isscalar(show_sun_or_skymask) && show_sun_or_skymask==1
         obj.plotSun(j,'g','.','x');
@@ -1052,33 +1053,38 @@ classdef vmlSeq < handle
       datetickzoom;
     end
     
-    function [d,tilted_DHI] = get45diffuse(obj,t,az,elev)
+    function [d,tilted_DNI] = get45diffuse(obj,t,az,elev)
         plate_cord = repmat([deg2rad(az),deg2rad(elev),1],[length(t),1]);
         [px,py,pz] = sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3));
         plate_cord = [px,py,pz];
         [sx,sy,sz] = sph2cart(deg2rad(obj.data.ti_azimuth(t)),deg2rad(obj.data.ti_elevation(t)),ones(size(t))');
         sun_cords = [sx,sy,sz];
-%         figure; scatter3(px(1),py(1),pz(1),'r');
+%         figure; plot3([px(1),0],[py(1),0],[pz(1),0]);
 %         hold on; scatter3(sx,sy,sz,'b');
         nrm=sqrt(sum(abs(cross(sun_cords,plate_cord,2)).^2,2));
         angles = atan2d(nrm, dot(sun_cords,plate_cord,2));
-        tilted_DHI = obj.data.ti_IrrClear(t,3).*max(0,cosd(angles));
-        d = obj.get45Irr(t)-tilted_DHI';%.*obj.sunFlagToCoef;
+        tilted_DNI = obj.data.ti_IrrClear(t,3).*max(0,cosd(angles));
+        d = obj.get45Irr(t)-tilted_DNI';%.*obj.sunFlagToCoef;
     end
     
-    function plot45diffuse(obj,az,elev)
+    function plot45diffuse(obj,az,elev,plotdiff)
+        if nargin<4, plotdiff=0; end
       %plot the diffuse irradiance derived from 45 degree sensor
       if nargin==1
-          az = -2;
-          elev = 30;
+          az = .7;
+          elev = 33.5;
       end
-      [df,DHI] = obj.get45diffuse((1:length(obj.data.ti)),az,elev);
+      [df,DNI] = obj.get45diffuse((1:length(obj.data.ti)),az,elev);
       
       other_df= obj.getIrr()'-obj.data.ti_IrrClear(:,3).*cosd(obj.data.zenith(:));
-      plot(obj.data.ti,obj.getIrr,obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'r',...
-        obj.data.ti,df,'b.-',obj.data.ti,DHI,'c.-',...
-        obj.data.ti,obj.get45Irr((1:length(obj.data.ti))),'g.-',...
+      h = plot(obj.data.ti,obj.getIrr,obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'r',...
+        obj.data.ti,df,'b.',obj.data.ti,DNI,'c.-',...
+        obj.data.ti,obj.get45Irr((1:length(obj.data.ti))),'g--',...
         obj.data.ti,other_df,'k.-');
+    legend(h, 'HGI', 'diffudse clear(HDI)', 'tilted diffuse', 'tilted effective DNI', 'tilted irradiation', 'diffuse analytic');
+    if plotdiff
+        h = plot(obj.data.ti,df,'-k',obj.data.ti,other_df,'-r',obj.data.ti,df-other_df','b.');
+    end
       ylim = get(gca,'ylim'); ylim(1) = 0;
       set(gca,'ylim',ylim);
       grid on;

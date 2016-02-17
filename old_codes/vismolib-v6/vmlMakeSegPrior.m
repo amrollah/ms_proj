@@ -1,0 +1,9 @@
+function w = vmlMakeSegPrior(thres,conf)
+N = length(thres.zz);
+X = [ones(size(thres.X,1),1) thres.X];
+yy = thres.zzh'*0; 
+jj = thres.zzh>conf.prior_z(2); 
+yy(jj) = conf.prior_w*(thres.zzh(jj)-conf.prior_z(2)).^2;
+jj = thres.zzh<conf.prior_z(1); 
+yy(jj) = conf.prior_w*(conf.prior_z(1)-thres.zzh(jj)).^2;
+w = wlsq(X,yy,[],[0 conf.alpha*ones(1,N)]);
