@@ -73,7 +73,7 @@ q0 = double(q0(q0>0)); m = mean(q0); s = std(q0); s1 = max(s,1);
 cdfh = (cumsum(hh0)/sum(hh0))*2-1;
 jj = max(round(m-5*s1),1):min(round(m+5*s1),NN);
 
-x = bobyqa(@(x)mean((cdfh(jj)-tanh((jj'-x(1))*x(2))).^2),[m 1/s],[m-2*s1 1/(2*s1)],[m+2*s1 2/s]);
+x = bobyqa(@(x)mean((cdfh(jj)-tanh((jj'-x(1))*x(2))).^2),[m 1/s1],[m-2*s1 1/(2*s1)],[m+2*s1 2/s1]);
 mse = sqrt(mean((cdfh(jj)-tanh((jj'-x(1))*x(2))).^2));
 a = x(2)/dzzh;
 thres.p_tanh_cumsum(iy,ix,:) = [a -a*(thres.zzh(1)+(x(1)-1)*dzzh) length(q0)/norm_hist];
