@@ -104,6 +104,7 @@ codes/matlab/RMSE_mat.mat
 data/Cavriglia/LinkeTurbidities.mat
 
 local_conf.m
+codes/matlab/proj_path.m
 lib/mexopencv-master/+cv/
 old_codes/vismolib-v5/first_try_img_data.mat
 codes/matlab/img_data3.mat
