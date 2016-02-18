@@ -45,8 +45,16 @@ classdef vml < vmlSeq
             % figure;imshow(obj.curseg.cloud_shine);
         end
         
-         function coef = sunFlagToCoef(obj, j)
-              switch lower(obj.calc.seg.clear_sun_flag(j))
+         function coef = sunFlagToCoef(obj,j,mode)
+             if nargin<3
+                 mode=1;
+             end
+             if mode==1
+                 clear_sun_flag = obj.calc.seg.clear_sun_flag(j);
+             else
+                 clear_sun_flag=j;
+             end
+              switch lower(clear_sun_flag)
                 case 1 % no visible sun, DNI~0
                   coef = 0;
                 case 4 % complete star shape sun, DNI~1
@@ -55,7 +63,8 @@ classdef vml < vmlSeq
                   coef = NaN;
               end
          end
-        
+         
+         
          function y = get45Irr(obj,t,tpred)
           %get the irradiation data for time(s) t
           if nargin<2, t = obj.data.ti;
@@ -90,6 +99,10 @@ classdef vml < vmlSeq
         end
 
         function [d,tilted_DNI] = get45diffuse(obj,t,az,elev)
+            if nargin<4
+              az = .7;
+              elev = 33.5;
+            end
             plate_cord = repmat([deg2rad(az),deg2rad(elev),1],[length(t),1]);
             [px,py,pz] = sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3));
             plate_cord = [px,py,pz];
