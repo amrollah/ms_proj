@@ -28,7 +28,7 @@ classdef vml < vmlSeq
             if nargin<3, redo_thres_calc=0; end
             loadframe@vmlSeq(obj,j,redo_thres_calc);
             
-            if ~(~redo_thres_calc && any(~isnan(obj.calc.thres_v(:,j))))
+            if any(~isnan(obj.calc.thres_v(:,j)))
                 % amri: diffuse irradiance calcualtion
                 % obj.calc.Irr = [time, Diffuse, Direct, Global]
                 % Diffuse = GHI-DNI*cosd(Z)*(1|0)
