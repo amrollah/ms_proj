@@ -128,14 +128,16 @@ classdef vmlSeq < handle
       obj.data.tmin = min(obj.data.ti);
       obj.data.tmax = max(obj.data.ti);
       
-      %remove outliers in power
-      count = 0;
-      while count<3
-        count = count+1;
-        absdiff=abs(median([obj.data.P(1:end-2,2) obj.data.P(2:end-1,2) obj.data.P(3:end,2)],2)-obj.data.P(2:end-1,2));
-        remove = [false absdiff'>mean(absdiff)+6*std(absdiff) false];
-        if ~any(remove), break; end
-        obj.data.P(remove,:) = [];
+      if size(obj.data.P,1)>0
+          %remove outliers in power
+          count = 0;
+          while count<3
+            count = count+1;
+            absdiff=abs(median([obj.data.P(1:end-2,2) obj.data.P(2:end-1,2) obj.data.P(3:end,2)],2)-obj.data.P(2:end-1,2));
+            remove = [false absdiff'>mean(absdiff)+6*std(absdiff) false];
+            if ~any(remove), break; end
+            obj.data.P(remove,:) = [];
+          end
       end
       
       %assign title and day in date time format
