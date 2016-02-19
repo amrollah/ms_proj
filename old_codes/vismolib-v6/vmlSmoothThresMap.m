@@ -79,11 +79,12 @@ maxxstart = max([conf.prior_thres(2:3) v_j0]);
 n = ceil((maxxstart-minxstart)/conf.r2b_multistart_step)+1;
 x0 = thres.j0;
 x0(~isnan(x0)) = v_j0;
-while any(isnan(x0(:))), x0=extrapolate2nan(x0); end
+if any(~isnan(x0(:)))
+  while any(isnan(x0(:))), x0=extrapolate2nan(x0); end
+end
 x0 = x0(logical(have_v));
 if conf.w_boundary>0, x0 = [x0;mean(x0)]; end
-% sigma = (maxxstart-minxstart)/6;
-for i=0:n
+for i=double(all(isnan(x0(:)))):n
   if i==0, x0_ = x0; else
     x0_ = zeros(nx,1)+minxstart+conf.r2b_multistart_step*(i-1)+(maxxstart-minxstart-(n-1)*conf.r2b_multistart_step)/2;
   end
@@ -92,6 +93,7 @@ for i=0:n
     status=status1; x=x1; fopt=fopt1; x0=x;
   end
 end
+% sigma = (maxxstart-minxstart)/6;
 % for i=1:0
 %   x0_ = max(minxstart,min(maxxstart,x0+randn(nx,1)*sigma*5/(i+5)));
 %   [status1,x1,fopt1]=ipoptqp_tanh(x0_,tanh_spec,tanh_pairs_spec,Q*conf.wsmooth,k*conf.wsmooth,A,b,[],[],lb,ub,opts);
@@ -100,8 +102,8 @@ end
 %   end
 % end
 
-v = have_v; v(logical(have_v)) = x(1:nx1); v(~have_v) = NaN;
 assert(any(status==[0 1]),['Error: IpOpt returned status = ' num2str(status1)]);
+v = have_v; v(logical(have_v)) = x(1:nx1); v(~have_v) = NaN;
 
 
   function [Q,A,tanh_pairs_spec] = neigh_info(ry1,rx1,ry2,rx2,wsmooth)
@@ -129,6 +131,6 @@ assert(any(status==[0 1]),['Error: IpOpt returned status = ' num2str(status1)]);
       thres.hist_right_open_crit(jj_(:,3)).*thres.hist_right_open_crit(jj_(:,4)));
     wsp_ = conf.scale_single_peak_crit*[wsp_ -wsp_]';
     tanh_pairs_spec = [ix_(:) s_(:) b_(:) w_(:).*wsp_(:)];
-    tanh_pairs_spec(tanh_pairs_spec(:,4)==0,:) = [];
+    tanh_pairs_spec(isnan(tanh_pairs_spec(:,4)) | tanh_pairs_spec(:,4)==0,:) = [];
   end
 end

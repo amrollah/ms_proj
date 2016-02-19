@@ -22,22 +22,23 @@ yy = max(1,yx(1)-r):min(size(x0,1),yx(1)+r);
 xx = max(1,yx(2)-r):min(size(x0,2),yx(2)+r);
 rsq = bsxfun(@plus,(yy-yx(1))'.^2,(xx-yx(2)).^2);
 xf = median_filter_2d(x0(yy,xx,:),1,0,1);
-my = [0 0 0]; mx = [0 0 0]; diffcrit = [0 0 0];
+my = [0 0 0]; mx = [0 0 0]; diffcrit = [0 0 0]; err = [0 0 0];
 for i=1:3 %find "black" dot on each channel
   x1 = moving_avg_2d(double(xf(:,:,i)),conf.r0_px,1);
   x2 = x1; x2(rsq>conf.r_roi_px^2) = inf;
   v_in = min(x2(:)); [my1,mx1]=find(x2<=v_in+5);
   my(i) = round(mean(my1)); mx(i) = round(mean(mx1));
-  if sqrt(sum(([yy(my(i));xx(mx(i))]-yx0).^2))<=conf.maxerr_px
-    rsq=bsxfun(@plus,(yy'-yy(my(i))).^2,(xx-xx(mx(i))).^2);
-    v_out = median(x1(rsq>=conf.r1_px^2 & rsq<=conf.r2_px^2));
-    diffcrit(i) = v_out-v_in;
-  end
+  err(i) = sqrt(sum(([yy(my(i));xx(mx(i))]-yx0).^2));
+  rsq1=bsxfun(@plus,(yy'-yy(my(i))).^2,(xx-xx(mx(i))).^2);
+  v_out = median(x1(rsq1>=conf.r1_px^2 & rsq1<=conf.r2_px^2));
+  diffcrit(i) = v_out-v_in;
 end
-ii = find(diffcrit>conf.blacklevelthres);
+
+ii = find(diffcrit>conf.blacklevelthres & err<=conf.maxerr_px);
 crit(1) = max(diffcrit);
-if isempty(ii) %black dot not found
-  flag = 1; return;
+if isempty(ii) %black dot with low error not found
+  if crit(1)>conf.blacklevelthres2, flag=-9; else flag=1; end
+  return;
 end
 
 my0 = round(mean(my(ii))); mx0 = round(mean(mx(ii)));
