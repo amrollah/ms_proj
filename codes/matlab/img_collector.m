@@ -15,7 +15,7 @@ proj_path;
 load('calc\img_data4.mat', 'data')
 last_day = '';
 
-for i=57996:length(data)%55855
+for i=57995:length(data)%55855  %55854
     d = data{i};
     if ~strcmp(d.day, last_day)
         last_day=d.day;
