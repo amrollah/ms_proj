@@ -2,7 +2,7 @@ function diffuse()
     img_save_path='';
     prj_path='';
     proj_path;
-    load('calc\img_data.mat', 'data');
+    load('calc\data_clean.mat', 'data');
     times = cellfun(@(d) d.time, data);
     irr = cellfun(@(d) d.irr(1), data);
     diffuse = cellfun(@(d) d.diff_irr, data);
