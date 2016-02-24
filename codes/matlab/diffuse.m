@@ -33,13 +33,12 @@ function diffuse(az,elev)
     effective_DNI = ClearSkyDNI.*max(0,cosd(angles));
     tilted_diffuse = irr45-effective_DNI'.*sun_flag_to_coef(sun_flag);
     
-    %filtering morning and evenings
    
     figno=11;
     figure(figno); 
-    ax(1) = subplot(2,4,3:4); plot(times,ClearSkyGHI);
-    %plot(times,irr,'r.-');
-%     plot(times,100*(diffuse-tilted_diffuse)./diffuse,'g.-');
+    ax(1) = subplot(2,4,3:4); % plot(times,ClearSkyGHI);
+%     plot(times,irr,'r.-');
+    plot(times,100*(diffuse-tilted_diffuse)./diffuse,'g.-');
     grid on;
     datetickzoom;
     title('total irradiation');
