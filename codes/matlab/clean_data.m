@@ -4,9 +4,45 @@ clc;
 img_save_path='';
 prj_path='';
 proj_path; 
+
+az = .7;
+elev = 33.5;
+      
+conf = [];
+conf=local_conf(conf);
 load('calc\data_clean.mat', 'data');
-load('calc\max_irr.mat', 'values');
+model3D=load([conf.datafolder  'Cavriglia_model3D.mat']);
+model3D = model3D.model3D;
+
+times = cellfun(@(d) d.time, data);
+%     irr = cellfun(@(d) d.irr(1), data);
+irr45 = cellfun(@(d) d.irr(2), data);
+diffuse = cellfun(@(d) d.diff_irr, data);
+tilted_diffuse = cellfun(@(d) d.tilt_diff, data);
+clear_irr = cellfun(@(d) d.clear_irr(2), data);
+sun_flag = cellfun(@(d) d.sun_flag, data);
+% [ClearSkyGHI,ClearSkyDNI,ClearSkyDHI,Zenith,Azimuth] = pvl_clearsky_ineichen(pvl_maketimestruct(times, ...
+% model3D.UTC),model3D.Location);
+% 
+% plate_cord = repmat([deg2rad(az),deg2rad(elev),1],[length(times),1]);
+% [px,py,pz] = sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3));
+% plate_cord = [px,py,pz];
+% [sx,sy,sz] = sph2cart(deg2rad(Azimuth),deg2rad(90-Zenith),ones(size(times))');
+% sun_cords = [sx,sy,sz];
+% nrm=sqrt(sum(abs(cross(sun_cords,plate_cord,2)).^2,2));
+% angles = atan2d(nrm, dot(sun_cords,plate_cord,2));
+% effective_DNI = ClearSkyDNI.*max(0,cosd(angles));
+% tilted_diffuse = irr45-effective_DNI'.*sun_flag_to_coef(sun_flag);
+% 
+% rel_err = 100*(diffuse-tilted_diffuse)./diffuse;
+
+diffuse = medfilt1(diffuse);
+% correction on tilted diffuse
+corrected_tilted_diffuse = tilted_diffuse*1.3;
+% load('calc\max_irr.mat', 'values');
 cl_data = {};
+day='';
+counter = 0;
 for i=1:length(data)
     d = data{i};
 %     img = imread([img_save_path d.day '__' num2str(d.j) '.jpeg']);
@@ -24,16 +60,27 @@ for i=1:length(data)
 %             || strcmp(d.day,'2015_11_08') || strcmp(d.day,'2015_11_09') || strcmp(d.day,'2016_01_02'))
 %         cl_data{end+1}=d;
 %     end
-max_irr = NaN;
-for j=1:length(values)
-    if strcmp(values{j}.date, date)
-        max_irr= values{j}.max_irr;
-    end
+%     if ~strcmp(d.day,day)
+%         day = d.day;
+%         disp(day);
+%         for j=1:length(values)
+%             if strcmp(values{j}.date, day)
+%                 max_irr= values{j}.max_irr;
+%             end
+%         end
+%     end
+%     d.tilt_diff = tilted_diffuse(i);
+%     d.azimuth = Azimuth(i);
+%     if d.clear_irr(1)/max_irr > .25
+%     if abs(rel_err(i)) < 160
+%        t = datevec(d.time);
+%        disp(t([4,5]));
+%        counter = counter + 1;
+%        cl_data{end+1}=d;
+%     end
+d.corr_tilt_diff = corrected_tilted_diffuse(i);
+d.diff_median = diffuse(i);
+cl_data{i}=d;
 end
-
-if d.clear_irr(1)/max_irr < .1
-   disp(datevec(d.time)); 
-end
-end
-% data=cl_data;
-% save('calc\data_clean2.mat', 'data');
+data=cl_data;
+save('calc\data_clean2.mat', 'data');
