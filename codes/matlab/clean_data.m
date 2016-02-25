@@ -36,9 +36,9 @@ sun_flag = cellfun(@(d) d.sun_flag, data);
 % 
 % rel_err = 100*(diffuse-tilted_diffuse)./diffuse;
 
-diffuse = medfilt1(diffuse);
+diffuse2 = medfilt1(diffuse);
 % correction on tilted diffuse
-corrected_tilted_diffuse = tilted_diffuse*1.3;
+% corrected_tilted_diffuse = tilted_diffuse*1.3;
 % load('calc\max_irr.mat', 'values');
 cl_data = {};
 day='';
@@ -78,8 +78,8 @@ for i=1:length(data)
 %        counter = counter + 1;
 %        cl_data{end+1}=d;
 %     end
-d.corr_tilt_diff = corrected_tilted_diffuse(i);
-d.diff_median = diffuse(i);
+% d.corr_tilt_diff = corrected_tilted_diffuse(i);
+d.diff_median = diffuse2(i);
 cl_data{i}=d;
 end
 data=cl_data;

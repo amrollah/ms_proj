@@ -18,11 +18,14 @@ function diffuse_calc(az,elev)
 %     irr = cellfun(@(d) d.irr(1), data);
 %     irr45 = cellfun(@(d) d.irr(2), data);
     diffuse = cellfun(@(d) d.diff_irr, data);
+    clouds = cellfun(@(d) d.clouds, data);
     diffuse_median = cellfun(@(d) d.diff_median, data);
     tilted_diffuse = cellfun(@(d) d.tilt_diff, data);
     corrected_tilted_diffuse = cellfun(@(d) d.corr_tilt_diff, data);
 %     clear_irr = cellfun(@(d) d.clear_irr(2), data);
-%     sun_flag = cellfun(@(d) d.sun_flag, data);
+    sun_flag = cellfun(@(d) d.sun_flag, data);
+    clear_sky=find(sun_flag==4);
+    not_clear=find(sun_flag==1);
 %     [ClearSkyGHI,ClearSkyDNI,ClearSkyDHI,Zenith,Azimuth] = pvl_clearsky_ineichen(pvl_maketimestruct(times, ...
 %     model3D.UTC),model3D.Location);
 %         
@@ -36,22 +39,26 @@ function diffuse_calc(az,elev)
 %     effective_DNI = ClearSkyDNI.*max(0,cosd(angles));
 %     tilted_diffuse = irr45-effective_DNI'.*sun_flag_to_coef(sun_flag);
 %     
-    figure; plot(diffuse_median,corrected_tilted_diffuse, '.-', [0,500],[0,500],'r--');
-    xlabel('diffuse median');
-    ylabel('tilted diffuse');
+%     figure; plot(diffuse_median,corrected_tilted_diffuse, '.-', [0,500],[0,500],'r--');
+%     xlabel('diffuse median');
+%     ylabel('tilted diffuse');
+%     figure; plot(diffuse_median,diffuse, '.-', [0,500],[0,500],'r--');
+    figure; plot(clouds(clear_sky),corrected_tilted_diffuse(clear_sky), 'b.');
+    hold on; plot(clouds(not_clear),corrected_tilted_diffuse(not_clear), 'r.');
+    
 
     figno=11;
     figure(figno); 
     ax(1) = subplot(2,4,3:4); % plot(times,ClearSkyGHI);
-%     plot(times,irr,'r.-');
     plot(times,100*(diffuse_median-tilted_diffuse)./diffuse_median,'g.-');
     grid on;
     datetickzoom;
-    title('total irradiation');
-    ax(2) = subplot(2,4,7:8); plot(times,diffuse_median,'b.-',times,tilted_diffuse,'r.--');
+    title('relative error diffuse');
+    ax(2) = subplot(2,4,7:8); % plot(times,diffuse_median,'b.-',times,tilted_diffuse,'r.--');
+    plot(times,corrected_tilted_diffuse,'b.-');
     grid on;
     datetickzoom;
-    title('diffuse irradiation');
+    title('diffuse corrected');
     linkaxes(ax,'x');
     show_upd(1);
     datacursormode on;

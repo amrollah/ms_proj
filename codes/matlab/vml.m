@@ -3,25 +3,28 @@ classdef vml < vmlSeq
     end
     
     methods
-        function obj = vml(plantid,folder,hours)
+        function obj = vml(plantid,folder,hours,orig)
+            if nargin<4, orig = false; end
             if nargin<3, hours = []; end
             obj@vmlSeq(plantid,folder,hours);
             
-            %clear sky irradiation
-            tt = (obj.data.tmin:6/86400:obj.data.tmax)';
-            [ClearSkyGHI,ClearSkyDNI,ClearSkyDHI,~,~] = pvl_clearsky_ineichen(pvl_maketimestruct(tt, ...
-            obj.calib.UTC),obj.calib.model3D.Location);
-            obj.data.IrrClear = [tt, ClearSkyGHI, ClearSkyDNI, ClearSkyDHI];
-            
-            [ti_ClearSkyGHI, ti_ClearSkyDNI, ti_ClearSkyDHI, zenith, azimuth] = pvl_clearsky_ineichen(pvl_maketimestruct(obj.data.ti, ...
-            obj.calib.UTC),obj.calib.model3D.Location);
-            obj.data.ti_elevation = 90 - zenith;
-            obj.data.zenith = zenith;
-            obj.data.ti_azimuth = azimuth;
-            obj.data.ti_IrrClear = [obj.data.ti', ti_ClearSkyGHI, ti_ClearSkyDNI, ti_ClearSkyDHI];
+            if ~orig
+                %clear sky irradiation
+                tt = (obj.data.tmin:6/86400:obj.data.tmax)';
+                [ClearSkyGHI,ClearSkyDNI,ClearSkyDHI,~,~] = pvl_clearsky_ineichen(pvl_maketimestruct(tt, ...
+                obj.calib.UTC),obj.calib.model3D.Location);
+                obj.data.IrrClear = [tt, ClearSkyGHI, ClearSkyDNI, ClearSkyDHI];
 
-            obj.calc.Irr = NaN(length(obj.data.ti),4);
-            obj.calc.Irr(:,1) = obj.data.ti(:);
+                [ti_ClearSkyGHI, ti_ClearSkyDNI, ti_ClearSkyDHI, zenith, azimuth] = pvl_clearsky_ineichen(pvl_maketimestruct(obj.data.ti, ...
+                obj.calib.UTC),obj.calib.model3D.Location);
+                obj.data.ti_elevation = 90 - zenith;
+                obj.data.zenith = zenith;
+                obj.data.ti_azimuth = azimuth;
+                obj.data.ti_IrrClear = [obj.data.ti', ti_ClearSkyGHI, ti_ClearSkyDNI, ti_ClearSkyDHI];
+
+                obj.calc.Irr = NaN(length(obj.data.ti),4);
+                obj.calc.Irr(:,1) = obj.data.ti(:);
+            end
         end
         
         function loadframe(obj,j,redo_thres_calc)
@@ -63,6 +66,16 @@ classdef vml < vmlSeq
               end
          end
          
+         function p = sunpos_realworld(obj,t)
+          %position of the sun in the world coordinates
+          if t<length(obj.data.ti(1)), t = obj.data.ti(t); end
+          t1 = [];
+          [t1.year,t1.month,t1.day,t1.hour,t1.min,t1.sec]=datevec(t);
+          t1.UTC = obj.calib.UTC;
+          sun = sun_position(t1, obj.calib.model3D.Location);
+          [x,y,z] = sph2cart(sun.azimuth*pi/180,(90-sun.zenith)*pi/180,1);
+          p = [x y z]';
+        end
          
          function y = get45Irr(obj,t,tpred)
           %get the irradiation data for time(s) t
