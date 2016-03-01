@@ -68,14 +68,21 @@ classdef vml < vmlSeq
          
          function p = sunpos_realworld(obj,t)
           %position of the sun in the world coordinates
-          if t<length(obj.data.ti(1)), t = obj.data.ti(t); end
+          if t<length(obj.data.ti), t = obj.data.ti(t); end
           t1 = [];
           [t1.year,t1.month,t1.day,t1.hour,t1.min,t1.sec]=datevec(t);
           t1.UTC = obj.calib.UTC;
           sun = sun_position(t1, obj.calib.model3D.Location);
           [x,y,z] = sph2cart(sun.azimuth*pi/180,(90-sun.zenith)*pi/180,1);
           p = [x y z]';
-        end
+         end
+        
+         function I = get_image(obj, filename)
+            I=imread(filename);
+            if ~isempty(obj.oi.sky_area)
+                I = I(obj.oi.sky_area(1):obj.oi.sky_area(2),obj.oi.sky_area(3):obj.oi.sky_area(4),:);
+            end
+         end
          
          function y = get45Irr(obj,t,tpred)
           %get the irradiation data for time(s) t
