@@ -1,6 +1,7 @@
 function [ normalized ] = normalize( array, x, y )
 %NORMALIZE Summary of this function goes here
      % Normalize to [0, 1]:
+     array = double(array);
      m = min(min(array));
      range = max(max(array)) - m;
      array = (array - m) / range;

@@ -3,11 +3,6 @@ clear all;
 % clc;
 
 %% settings
-addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\vismolib'))
-addpath(genpath('C:\Users\chamsei\Documents\GitHub\ms_proj\old_codes\solvers'));
-vmlconfig_cavriglia;
-conf = evalin('base','VMLCONF');
-
 days = {
         '2015_08_03',
         '2015_10_24',

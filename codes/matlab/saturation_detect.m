@@ -77,18 +77,20 @@ else
         ygrid = max(cy-R,1):p_w:min(cy+R,size(I,2));
         [X,Y] = meshgrid(xgrid,ygrid);
         area = imcrop(I,[ygrid(1),xgrid(1),xgrid(end)-xgrid(1),xgrid(end)-xgrid(1)]);
-        g_area = double(rgb2gray(area));
-        mg_area = medfilt2(g_area);
-        flat_g_area = g_area(:);
-        [areah,areac]=hist(flat_g_area(:),255);
-        areah = areah ./ (size(flat_g_area,1));
+        g_area = rgb2gray(area);
+%         mg_area = medfilt2(g_area);
+%         flat_g_area = g_area(:);
+%         [areah,areac]=hist(flat_g_area(:),255);
+%         areah = areah ./ (size(flat_g_area,1));
 %         figure(1010); 
 %         bar(areah);
-      
+%         g_area = imadjust(g_area);
+%         figure; imshow(g_area);
+        
         sat_border = g_area>200 & g_area<230;
         edge = cv.Canny(g_area,250);
         sat_contour = g_area>220;
-        sat_contour = bwareaopen(sat_contour,4);
+        sat_contour = bwareaopen(sat_contour,10);
         dw=zeros(size(g_area));
         u=zeros(size(g_area));
         r=zeros(size(g_area));
@@ -107,9 +109,6 @@ else
             for yi=1:size(g_area,2)
                 if ~sat_contour(xi,yi) && sum(r(max(1,xi-1):min(xi+1,size(g_area,1)),yi))>0 && sum(l(max(1,xi-1):min(xi+1,size(g_area,1)),yi))>0 && sum(dw(xi,max(yi-1,1):min(yi+1,size(g_area,2))))>0 && sum(u(xi,max(yi-1,1):min(yi+1,size(g_area,2))))>0
                     inside_sat(xi,yi) = true;
-                end
-                if ~sat_contour(xi,yi) && dw(xi,yi)>0 && u(xi,yi)>0 && r(xi,yi)>0 && l(xi,yi)>0 
-                    inside_sat2(xi,yi) = true;
                 end
             end
         end
