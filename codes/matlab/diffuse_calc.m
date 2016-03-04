@@ -10,7 +10,8 @@ function diffuse_calc(az,elev)
     addpath(prj_path);
     conf = [];
     conf=local_conf(conf);
-    load('calc\data_clean.mat', 'data');
+    load('calc\clean_data_with_8cc.mat', 'data');
+%     load('calc\data_clean.mat', 'data');
 %     model3D=load([conf.datafolder  'Cavriglia_model3D.mat']);
 %     model3D = model3D.model3D;
 
@@ -73,7 +74,7 @@ function diffuse_calc(az,elev)
         drawnow;
         if nargin<2, out=[]; 
         else
-            out = {datestr(event_obj.Position(1),'yyyy-mm-dd HH:MM:SS'), ['clouds: ',num2str(d.clouds),'%'], ['cloud-shine: ', num2str(d.cloud_shine)],['sun_flag: ',num2str(d.sun_flag)],['irr: ', num2str(d.irr(1))],['diffuse: ', num2str(d.diff_irr)], ['tilted_diffuse: ', num2str(tilted_diffuse(i))], ['clear_DNI: ', num2str(d.clear_irr(2))],['zenith: ',num2str(d.zenith)]};
+            out = {datestr(event_obj.Position(1),'yyyy-mm-dd HH:MM:SS'), ['clouds: ',num2str(d.clouds),'%'], ['cloud-shine: ', num2str(d.cloud_shine)],['sun_flag: ',num2str(d.sun_flag)],['irr: ', num2str(d.irr(1))],['diffuse: ', num2str(d.diff_irr)], ['tilted_diffuse: ', num2str(tilted_diffuse(i))], ['clear_DNI: ', num2str(d.clear_irr(2))],['zenith: ',num2str(d.zenith)],['cc: ' num2str(d.cc_fact)]};
         end
     end
 end

@@ -93,8 +93,33 @@
 % 
 %     %saveas(f, strcat('C:\data\cav\log_data\power_plots\',text), 'jpg') % save the figure with the title as the file name 
 % end
-coef=90000/70450;
-for i=1:length(data)
-    disp(data{i}.clouds);
-%     data{i}.clouds=data{i}.clouds*coef;
+% coef=90000/70450;
+% for i=1:length(data)
+%     disp(data{i}.clouds);
+% %     data{i}.clouds=data{i}.clouds*coef;
+% end
+
+% % load('D:\abb_data\cc_data.mat','cc');
+% for rr=1:length(rg)
+%     ccp=cc(rg(rr)+1:rg(rr+1));
+%     save(['D:\abb_data\cc_data',num2str(rr), '.mat'], 'ccp');
+% end
+% % load('D:\abb_data\cc_data.mat','cc');
+cc_all = cellfun(@(d) sum(d.cc_fact), data);
+clouds = cellfun(@(d) d.clouds, data);
+time = cellfun(@(d) d.time, data);
+TV  = datevec(time);
+mm=mean(TV(inx,4:5));
+inx = find(isnan(cc_all));
+img_save_path = 'E:\ABB\cav\diffuse\';
+img_save_path2 = 'E:\ABB\cav\diffuse_cc_0\';
+for pp=1:length(inx)
+    disp(pp);
+    d=data{inx(pp)};
+    nan_idx=find(isnan(d.cc_fact));
+    d.cc_fact(nan_idx)=100;
+    data{inx(pp)}=d;
+%     disp(tm(4:5));
+%     filename=[d.day '__' num2str(d.j) '.jpeg'];
+%     copyfile([img_save_path filename],strcat(img_save_path2,filename));  
 end
