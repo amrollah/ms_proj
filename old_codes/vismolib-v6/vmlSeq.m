@@ -1404,6 +1404,7 @@ classdef vmlSeq < handle
     
     function y = calc_avgcc_sun(obj,t,cc)
       sunp = obj.sunpos_im(t);
+      %%%%%%%%%%%%%%%%% error in distance. mfi.XX is smaller than sun_pos
       d2sun = sqrt((obj.mfi.YY-sunp(1)).^2+(obj.mfi.XX-sunp(2)).^2);
       y = zeros(length(obj.conf.pred.rsun_px),1);
       for i=1:length(y)
