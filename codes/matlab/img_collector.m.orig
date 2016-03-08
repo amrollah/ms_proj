@@ -14,6 +14,7 @@ prj_path='';
 proj_path;
 load('calc\img_data.mat', 'data')
 last_day = '';
+<<<<<<< HEAD
 cc = {};
 counter = 0;
 batch = 11;
@@ -28,6 +29,18 @@ for i=28879:length(data)
             catch
                 continue;
             end
+=======
+
+for i=28879:length(data)
+    d = data{i};
+    if ~strcmp(d.day, last_day)
+        last_day=d.day;
+        disp(last_day);
+        try
+            s = vml('cavriglia',last_day);
+        catch
+            continue;
+>>>>>>> 1112ab4edfce8c2f84f42b3e4c9bd16fb7f450a8
         end
     
 %     file_name = strcat(s.data.files(d.j),'_Debevec.jpeg');
