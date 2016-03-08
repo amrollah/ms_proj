@@ -11,7 +11,7 @@ if ~exist('data','var')
     load('calc\clean_data_with_8cc_nan_corrected.mat', 'data');
 end
 A=1:length(data);
-train_ind = 1:50:length(data);
+train_ind = 1:100:length(data);
 test_ind = A(~ismember(A,train_ind));
 y = cellfun(@(d) d.corr_tilt_diff, data(train_ind));
 % round_y = int64(y);
@@ -99,29 +99,52 @@ m = svorim(x,target);
 target_t= m(test');
 figure;
 scatter(target_t,yt,'b','.');
-g_ln = lsline;
+lsline;
+g_ln = polyfit(target_t,yt,1);
 xlabel('predit');
 ylabel('measured');
 title('SV ordinal regression machine');
 grid on;
 hold on;
 
-grid_sz = 30;
-dxi = ceil(length(test)/grid_sz);
-xi = 1:dxi:length(test);
-
-xd = floor(length(test)/grid_sz);
+xi = floor(min(target_t)):0.5:ceil(max(target_t));
+grid_sz = length(xi);
 ln = {};
-for k=2:grid_sz
-    xk = target_t(xi(k-1):xi(k));
-    yk = yt(xi(k-1):xi(k));
-    p = polyfit(xk,yk,1);
-    plot(xk,polyval(p,xk));
-    ln{k-1} = p;
+y_reg = [];
+x_reg = [];
+for k=3:grid_sz-1
+    xki = find(target_t>=xi(k-1) & target_t<xi(k));
+    xkv = target_t(xki);
+    if length(xki)<500
+        xkv=sort(xkv);
+        yk=polyval(g_ln,xkv);
+        ln{end+1} = g_ln;
+    else 
+        yk = yt(xki);
+        p = polyfit(xkv,yk,1);
+        xkv=sort(xkv);
+        yk=polyval(p,xkv);
+        ln{end+1} = p;
+    end
+    plot(xkv,yk);
+    x_reg = [x_reg,xkv];
+    y_reg = [y_reg,yk];
     hold on;
 end
+y_smooth = medfilt1(y_reg);
+y_smooth = smooth(x_reg,y_smooth,0.1,'loess');
+plot(x_reg,y_smooth,'r-','LineWidth',4);
+save('calc\final_reg_model.mat','x_reg','y_smooth','ln');
 
-
+%QUERY
+new_y = interp1(x_reg,y_smooth,target_t);
+figure;plot(new_y,yt,'b.','LineWidth',3);
+xlabel('Predicted');
+ylabel('Measured');
+xlim([0 400]);
+ylim([0 400]);
+hold on;
+plot([0 400], [0 400],'r-');
 
 dxi = ceil(length(target_t)/30);
 nodes = 1:dxi:length(target_t);

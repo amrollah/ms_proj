@@ -112,3 +112,15 @@ codes/matlab/img_data_10_2.mat
 codes/matlab/calc/*
 codes/matlab/main.m
 codes/matlab/validation_implicit.log
+
+
+# Latex related files
+*.log
+*.aux
+*.out
+*.synctex
+*.ptd
+
+
+
+docs/~$esis_structure.docx
