@@ -1,4 +1,4 @@
-function m = svorim(x,y,kernel,c)
+function m = svorim(x,y,kernel,c,range)
 % m = p5model(x,y,kernel,c)
 %   x: d*nx matrix
 %   y: 1*nx vector
@@ -12,9 +12,11 @@ function m = svorim(x,y,kernel,c)
 
 if nargin<3, kernel = []; end
 if nargin<4, c=[]; end
+if nargin<5, range=[]; end
 
 if isempty(kernel), kernel = 2; end
 if isempty(c), c=1000; end
+if isempty(range), range=[floor(min(y)),ceil(max(y))]; end
 
 [d,n] = size(x);
 [y,jj] = sort(y);
@@ -42,6 +44,7 @@ end
 m.x = x;
 m.kernel = kernel;
 m.c = c;
+m.range = range;
 a = svorim_train_mex(x,y,kerneltype,kernelp1,kernelp2,c);
 m.a = sum(a.*(1-2*(repmat(y,size(a,1),1)<=repmat((1:size(a,1))',1,n))),1);
 m = class(m,'svorim');

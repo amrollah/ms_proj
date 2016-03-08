@@ -5,22 +5,24 @@ img_save_path='';
 prj_path='';
 proj_path; 
 
-az = .7;
-elev = 33.5;
-      
+% az = .7;
+% elev = 33.5;
+%       
 conf = [];
 conf=local_conf(conf);
-load('calc\data_clean.mat', 'data');
-model3D=load([conf.datafolder  'Cavriglia_model3D.mat']);
-model3D = model3D.model3D;
+load('calc\clean_data_with_8cc_nan_corrected.mat', 'data');
+% model3D=load([conf.datafolder  'Cavriglia_model3D.mat']);
+% model3D = model3D.model3D;
 
-times = cellfun(@(d) d.time, data);
+% y = cellfun(@(d) d.corr_tilt_diff, data);
+
+% times = cellfun(@(d) d.time, data);
 %     irr = cellfun(@(d) d.irr(1), data);
-irr45 = cellfun(@(d) d.irr(2), data);
-diffuse = cellfun(@(d) d.diff_irr, data);
-tilted_diffuse = cellfun(@(d) d.tilt_diff, data);
-clear_irr = cellfun(@(d) d.clear_irr(2), data);
-sun_flag = cellfun(@(d) d.sun_flag, data);
+% irr45 = cellfun(@(d) d.irr(2), data);
+% diffuse = cellfun(@(d) d.diff_irr, data);
+% tilted_diffuse = cellfun(@(d) d.tilt_diff, data);
+% clear_irr = cellfun(@(d) d.clear_irr(2), data);
+% sun_flag = cellfun(@(d) d.sun_flag, data);
 % [ClearSkyGHI,ClearSkyDNI,ClearSkyDHI,Zenith,Azimuth] = pvl_clearsky_ineichen(pvl_maketimestruct(times, ...
 % model3D.UTC),model3D.Location);
 % 
@@ -36,7 +38,7 @@ sun_flag = cellfun(@(d) d.sun_flag, data);
 % 
 % rel_err = 100*(diffuse-tilted_diffuse)./diffuse;
 
-diffuse2 = medfilt1(diffuse);
+% diffuse2 = medfilt1(diffuse);
 % correction on tilted diffuse
 % corrected_tilted_diffuse = tilted_diffuse*1.3;
 % load('calc\max_irr.mat', 'values');
@@ -79,8 +81,11 @@ for i=1:length(data)
 %        cl_data{end+1}=d;
 %     end
 % d.corr_tilt_diff = corrected_tilted_diffuse(i);
-d.diff_median = diffuse2(i);
-cl_data{i}=d;
+% d.diff_median = diffuse2(i);
+if d.corr_tilt_diff>10
+    cl_data{end+1}=d;
+end
 end
 data=cl_data;
-save('calc\data_clean2.mat', 'data');
+%44519
+save('calc\clean_data_with_8cc_nan_corrected2.mat', 'data');

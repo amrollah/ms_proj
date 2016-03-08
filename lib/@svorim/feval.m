@@ -12,3 +12,4 @@ for i=1:size(x,2)
   end
   y(i) = m.a*K;
 end
+y=normalize(y,m.range(1),m.range(2));
