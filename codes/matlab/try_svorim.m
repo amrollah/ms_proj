@@ -11,7 +11,7 @@ if ~exist('data','var')
     load('calc\clean_data_with_8cc_nan_corrected.mat', 'data');
 end
 A=1:length(data);
-train_ind = 1:100:length(data);
+train_ind = 1:50:length(data);
 test_ind = A(~ismember(A,train_ind));
 y = cellfun(@(d) d.corr_tilt_diff, data(train_ind));
 % round_y = int64(y);
@@ -73,43 +73,74 @@ test = [sun_flag_t; sat_fact_t; clear_diffuse_t; zenith_t; cc_fact_t]';
 test=normalize(test,0,1);
 
 model = fitlm(x',y','interactions');
-
-% disp_ind = 1:200:length(test);
-est_diff = max(0,predict(model,test));
-% figure(210);
-% h(1) = plot(time_t(disp_ind),est_diff(disp_ind),'r.-');
-% hold on;
-% h(2) = plot(time_t(disp_ind),yt(disp_ind),'b.-');
-% legend([h(1),h(2)],{'Predict'; 'Observed'});
-% ylabel('Diffuse');
-% grid on;
-% datetickzoom;
-% anova(model)
-
-figure(45);
-scatter(est_diff,yt,'b','.');
+y_hat = max(0,predict(model,test));
+figure;
+scatter(y_hat,yt,'b','.');
 lsline;
 xlabel('predit');
 ylabel('measured');
 grid on;
+title('Standard regression');
 
-dlmwrite('E:/ABB/svorim/d_train.0',train,' ');
-dlmwrite('E:/ABB/svorim/d_test.0',test,' ');
+
+% dlmwrite('E:/ABB/svorim/d_train.0',train,' ');
+% dlmwrite('E:/ABB/svorim/d_test.0',test,' ');
+% 
+
+% Another library for svm-regression
+% svrobj = svr_trainer(x',y',400,0.000000025,'gaussian',0.5);
+% y_hat = svrobj.predict(test);
+
+% yet another SVM regressor
+% svm_model = svmtrain(y', x', '-s 3 -t 0 -c 20 -p 1');
+% [y_hat,Acc,~] = svmpredict(yt', test, svm_model);
 
 m = svorim(x,target);
 target_t= m(test');
-figure(46);
+figure;
 scatter(target_t,yt,'b','.');
+g_ln = lsline;
+xlabel('predit');
+ylabel('measured');
+title('SV ordinal regression machine');
+grid on;
+hold on;
+
+grid_sz = 30;
+dxi = ceil(length(test)/grid_sz);
+xi = 1:dxi:length(test);
+
+xd = floor(length(test)/grid_sz);
+ln = {};
+for k=2:grid_sz
+    xk = target_t(xi(k-1):xi(k));
+    yk = yt(xi(k-1):xi(k));
+    p = polyfit(xk,yk,1);
+    plot(xk,polyval(p,xk));
+    ln{k-1} = p;
+    hold on;
+end
+
+
+
+dxi = ceil(length(target_t)/30);
+nodes = 1:dxi:length(target_t);
+nnodes = length(nodes);
+scale = 3;
+xi = target_t(nodes);
+dx=mean(xi(2:end) - xi(1:end-1));
+dm = scale *dx * ones(1, nnodes);
+[PHI, DPHI, DDPHI] = MLS1DShape(1, nnodes, xi, length(target_t), target_t, dm, 'GAUSS', .3);
+% Curve fitting
+yi  = yt(nodes);    % Nodal function values
+yh  = PHI * yi';  % Approximation function
+err = norm(yt' - yh) / norm(yt) * 100;  % Relative error norm in approximation function
+
+
+figure;
+scatter(yh',yt,'b','.');
 lsline;
 xlabel('predit');
 ylabel('measured');
 grid on;
-
-% figure(211);
-% h(1) = plot(time_t,target_t,'r.-');
-% hold on;
-% h(2) = plot(time_t,yt,'b.-');
-% legend([h(1),h(2)],{'Predict'; 'Observed'});
-% ylabel('Diffuse');
-% grid on;
-% datetickzoom;
+title('SVM regression');
