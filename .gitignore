@@ -120,7 +120,7 @@ codes/matlab/validation_implicit.log
 *.out
 *.synctex
 *.ptd
-
+*.synctex.gz
 
 
 docs/~$esis_structure.docx

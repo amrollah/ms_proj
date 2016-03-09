@@ -10,7 +10,7 @@ function diffuse_calc(az,elev)
     addpath(prj_path);
     conf = [];
     conf=local_conf(conf);
-    load('calc\clean_data_with_8cc.mat', 'data');
+    load('calc\clean_data_with_8cc_nan_corrected2.mat', 'data');
 %     load('calc\data_clean.mat', 'data');
 %     model3D=load([conf.datafolder  'Cavriglia_model3D.mat']);
 %     model3D = model3D.model3D;

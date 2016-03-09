@@ -15,7 +15,8 @@ if ~exist('data','var')
 end
 A=1:length(data);
 % train_ind = 1:300:length(data);
-train_ind = randperm(length(data),1000);
+train_ind = randperm(length(data),500);
+while true
 test_ind = A(~ismember(A,train_ind));
 y = cellfun(@(d) d.corr_tilt_diff, data(train_ind));
 round_y = w*ceil(y/w);
@@ -62,16 +63,17 @@ x = [
 %     ; DAY...
 %     ; TM
     ];
-x = [x...
-%     ; x.^2 ...
+x = [
+    x...
+%   ;x.^2 ...
     ;sat_fact./sun_flag; sun_flag.*clear_diffuse; sun_flag.*clouds;...
     ;sat_fact.*clear_diffuse;sat_fact.*clouds;...
-%     ;clear_diffuse.*clouds;...
+    ;clear_diffuse./max(0.1,clouds);...
 %     ;zenith.*clouds;zenith.*DAY;zenith.*TM...
 %     ;clouds.*DAY;clouds.*TM...
 %     ;DAY.*TM...
     ];
-x=normalize(x,0,1);
+x=normalize(x,-1,1);
 % train = [x; target]';
 
 yt = cellfun(@(d) d.corr_tilt_diff, data(test_ind));
@@ -99,28 +101,29 @@ test = [
 %     ; DAY_t...
 %     ; TM_t
     ];
-test = [test...
-%     ; test.^2 ...
+test = [
+    test...
+%      ;test.^2 ...
     ;sat_fact_t./sun_flag_t; sun_flag_t.*clear_diffuse_t;sun_flag_t.*clouds_t;...
     ;sat_fact_t.*clear_diffuse_t;sat_fact_t.*clouds_t;...
-%     ;clear_diffuse_t.*clouds_t;...
+    ;clear_diffuse_t./max(0.1,clouds_t);...
 %     ;zenith_t.*clouds_t;zenith_t.*DAY_t;zenith_t.*TM_t...
 %     ;clouds_t.*DAY_t;clouds_t.*TM_t...
 %     ;DAY_t.*TM_t...
     ];
-test=normalize(test,0,1);
+test=normalize(test,-1,1);
 
 %% Standard regression
 if normal_regress
 model = fitlm(x',y','interactions');
 y_hat = max(0,predict(model,test'));
-figure(100);
-scatter(y_hat,yt,'b','.');
-lsline;
-xlabel('predit');
-ylabel('measured');
-grid on;
-title('Standard regression');
+% figure(100);
+% scatter(y_hat,yt,'b','.');
+% lsline;
+% xlabel('predit');
+% ylabel('measured');
+% grid on;
+% title('Standard regression');
 end
 %% SV Ordinal regression
 kernel = 2;
@@ -128,20 +131,20 @@ c=1000;
 range=[labels(1),labels(end)];
 m = svorim(x,target,kernel,c,range);
 target_t= m(test);
-figure(1);
-scatter(target_t,yt,'b','.');
-xlim([0 400]);
-ylim([0 400]);
-lsline;
-hold on;
+% figure(1);
+% scatter(target_t,yt,'b','.');
+% xlim([0 400]);
+% ylim([0 400]);
+% lsline;
+% hold on;
 g_ln = polyfit(target_t,yt,1);
-yh=polyval(g_ln,target_t);
-plot(target_t,yh,'c.','LineWidth',1);
-xlabel('predit');
-ylabel('measured');
-title('SV ordinal regression machine');
-grid on;
-hold on;
+% yh=polyval(g_ln,target_t);
+% plot(target_t,yh,'c.','LineWidth',1);
+% xlabel('predit');
+% ylabel('measured');
+% title('SV ordinal regression machine');
+% grid on;
+% hold on;
 
 %% smoothing
 xi = floor(min(target_t)):20:ceil(max(target_t));
@@ -175,18 +178,18 @@ for k=2:grid_sz
 end
 % y_reg = medfilt1(y_reg);
 y_smooth = smooth(x_reg,y_reg,0.05,'moving')';
-plot(x_reg,y_smooth,'r-','LineWidth',4);
+% plot(x_reg,y_smooth,'r-','LineWidth',4);
 % save('calc\final_reg_model.mat','x_reg','y_smooth','ln');
 
 %% QUERY
 yhat = interp1(x_reg,y_smooth,target_t,'spline');
-figure(2);plot(yhat,yt,'b.','LineWidth',3);
-xlabel('Predicted');
-ylabel('Measured');
-xlim([0 400]);
-ylim([0 400]);
-hold on;
-plot([0 400], [0 400],'r-');
+% figure(2);plot(yhat,yt,'b.','LineWidth',3);
+% xlabel('Predicted');
+% ylabel('Measured');
+% xlim([0 400]);
+% ylim([0 400]);
+% hold on;
+% plot([0 400], [0 400],'r-');
  
 % err1 = abs(yt - yhat).*(yt./100);  % Error
 err1 = abs(yt - yhat).*(log(yt)/log(100)); 
@@ -196,6 +199,16 @@ err3 = abs(yt - y_hat').*(log(yt)/log(100));
 disp(['RMSE interp: ' num2str(mean(err1)), '   std: ', num2str(std(err1))]);
 disp(['RMSE svorim: ' num2str(mean(err2)), '   std: ', num2str(std(err2))]);
 disp(['RMSE regres: ' num2str(mean(err3)), '   std: ', num2str(std(err3))]);
+
+
+result_show(data(test_ind),target_t,yt);
+
+large_errs = find(err2>50);
+train_ind = test_ind(large_errs(randperm(length(large_errs),500)));
+
+pause();
+end
+% trn_ind = cellfun(@(d) d.corr_tilt_diff, data(large_errs));
 %% Other Methods
 % dlmwrite('E:/ABB/svorim/d_train.0',train,' ');
 % dlmwrite('E:/ABB/svorim/d_test.0',test,' ');
