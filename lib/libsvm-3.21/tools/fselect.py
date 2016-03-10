@@ -515,14 +515,15 @@ def readdata(filename):
 
 		elems = line.split()
 		sample = {}
-		for e in elems[1:]:
-			points = e.split(":")
-			p0 = int( points[0].strip() )
-			p1 = float( points[1].strip() )
-			sample[p0] = p1
-			if p0 > max_index:
-				max_index = p0
-		labels.append(float(elems[0]))
+		for i in xrange(0,len(elems)-1):
+			#points = e.split(":")
+			#p0 = int( points[0].strip() )
+			#print(i)
+			p1 = float( elems[i].strip() )
+			sample[i] = p1
+			if i > max_index:
+				max_index = i
+		labels.append(float(elems[-1].strip()))
 		samples.append(sample)
 		line = fp.readline()
 	fp.close()

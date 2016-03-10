@@ -249,8 +249,9 @@ knn_y_hat = mean(y(IDX),2);
 
 
 % libSVM regressor
-svm_model = svmtrain(y', x', '-s 3 -t 2 -g 1 -c 500 -p 1');
-% cross_valid
+% svm_model = svmtrain(y', x', '-s 3 -t 2 -g 1 -c 500 -p 1');
+%g=0.0078125    c=0.03125
+cross_valid
 [y_hat,Acc,~] = svmpredict(yt', test', svm_model);
 
 result_show(data(test_ind),y_hat',yt);

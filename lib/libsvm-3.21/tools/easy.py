@@ -49,7 +49,7 @@ if len(sys.argv) > 2:
 #print('Scaling training data...')
 #Popen(cmd, shell = True, stdout = PIPE).communicate()	
 
-cmd = '{0} -svmtrain "{1}" -gnuplot "{2}" "{3}"'.format(grid_py, svmtrain_exe, gnuplot_exe, train_pathname)
+cmd = '{0} -svmtrain "{1}" -s 3 -t 2 -p 1 -gnuplot "{2}" "{3}"'.format(grid_py, svmtrain_exe, gnuplot_exe, train_pathname)
 print('Cross validation...')
 f = Popen(cmd, shell = True, stdout = PIPE).stdout
 
@@ -62,7 +62,7 @@ c,g,rate = map(float,last_line.split())
 
 print('Best c={0}, g={1} CV rate={2}'.format(c,g,rate))
 
-cmd = '{0} -c {1} -g {2} "{3}" "{4}"'.format(svmtrain_exe,c,g,train_pathname,model_file)
+cmd = '{0} -s 3 -t 2 -p 1 -c {1} -g {2} "{3}" "{4}"'.format(svmtrain_exe,c,g,train_pathname,model_file)
 print('Training...')
 Popen(cmd, shell = True, stdout = PIPE).communicate()
 

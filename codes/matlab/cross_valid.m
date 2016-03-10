@@ -8,18 +8,19 @@
 
 %# grid of parameters
 folds = 5;
-[eps,gamma] = meshgrid(0:5, -10:2:7);
-C = max(y) - min(y);
+% C = max(y) - min(y);
+[eps,gamma,C] = meshgrid(1:1:10, -1:1:13, 200:50:600);
+
 
 %# grid search, and cross-validation
 cv_acc = zeros(numel(gamma),1);
 for i=1:numel(gamma)
     cv_acc(i) = svmtrain(y', x', ...
-                    sprintf('-c %f -g %f -p %f -v %d', C, 2^gamma(i), eps(i), folds));
+                    sprintf('-s 3 -t 2 -c %f -g %f -p %f -v %d', C(i), 2^gamma(i), eps(i), folds));
 end
 
 %# pair (C,gamma) with best accuracy
-[~,idx] = max(cv_acc);
+[~,idx] = min(cv_acc);
 
 %# contour plot of paramter selection
 contour(eps, gamma, reshape(cv_acc,size(eps))), colorbar
@@ -31,8 +32,15 @@ hold off
 xlabel('log_2(eps)'), ylabel('log_2(\gamma)'), title('Cross-Validation Accuracy')
 
 %# now you can train you model using best_C and best_gamma
-best_eps = eps(idx);
-best_gamma = 2^gamma(idx);
+best_eps = eps(idx);  %9
+best_gamma = 2^gamma(idx); % 8
+best_C = C(idx); %250
 
-svm_model = svmtrain(y', x', sprintf('-c %f -g %f -p %f', C, best_gamma, best_eps));
-					
+
+svm_model = svmtrain(y', x', sprintf('-s 3 -t 2 -c %f -g %f -p %f', best_C, best_gamma, best_eps));
+[y_hat,Acc,~] = svmpredict(yt', test', svm_model);
+
+result_show(data(test_ind),y_hat',yt);
+
+err4 = abs(yt - y_hat').*(log(yt)/log(100));
+disp(['Error svm regres: ' num2str(mean(err4)), '   std: ', num2str(std(err4))]);
