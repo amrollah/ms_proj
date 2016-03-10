@@ -6,18 +6,21 @@ prj_path='';
 proj_path;
 
 addpath(prj_path);
-s = vml('cavriglia','2015_07_30',[],true);
-load('calc\data_clean.mat', 'data');
+s = vml('cavriglia','2015_12_11',[],true);
+load('calc\clean_data_with_8cc_nan_corrected2.mat', 'data');
 p_w = 4;
-R = 60;
-    
+R = 150;
+% rd = randperm(length(data),100);
+% tdata = data(rd);
 for i=1:length(data)
         disp(i);
         d=data{i};
         tm = datevec(d.time);
-%         if d.sun_flag==4 || tm(4)<12 || tm(4)>15
-%             continue;
-%         end
+        if d.sun_flag==4
+            d.sat_fact = 0;
+            ndata{i} = d;
+            continue;
+        end
         img_file = [img_save_path d.day '__' num2str(d.j) '.jpeg'];
         I = s.get_image(img_file);
         sun_pos = s.sunpos_im(d.time);
@@ -28,8 +31,8 @@ for i=1:length(data)
         area = imcrop(I,[ygrid(1),xgrid(1),xgrid(end)-xgrid(1),xgrid(end)-xgrid(1)]);
         g_area = rgb2gray(area);
         
-        sat_contour = g_area>220;
-        sat_contour = bwareaopen(sat_contour,10);
+        sat_contour = g_area>215;
+%         sat_contour = bwareaopen(sat_contour,4);
         dw=zeros(size(g_area));
         u=zeros(size(g_area));
         r=zeros(size(g_area));
@@ -45,14 +48,16 @@ for i=1:length(data)
         end
         for xi=1:size(g_area,1)
             for yi=1:size(g_area,2)
-                if ~sat_contour(xi,yi) && sum(r(max(1,xi-1):min(xi+1,size(g_area,1)),yi))>0 && sum(l(max(1,xi-1):min(xi+1,size(g_area,1)),yi))>0 && sum(dw(xi,max(yi-1,1):min(yi+1,size(g_area,2))))>0 && sum(u(xi,max(yi-1,1):min(yi+1,size(g_area,2))))>0
+                if g_area(xi,yi)>140 && ~sat_contour(xi,yi) && sum(r(max(1,xi-1):min(xi+1,size(g_area,1)),yi))>0 && sum(l(max(1,xi-1):min(xi+1,size(g_area,1)),yi))>0 && sum(dw(xi,max(yi-1,1):min(yi+1,size(g_area,2))))>0 && sum(u(xi,max(yi-1,1):min(yi+1,size(g_area,2))))>0
                     inside_sat(xi,yi) = true;
                 end
             end
         end
         inside_sat = bwareaopen(inside_sat,10);
-        d.sat_fact = min(.25,sum(sum(inside_sat))/numel(g_area));
+%         figure(1); subplot(1,3,1); imshow(inside_sat); subplot(1,3,2); imshow(area); subplot(1,3,3); imshow(g_area);
+%         pause();
+        d.sat_fact = min(.6,sum(sum(inside_sat))/numel(g_area));
         ndata{i} = d;
 end
 data=ndata;
-save('calc\data_with_sat_fact.mat', 'data');
+save('calc\data_with_new_sat_factTTTTTTTTT.mat', 'data');

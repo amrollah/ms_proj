@@ -7,7 +7,7 @@ if ~exist('s','var')
     s = vml('cavriglia','2015_07_30',[],true);
     n_data={};
 end
-load('calc\data_with_sat_fact.mat', 'data');
+load('calc\data_with_new_sat_factTTTTTTTTT.mat', 'data');
 all_j = cellfun(@(d) uint16(d.j), data);
 all_days = cellfun(@(d) d.day, data,'UniformOutput', false);
 last_batch = 1;
@@ -41,7 +41,7 @@ while last_batch<30
             ccd = ccp{i};
             j_ind = all_j==ccd.j;
             ind_in_j = find(cellfun(@(dy) strcmp(dy,ccd.day), all_days(j_ind)));
-            if isempty(ind_in_j), disp(['frame ', num2str(ccd.j),' on',ccd.day,' not found!']); continue; end
+            if isempty(ind_in_j), disp(['frame ', num2str(ccd.j),' on ',ccd.day,' not found!']); continue; end
             ind = find(j_ind,ind_in_j,'first');
             d = data{ind(end)};
             disp(ind(end));
@@ -87,4 +87,4 @@ while last_batch<30
     last_batch = last_batch + 1;
 end
 data=n_data;
-save('calc\clean_data_with_8cc_nan_corrected.mat', 'data');
+save('calc\clean_data_with_8cc_nan_corrected2.mat', 'data');

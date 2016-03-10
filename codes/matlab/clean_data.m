@@ -10,7 +10,7 @@ proj_path;
 %       
 conf = [];
 conf=local_conf(conf);
-load('calc\clean_data_with_8cc_nan_corrected.mat', 'data');
+load('calc\clean_data_with_8cc_nan_corrected2.mat', 'data');
 % model3D=load([conf.datafolder  'Cavriglia_model3D.mat']);
 % model3D = model3D.model3D;
 
@@ -82,10 +82,13 @@ for i=1:length(data)
 %     end
 % d.corr_tilt_diff = corrected_tilted_diffuse(i);
 % d.diff_median = diffuse2(i);
-if d.corr_tilt_diff>10
+% if d.corr_tilt_diff>10
+%     cl_data{end+1}=d;
+% end
+if ~isnan(mean(d.cc_fact))
     cl_data{end+1}=d;
 end
 end
 data=cl_data;
 %44519
-save('calc\clean_data_with_8cc_nan_corrected2.mat', 'data');
+save('calc\clean_data_with_8cc_nan_corrected3.mat', 'data');

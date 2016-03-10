@@ -7,11 +7,13 @@ function result_show(data,xt,yt)
     figure(figno); 
     subplot(2,4,[3,4,7,8]);
     scatter(xt,yt,'b','.');
-    xlim([0 400]);
-    ylim([0 400]);
     lsline;
+    hold on;
+    plot([0 400], [0 400],'r-');
     xlabel('predit');
     ylabel('measured');
+    xlim([0 400]);
+    ylim([0 400]);
     title('SV ordinal regression machine');
     show_upd(1);
     datacursormode on;
@@ -26,7 +28,7 @@ function result_show(data,xt,yt)
         drawnow;
         if nargin<2, out=[]; 
         else
-            out = {datestr(d.time,'yyyy-mm-dd HH:MM:SS'), ['clouds: ',num2str(d.clouds),'%'], ['sat_fact: ', num2str(d.sat_fact)],['sun_flag: ',num2str(d.sun_flag)],['irr: ', num2str(d.irr(1))],['diffuse: ', num2str(d.diff_irr)], ['tilted_diffuse: ', num2str(d.corr_tilt_diff)], ['clear_diffuse: ', num2str(d.clear_irr(3))],['zenith: ',num2str(d.zenith)],['cc: ' num2str(d.cc_fact)]};
+            out = {datestr(d.time,'yyyy-mm-dd HH:MM:SS'), ['i: ', num2str(i)], ['clouds: ',num2str(d.clouds),'%'], ['sat_fact: ', num2str(d.sat_fact)],['sun_flag: ',num2str(d.sun_flag)],['irr: ', num2str(d.irr(1))],['diffuse: ', num2str(d.diff_irr)], ['tilted_diffuse: ', num2str(d.corr_tilt_diff)], ['clear_diffuse: ', num2str(d.clear_irr(3))],['zenith: ',num2str(d.zenith)],['cc: ' num2str(d.cc_fact)]};
         end
     end
 end

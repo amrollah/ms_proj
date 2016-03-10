@@ -21,7 +21,7 @@ classdef vml < vmlSeq
                 obj.data.zenith = zenith;
                 obj.data.ti_azimuth = azimuth;
                 obj.data.ti_IrrClear = [obj.data.ti', ti_ClearSkyGHI, ti_ClearSkyDNI, ti_ClearSkyDHI];
-
+                
                 obj.calc.Irr = NaN(length(obj.data.ti),4);
                 obj.calc.Irr(:,1) = obj.data.ti(:);
             end
@@ -71,7 +71,7 @@ classdef vml < vmlSeq
           if t<length(obj.data.ti), t = obj.data.ti(t); end
           t1 = [];
           [t1.year,t1.month,t1.day,t1.hour,t1.min,t1.sec]=datevec(t);
-          t1.UTC = obj.calib.UTC;
+          t1.UTC = obj.calib.model3D.UTC+isdst(datetime(t,'ConvertFrom','datenum','TimeZone',obj.conf.TimeZone));
           sun = sun_position(t1, obj.calib.model3D.Location);
           [x,y,z] = sph2cart(sun.azimuth*pi/180,(90-sun.zenith)*pi/180,1);
           p = [x y z]';
