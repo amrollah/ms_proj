@@ -244,14 +244,13 @@ dlmwrite('E:/ABB/svorim/d_test.0',[test;yt]',' ');
 %% k-nearest neighbors
 [IDX,D] = knnsearch(x',test','K',3);
 knn_y_hat = mean(y(IDX),2);
-% err5 = abs(yt - knn_y_hat').*(log(yt)/log(100));
-% disp(['Error svm regres: ' num2str(mean(err5)), '   std: ', num2str(std(err5))]);
+err5 = abs(yt - knn_y_hat').*(log(yt)/log(100));
+disp(['Error knn: ' num2str(mean(err5)), '   std: ', num2str(std(err5))]);
 
 
 % libSVM regressor
-% svm_model = svmtrain(y', x', '-s 3 -t 2 -g 1 -c 500 -p 1');
-%g=0.0078125    c=0.03125
-cross_valid
+svm_model = svmtrain(y', x', '-s 3 -t 2 -g 8 -c 250 -p 9');
+% cross_valid
 [y_hat,Acc,~] = svmpredict(yt', test', svm_model);
 
 result_show(data(test_ind),y_hat',yt);
