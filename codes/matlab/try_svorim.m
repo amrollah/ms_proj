@@ -15,7 +15,7 @@ addpath(prj_path);
 if ~exist('data','var')
     load('calc\clean_data_with_8cc_nan_corrected3.mat', 'data');
 end
-N = 5000; % train size
+N = 25000; % train size
 train_ind = [];
 A=1:length(data);
 all_y = cellfun(@(d) d.corr_tilt_diff, data);
@@ -28,11 +28,11 @@ train_ind = [train_ind bin_300(randperm(length(bin_300),floor(N/5)))];
 bin_400 = find(all_y>=300 & all_y<400);
 train_ind = [train_ind bin_400(randperm(length(bin_400),floor(min(N/5,.6*length(bin_400)))))];
 bin_500 = find(all_y>=400 & all_y<600);
-train_ind = [train_ind bin_500(randperm(length(bin_500),floor(min(N/10,.4*length(bin_500)))))];
+train_ind = [train_ind bin_500(randperm(length(bin_500),floor(min(N/10,.6*length(bin_500)))))];
 
 % train_ind = randperm(length(data),500);
 % while true
-test_ind = A;%(~ismember(A,train_ind));
+test_ind = (~ismember(A,train_ind));
 y = cellfun(@(d) d.corr_tilt_diff, data(train_ind));
 round_y = w*ceil(y/w);
 labels = unique(round_y);
@@ -85,7 +85,7 @@ x = [
 %     ;x.^2 ...
     ;x.^.5 ...
     ;sat_fact.*(1./(sun_flag+.1))...
-    ;(1./(sun_flag+.1)).*clouds;...
+%     ;(1./(sun_flag+.1)).*clouds;...
 %     ;sat_fact.*clear_diffuse;sat_fact.*clouds;...
 %     ;clear_diffuse./max(0.1,clouds);...
 %     ;zenith.*clouds;zenith.*DAY;zenith.*TM...
@@ -126,7 +126,7 @@ test = [
 %      ;test.^2 ...
      ;test.^.5 ...
     ;sat_fact_t.*(1./(sun_flag_t+.1))...
-    ;(1./(sun_flag_t+.1)).*clouds_t;...
+%     ;(1./(sun_flag_t+.1)).*clouds_t;...
 %     ;sat_fact_t.*clear_diffuse_t;sat_fact_t.*clouds_t;...
 %     ;clear_diffuse_t./max(0.1,clouds_t);...
 %     ;zenith_t.*clouds_t;zenith_t.*DAY_t;zenith_t.*TM_t...
@@ -246,14 +246,17 @@ dlmwrite('E:/ABB/svorim/d_test.0',[test;yt]',' ');
 knn_y_hat = mean(y(IDX),2);
 err5 = abs(yt - knn_y_hat').*(log(yt)/log(100));
 disp(['Error knn: ' num2str(mean(err5)), '   std: ', num2str(std(err5))]);
-
+rmse5 = sqrt(mean((yt - knn_y_hat').^2));
+disp(['Error knn regres: ' num2str(rmse5)]);
 
 % libSVM regressor
-svm_model = svmtrain(y', x', '-s 3 -t 2 -g 8 -c 250 -p 9');
+svm_model = svmtrain(y', x(1:17,:)', '-s 3 -t 2 -g 8 -c 250 -p 9');
 % cross_valid
-[y_hat,Acc,~] = svmpredict(yt', test', svm_model);
+[y_hat,Acc,~] = svmpredict(yt', test(1:17,:)', svm_model);
 
-result_show(data(test_ind),y_hat',yt);
+result_show(data(test_ind),knn_y_hat',yt);
 
 err4 = abs(yt - y_hat').*(log(yt)/log(100));
-disp(['Error svm regres: ' num2str(mean(err4)), '   std: ', num2str(std(err4))]);
+err14 = abs(yt - y_hat')./log(yt);
+rmse4 = sqrt(mean((yt - y_hat').^2));
+disp(['Error svm regres: ' num2str(rmse4), '   std: ', num2str(std(err4))]);

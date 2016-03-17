@@ -2,11 +2,23 @@
 \select@language {english}
 \contentsline {chapter}{Contents}{\textlatin {iii}}{section*.1}
 \contentsline {chapter}{\chapternumberline {1}Introduction}{1}{chapter.1}
-\contentsline {section}{\numberline {1.1}Features}{1}{section.1.1}
-\contentsline {subsection}{\numberline {1.1.1}Extra package includes}{1}{subsection.1.1.1}
-\contentsline {subsection}{\numberline {1.1.2}Layout setup}{2}{subsection.1.1.2}
-\contentsline {subsection}{\numberline {1.1.3}Theorem setup}{2}{subsection.1.1.3}
-\contentsline {subsection}{\numberline {1.1.4}Macro setup}{3}{subsection.1.1.4}
+\contentsline {section}{\numberline {1.1}Very short-time power prediction for PV plant (overview of methods)}{2}{section.1.1}
+\contentsline {subsection}{\numberline {1.1.1}Satellite-based imagery}{2}{subsection.1.1.1}
+\contentsline {subsection}{\numberline {1.1.2}Ground Sky imagery}{2}{subsection.1.1.2}
+\contentsline {subsection}{\numberline {1.1.3}Several irradiance sensors in ground}{2}{subsection.1.1.3}
+\contentsline {section}{\numberline {1.2}Image acquisition setup(fisheye HDR), sensors setup and measurements}{2}{section.1.2}
+\contentsline {section}{\numberline {1.3}Cloud segmentation, cloud tracking, power prediction adaptation}{2}{section.1.3}
+\contentsline {section}{\numberline {1.4}Using sky imagery for irradiance estimation (and hopefully prediction)}{2}{section.1.4}
+\contentsline {section}{\numberline {1.5}Irradiance components and relations}{2}{section.1.5}
+\contentsline {section}{\numberline {1.6}Accuracy measures}{2}{section.1.6}
+\contentsline {section}{\numberline {1.7}Challenges}{2}{section.1.7}
+\contentsline {subsection}{\numberline {1.7.1}Cloud height unknown (solvable using special sensors)}{2}{subsection.1.7.1}
+\contentsline {subsection}{\numberline {1.7.2}Cloud color variation, thresholding }{2}{subsection.1.7.2}
+\contentsline {section}{\numberline {1.8}T. Schmidt work on irradiance estimation}{2}{section.1.8}
+\contentsline {subsection}{\numberline {1.8.1}Extra package includes}{3}{subsection.1.8.1}
+\contentsline {subsection}{\numberline {1.8.2}Layout setup}{3}{subsection.1.8.2}
+\contentsline {subsection}{\numberline {1.8.3}Theorem setup}{3}{subsection.1.8.3}
+\contentsline {subsection}{\numberline {1.8.4}Macro setup}{4}{subsection.1.8.4}
 \contentsline {chapter}{\chapternumberline {2}Related work}{5}{chapter.2}
 \contentsline {chapter}{\chapternumberline {3}Irradiance estimation from sky image}{7}{chapter.3}
 \contentsline {chapter}{\chapternumberline {4}Results}{9}{chapter.4}

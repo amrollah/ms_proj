@@ -10,8 +10,8 @@ function result_show(data,xt,yt)
     lsline;
     hold on;
     plot([0 400], [0 400],'r-');
-    xlabel('predit');
-    ylabel('measured');
+    xlabel('Predit Irradiance W/M^2');
+    ylabel('Measured Irradiance W/M^2');
     xlim([0 400]);
     ylim([0 400]);
     title('SV ordinal regression machine');
