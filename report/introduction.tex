@@ -33,7 +33,7 @@ The final step in power prediction is to associate a potential power estimate to
 
 \section{Irradiance components}
 The total solar radiation -GHI\footnote{Global Horizontal Irradiation}- which hits the surface of solar panels consists of three basic components, direct -DNI\footnote{Direct Normal Irradiance}-, diffuse -DHI\footnote{Diffuse Horizontal Irradiance}- and reflected. The direct part comes from the sunlight beams directly raying from sun direction to the solar module. While passing through atmosphere, some amount of sunlight scatters in every direction by dense particles. The portion of this scattered light which hits the module forms the diffuse irradiation for solar panels. 
-Reflected irradiance represents sunlight that is reflected off the clouds or ground around the array of panels. The source of this reflected radiation can be DNI or DHI. Rate of the reflection depends on clouds coverage, size of the ground that is visible from the module and their albedo coefficient\footnote{The portion of the incident irradiance that is reflected}, . The albedo coefficient for ground is typically 0.2, though it can be higher during snowy periods in cold climates. The albedo coefficient for clouds depends on their type, density, temperature and etc. These components are shown in figure\ref{fig:irr_comps}
+Reflected irradiance represents sunlight that is reflected off the clouds or ground around the array of panels. The source of this reflected radiation can be DNI or DHI. Rate of the reflection depends on clouds coverage, size of the ground that is visible from the module and their albedo coefficient\footnote{The portion of the incident irradiance that is reflected}. The albedo coefficient for ground is typically 0.2, though it can be higher during snowy periods in cold climates. The albedo coefficient for clouds depends on their type, density, temperature and etc. These components are shown in figure 	\ref{fig:irr_comps}
 
 \begin{figure}[h]
 \caption{Irradiance components}
@@ -43,14 +43,15 @@ Reflected irradiance represents sunlight that is reflected off the clouds or gro
 \end{figure} 
 
 Total irradiation is related to other three components with this formula:
-$GHI = DNI * cos (Z) + DHI + reflected$
-where Z is the solar zenith angle-The angle between the direction of the sun and the line directly overhead.
+\[ GHI = DNI \times cos (Z) + DHI + reflected \]
+where Z is the solar zenith angle-the angle between the direction of the sun and the line directly overhead.
 Since distinguishing between the reflected and diffuse irradiation is practically hard and also there is not any ground truth value for training, we decided to combine both of them as the diffuse component. Thus, the formula changes to:
-$GHI = DNI * cos (Z) + DHI$
-
-\section{Accuracy measures}
-For measuring accuracy of the result we can use popular error measures such as RMSE-Root mean square error. However, since there are not any other publicly available study on this specific problem to compare our RMSE with, we can define our own error measures which quantify our solution quality better. For example, apart from RMSE, we calculate a relative error as well that penalize errors for irradiances higher than a specific value more. And errors for irradiances lower than that value, will be penalized less. This cutting value is set as 100 and the scale is logarithmic, because when the irradiance is less than 100, the power output of plant is very low and practically not useful in grid. On the other hand, we want more precise result for very high irradiances. This means errors for small irradiances are less important than errors in big big ones.
-
+\begin{equation}
+GHI = DNI \times cos (Z) + DHI
+\end{equation}
+where DHI is sum of all non direct irradiations.
+\section{Accuracy metrics}
+For measuring accuracy of the result we can use popular error measures such as RMSE-Root mean square error. However, since there are not any other publicly available study on this specific problem to compare our RMSE with, we can define our own error measures which quantify our solution quality better. For example, apart from RMSE, we calculate a relative error as well that penalize errors for irradiances higher than a specific value more. And errors for irradiances lower than that value, will be penalized less. This cutting value is set as 100 and the scale is logarithmic, because when the irradiance is less than 100, the power output of plant is very low and practically not useful in grid. On the other hand, we want more precise result for very high irradiances. This means errors for small irradiances are less important than errors in big big ones. We also use MBE (mean bias error) and $R^2$ for correlation coefficient.
 %\section{Challenges}
 
 

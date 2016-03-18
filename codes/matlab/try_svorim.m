@@ -259,4 +259,6 @@ result_show(data(test_ind),knn_y_hat',yt);
 err4 = abs(yt - y_hat').*(log(yt)/log(100));
 err14 = abs(yt - y_hat')./log(yt);
 rmse4 = sqrt(mean((yt - y_hat').^2));
+R_sq = 1-sum((yt - y_hat').^2)/sum(yt.^2);
+MBE = mean(yt - y_hat');
 disp(['Error svm regres: ' num2str(rmse4), '   std: ', num2str(std(err4))]);

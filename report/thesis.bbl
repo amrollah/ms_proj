@@ -1,8 +1,20 @@
 \begin{thebibliography}{1}
 
-\bibitem{bringhurst1996ets}
-Robert Bringhurst.
-\newblock {\em {The Elements of Typographic Style}}.
-\newblock Hartley \& Marks, 1996.
+\bibitem{Borkowski1977}
+J.~Borkowski, Chai A.-T., Mo~T., and Green A.~E.~O.
+\newblock {Cloud effects on middle ultraviolet global radiation.}
+\newblock 25(4):287–301, 1977.
+
+\bibitem{Sabburg1998}
+J.~Sabburg and J.~Wong.
+\newblock {Evaluation of a Ground-Based Sky Camera System for Use in Surface
+  Irradiance Measurement}.
+\newblock 16:752–759, 1998.
+
+\bibitem{tSchmidt15}
+T.~Schmidt, J.~Kalisch, and E~Lorenz.
+\newblock {Retrieving direct and diffuse radiation with the use of sky imager
+  pictures}.
+\newblock 17:12--17, 2015.
 
 \end{thebibliography}
