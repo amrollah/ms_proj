@@ -15,7 +15,7 @@ addpath(prj_path);
 if ~exist('data','var')
     load('calc\clean_data_with_8cc_nan_corrected3.mat', 'data');
 end
-N = 25000; % train size
+N = 5000; % train size
 train_ind = [];
 A=1:length(data);
 all_y = cellfun(@(d) d.corr_tilt_diff, data);
@@ -247,6 +247,8 @@ knn_y_hat = mean(y(IDX),2);
 err5 = abs(yt - knn_y_hat').*(log(yt)/log(100));
 disp(['Error knn: ' num2str(mean(err5)), '   std: ', num2str(std(err5))]);
 rmse5 = sqrt(mean((yt - knn_y_hat').^2));
+knn_R_sq = 1-sum((yt - knn_y_hat').^2)/sum(yt.^2);
+knn_MBE = mean(yt - knn_y_hat');
 disp(['Error knn regres: ' num2str(rmse5)]);
 
 % libSVM regressor
@@ -254,7 +256,7 @@ svm_model = svmtrain(y', x(1:17,:)', '-s 3 -t 2 -g 8 -c 250 -p 9');
 % cross_valid
 [y_hat,Acc,~] = svmpredict(yt', test(1:17,:)', svm_model);
 
-result_show(data(test_ind),knn_y_hat',yt);
+result_show(data(test_ind),y_hat',yt);
 
 err4 = abs(yt - y_hat').*(log(yt)/log(100));
 err14 = abs(yt - y_hat')./log(yt);

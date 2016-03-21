@@ -1,9 +1,77 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 
 \bibitem{Borkowski1977}
 J.~Borkowski, Chai A.-T., Mo~T., and Green A.~E.~O.
 \newblock {Cloud effects on middle ultraviolet global radiation.}
 \newblock 25(4):287–301, 1977.
+
+\bibitem{areosal2}
+A.~Cazorla.
+\newblock {\em {Development of a Sky Imager for Cloud Classification and
+  Aerosol Characterization}}.
+\newblock PhD thesis, Universidad de Granada, Granada, Spain, 2010.
+\newblock PhD thesis.
+
+\bibitem{cloud_cover08}
+A.~Cazorla, F.~J. Olmo, and L.~Alados-Arboledas.
+\newblock {Development of a sky imager for cloud cover assessment}.
+\newblock 25:29–39, 2008.
+
+\bibitem{sat_based99}
+A.~Hammer, D.~Heinemann, E.~Lorenz, and B.~Lückehe.
+\newblock {Shortterm forecasting of solar radiation: a statistical approach
+  using satellite data}.
+\newblock 67:139–150, 1999.
+
+\bibitem{survay1}
+R.~H. Inman, H.~T.~C. Pedro, and C.~F.~M. Coimbra.
+\newblock {Solar forecasting methods for renewable energy integration, Prog.
+  Energ}.
+\newblock 39:535–576, 2013.
+
+\bibitem{sat_based13}
+J.~Kühnert, E.~Lorenz, and D.~Heinemann.
+\newblock {Satellite-based irradiance and power forecasting for the German
+  energy market}.
+\newblock page 504, 2013.
+
+\bibitem{survay2}
+E.~Lorenz and D.~Heinemann.
+\newblock {Prediction of solar irradiance and photovoltaic power}.
+\newblock 1:239–292, 2012.
+
+\bibitem{sat_based2004}
+E.~Lorenz, D.~Heinemann, and A~Hammer.
+\newblock {Short-term forecasting of solar radiation based on satellite data}.
+\newblock page 841–848, 2004.
+
+\bibitem{areosal1}
+F.~J. Olmo, A.~Cazorla, L.~Alados-Arboledas, M.~A. Lopez-Alvarez,
+  J.~Hernandez-Andres, and J.~Romero.
+\newblock {Retrieval of the optical depth using an all-sky CCD camera}.
+\newblock 47:182–189, 2008.
+
+\bibitem{nwp13}
+R.~Perez, E.~Lorenz, S.~Pelland, M.~Beauharnois, G.~Van~Knowe, K.~Hemler~Jr.,
+  D.~Heinemann, J.~Remund, S.~C. Müller, W.~Traunmüller, G.~Steinmauer,
+  D.~Pozo, J.~A. Ruiz-Arias, V.~Lara-Fanego, L.~Ramirez-Santigosa,
+  M.~Gaston-Romero, and L.~M. Pomares.
+\newblock {Comparison of numerical weather prediction solar irradiance
+  forecasts in the US, Canada and Europe}.
+\newblock 94:305–326, 2013.
+
+\bibitem{cloud_cover03}
+G.~Pfister, R.~L. McKenzie, J.~B. Liley, A.~Thomas, B.~W. Forgan, and C.~N.
+  Long.
+\newblock {Cloud coverage based on all-sky imaging and its impact on surface
+  solar irradiance}.
+\newblock 42:1421–1434, 2003.
+
+\bibitem{time_serise09}
+G.~Reikard.
+\newblock {Predicting solar radiation at high resolutions: a comparison of time
+  series forecasts}.
+\newblock 83:342–349, 2009.
 
 \bibitem{Sabburg1998}
 J.~Sabburg and J.~Wong.
@@ -11,10 +79,51 @@ J.~Sabburg and J.~Wong.
   Irradiance Measurement}.
 \newblock 16:752–759, 1998.
 
+\bibitem{solar_variable}
+S.~Sayeef, S.~Heslop, D.~Cornforth, T.~Moore, S.~Percy, J.~Ward, A.~Berry, ,
+  and D.~Rowe.
+\newblock {Solar Intermittency: Australia’s Clean Energy Challenge:
+  Characterising the Effect of High Penetration Solar Intermittency on
+  Australian Electricity Networks}.
+\newblock 2012.
+
 \bibitem{tSchmidt15}
 T.~Schmidt, J.~Kalisch, and E~Lorenz.
 \newblock {Retrieving direct and diffuse radiation with the use of sky imager
   pictures}.
 \newblock 17:12--17, 2015.
+
+\bibitem{tSchmidt_latest}
+T.~Schmidt, J.~Kalisch, E.~Lorenz, and Heinemann D.
+\newblock {Evaluating the spatio-temporal performance of sky-imager-based solar
+  irradiance analysis and forecasts}.
+\newblock 16:3399--3412, 2016.
+
+\bibitem{romania_paper}
+R.~Tapakis, A.G. Charalambides, M.D. Moldovan, and B.G. Burduhos.
+\newblock {Cloudy sky irradiance model using sky images}.
+\newblock 2015.
+
+\bibitem{romania_report}
+R.~Tapakis, A.G. Charalambides, M.D. Moldovan, and B.G. Burduhos.
+\newblock {Effect of clouds on solar irradiance}.
+\newblock Technical report, Universitatea Transilvania din Braşov, 2015.
+
+\bibitem{point_forecast14}
+S.~R. West, D.~Rowe, S.~Sayeef, and A.~Berry.
+\newblock {Short-term irradiance forecasting using skycams: motivation and
+  development}.
+\newblock 110:188–207, 2014.
+
+\bibitem{stat_based13}
+B.~Wolff, E.~Lorenz, and O.~Kramer.
+\newblock {Statistical learning for short-term photovoltaic power predictions}.
+\newblock 2013.
+
+\bibitem{cloud_height14}
+D.~Yang, Z.~Dong, T.~Reindl, P.~Jirutitijaroen, and W.~M. Walsh.
+\newblock {Solar irradiance forecasting using spatiotemporal empirical kriging
+  and vector autoregressive models with parameter shrinkage}.
+\newblock 103:550–562, 2014.
 
 \end{thebibliography}
