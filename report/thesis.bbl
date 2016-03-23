@@ -1,5 +1,11 @@
 \begin{thebibliography}{10}
 
+\bibitem{sun_pos1}
+P.~Blanc and L~Wald.
+\newblock {A Library for Computing the Relative Position of the Sun and the
+  Earth}.
+\newblock Technical report, 2011.
+
 \bibitem{Borkowski1977}
 J.~Borkowski, Chai A.-T., Mo~T., and Green A.~E.~O.
 \newblock {Cloud effects on middle ultraviolet global radiation.}
@@ -17,6 +23,13 @@ A.~Cazorla, F.~J. Olmo, and L.~Alados-Arboledas.
 \newblock {Development of a sky imager for cloud cover assessment}.
 \newblock 25:29–39, 2008.
 
+\bibitem{cloud_detection_using_RBR}
+C.~W. Chow, B.~Urquhart, M.~Lave, A.~Dominguez, J.~Kleissl, J.~Shields, and
+  B.~Washom.
+\newblock {Intra-hour forecasting with a total sky imager at the UC San Diego
+  solar energy testbed}.
+\newblock 85:2881–2893, 2011.
+
 \bibitem{sat_based99}
 A.~Hammer, D.~Heinemann, E.~Lorenz, and B.~Lückehe.
 \newblock {Shortterm forecasting of solar radiation: a statistical approach
@@ -28,6 +41,12 @@ R.~H. Inman, H.~T.~C. Pedro, and C.~F.~M. Coimbra.
 \newblock {Solar forecasting methods for renewable energy integration, Prog.
   Energ}.
 \newblock 39:535–576, 2013.
+
+\bibitem{RBR89}
+R.~Johnson, W.~Hering, and J.~Shields.
+\newblock {Automated Visibility and Cloud Cover Measurements with a Solid State
+  Imaging System}.
+\newblock 1989.
 
 \bibitem{sat_based13}
 J.~Kühnert, E.~Lorenz, and D.~Heinemann.
@@ -87,17 +106,27 @@ S.~Sayeef, S.~Heslop, D.~Cornforth, T.~Moore, S.~Percy, J.~Ward, A.~Berry, ,
   Australian Electricity Networks}.
 \newblock 2012.
 
+\bibitem{fisheye_undistort}
+D.~Scaramuzza.
+\newblock {OCamCalib: Omnidirectional Camera Calibration Toolbox for Matlab}.
+\newblock 2014.
+
 \bibitem{tSchmidt15}
 T.~Schmidt, J.~Kalisch, and E~Lorenz.
 \newblock {Retrieving direct and diffuse radiation with the use of sky imager
   pictures}.
 \newblock 17:12--17, 2015.
 
-\bibitem{tSchmidt_latest}
+\bibitem{tSchmidt_full}
 T.~Schmidt, J.~Kalisch, E.~Lorenz, and Heinemann D.
 \newblock {Evaluating the spatio-temporal performance of sky-imager-based solar
   irradiance analysis and forecasts}.
 \newblock 16:3399--3412, 2016.
+
+\bibitem{RBR98}
+J.~E. Shields, M.~E. Karr, T.~P. Tooman, D.~H. Sowle, and S.~T. Moore.
+\newblock {The whole sky imager – a year of progress}.
+\newblock page 23–27, 1998.
 
 \bibitem{romania_paper}
 R.~Tapakis, A.G. Charalambides, M.D. Moldovan, and B.G. Burduhos.
