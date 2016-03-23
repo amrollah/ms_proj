@@ -11,6 +11,11 @@ J.~Borkowski, Chai A.-T., Mo~T., and Green A.~E.~O.
 \newblock {Cloud effects on middle ultraviolet global radiation.}
 \newblock 25(4):287–301, 1977.
 
+\bibitem{turbidity}
+B.~D Bourges.
+\newblock {Yearly variations of the Linke turbidity factor}.
+\newblock page 61–64, 1992.
+
 \bibitem{areosal2}
 A.~Cazorla.
 \newblock {\em {Development of a Sky Imager for Cloud Classification and
@@ -30,11 +35,24 @@ C.~W. Chow, B.~Urquhart, M.~Lave, A.~Dominguez, J.~Kleissl, J.~Shields, and
   solar energy testbed}.
 \newblock 85:2881–2893, 2011.
 
+\bibitem{clear_sky_model}
+M.~Fontoynont, D.~Dumortier, D.~Heinnemann, A.~Hammer, J.~Olseth, A.~Skarveit,
+  P.~Ineichen, C.~Reise, J.~Page, L.~Roche, H.~G. Beyer, and L.~andWald.
+\newblock {Satellight: aWWWserver which provides high quality daylight and
+  solar radiation data for Western and Central Europe}.
+\newblock page 434–437, 1998.
+
 \bibitem{sat_based99}
 A.~Hammer, D.~Heinemann, E.~Lorenz, and B.~Lückehe.
 \newblock {Shortterm forecasting of solar radiation: a statistical approach
   using satellite data}.
 \newblock 67:139–150, 1999.
+
+\bibitem{Ineichen}
+P.~Ineichen.
+\newblock {Long Term Satellite Hourly, Daily and Monthly Global, Beam and
+  Diffuse Irradiance Validation}.
+\newblock 2013.
 
 \bibitem{survay1}
 R.~H. Inman, H.~T.~C. Pedro, and C.~F.~M. Coimbra.

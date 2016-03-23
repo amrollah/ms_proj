@@ -43,10 +43,22 @@ dx_{i,j} = h \times tan(\theta_{i,j}) \times sin(\phi_{i,j}) + h \times  tan(\th
 dy_{i,j} = h \times tan(\theta_{i,j}) \times cos(\phi_{i,j}) + h \times  tan(\theta_{sun}) \times cos(\phi_{sun})
 \end{split}
 \end{equation}
+The shadow pixel points are mapped to a grid of 20km to 20km with resolution of 20m, and coordinates are interpolated if the shadow map resolution is lower than grid resolution, otherwise the central pixel of the dense shadow area is used for that grid point. Finlay, a Gaussian filter is applied to smooth the cloud edges for more realistic result.
 
+\subsection{Irradiance retrieval}
+Upon determining the shadowed and sunny grid points on the ground area of experiment, they use the histogram of clear-sky index ($k^{*}$) to estimate the GHI irradiance. The clear sky index is defined as ratio of measured global horizontal irradiance $GHI_{meas}$ and a clear sky reference value $GHI_{clear}$ (Eq. \ref{eq:clear_sky_index}).
+\begin{equation}
+\label{eq:clear_sky_index}
+k^{*} =  \frac{GHI_{meas}}{GHI_{clear}}
+\end{equation}
+Clear sky irradiance is obtained from the mode of Dumortier \cite{clear_sky_model} and turbidity values of Bourges \cite{turbidity} which is validated according to Ineichen's work \cite{Ineichen}.
+For adapting to smooth changes of irradiance caused by factors other than clouds, this histogram is generated with measurements of last 30 minutes. As it is shown in figure \ref{fig:hist_k_index} this histogram usually has two peaks which correspond to sunny and shadow states on the specified point of ground. Now, for every point on the ground, based on its state (shadow, no-shadow), the corresponding $k^{*}$ is used from the peaks of the histogram to estimate GHI following Eq. \ref{eq:calc_GHI}. In case two distinct peaks could not be detected in histogram due to homogeneous irradiance condition, default values of 0.4 and 1, have been assigned for shadow and no-shadow states.
+\begin{equation}
+\label{eq:calc_GHI}
+GHI = k^{*}_{hist} \times GHI_{clear}
+\end{equation}
 
-irradiance retrieval using K* histograms of irradiation past 30 min using clear sky data reference as normalizer
-
+\subsection{Irradiance forecast}
 cloud motion vector using standard optical flow. cloud edges and corners in past 2 min.
 ray tracing to map new cloud state on ground and forecast irradiance.
 grid of pyranometers for evaluating effects of using only one pyranometer next to camera
