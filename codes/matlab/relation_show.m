@@ -14,25 +14,38 @@ if ~exist('data','var')
     clear_DNI = cellfun(@(d) d.clear_irr(2), data);
     DNI = clear_DNI .* sun_flag;
     zenith = cellfun(@(d) d.zenith, data);
+    azimuth = cellfun(@(d) d.azimuth, data);
     irr1 = cellfun(@(d) d.irr(1), data);
     irr2 = cellfun(@(d) d.irr(2), data);
 end
-a1=1;
-b1=1.3;
+a1=.9;
+b1=1.14;
 a2=1;
-b2=1;
-offset=45;
+b2=.78;
+elev=33.5;
+
+az = 12;   
+plate_cord = repmat([deg2rad(az),deg2rad(elev),1],[length(irr1),1]);
+[px,py,pz] = sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3));
+plate_cord = [px,py,pz];
+[sx,sy,sz] = sph2cart(deg2rad(azimuth),deg2rad(90-zenith),ones(size(irr1)));
+sun_cords = [sx',sy',sz'];
+nrm=sqrt(sum(abs(cross(sun_cords,plate_cord,2)).^2,2));
+angles = atan2d(nrm, dot(sun_cords,plate_cord,2));
+% effective_DNI = clear_irr'.*max(0,cosd(angles));
+
 DHI1 = irr1 - cosd(zenith).*DNI;
-DHI2 = irr2 - max(0,cosd(zenith+offset)).*DNI;
-cal_irr1 = a1*cosd(zenith).*DNI + b1*DHI2;
-cal_irr2 = a2*max(0,cosd(zenith+offset)).*DNI + b2*DHI2;
+DHI2 = irr2 - max(0,cosd(zenith+elev)).*DNI;
+
+cal_irr1 = a1*cosd(zenith).*DNI + b1*DHI;
+cal_irr2 = a2*max(0,cosd(angles')).*DNI + b2*DHI;
 figure(107);
 subplot(2,2,2);
 plot(irr1,cal_irr1,'.');
 xlabel('irr horiz');
 ylabel('calced_irr_horiz');
 hold on;
-plot([0 900], [0 900],'r-');
+plot([0 1200], [0 1200],'r-');
 grid on;
 title('irr1 vs calc_irr1');
 subplot(2,2,4);
