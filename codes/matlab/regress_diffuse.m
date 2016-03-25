@@ -5,6 +5,7 @@ rng('default');
 rng(2,'twister');
 normal_regress=false;
 svorm = false;
+svm_regress = true;
 remove_rare = false;
 w=5;
 fold=1;
@@ -15,7 +16,7 @@ addpath(prj_path);
 if ~exist('data','var')
     load('calc\clean_data_with_8cc_nan_corrected3.mat', 'data');
 end
-N = 10000; % train size
+N = 30000; % train size
 train_ind = [];
 A=1:length(data);
 all_y = cellfun(@(d) d.corr_tilt_diff, data);
@@ -24,11 +25,11 @@ train_ind = [train_ind bin_100(randperm(length(bin_100),floor(N/5)))];
 bin_200 = find(all_y>=100 & all_y<200);
 train_ind = [train_ind bin_200(randperm(length(bin_200),floor(N/5)))];
 bin_300 = find(all_y>=200 & all_y<300);
-train_ind = [train_ind bin_300(randperm(length(bin_300),floor(N/5)))];
+train_ind = [train_ind bin_300(randperm(length(bin_300),floor(min(N/5,.7*length(bin_300)))))];
 bin_400 = find(all_y>=300 & all_y<400);
-train_ind = [train_ind bin_400(randperm(length(bin_400),floor(min(N/5,.6*length(bin_400)))))];
+train_ind = [train_ind bin_400(randperm(length(bin_400),floor(min(N/5,.7*length(bin_400)))))];
 bin_500 = find(all_y>=400 & all_y<600);
-train_ind = [train_ind bin_500(randperm(length(bin_500),floor(min(N/10,.6*length(bin_500)))))];
+train_ind = [train_ind bin_500(randperm(length(bin_500),floor(min(N/10,.7*length(bin_500)))))];
 
 % train_ind = randperm(length(data),500);
 % while true
@@ -70,31 +71,15 @@ DV  = DV(:, 1:3); DV2 = DV;
 DV2(:, 2:3) = repmat([7,1],[size(DV2,1),1]);
 DAY = double(abs(int64(time' - datenum(DV2))))';
 
-x = [
-    sun_flag...
-    ; sat_fact...
-    ; clear_diffuse.*(1-clouds./100)...
-    ; zenith...
-    ; clouds...
-    ; mean(cc_fact(1:4,:))...
-    ; DAY...
-    ; TM
-    ];
-x = [
-    x...
-%     ;x.^2 ...
-    ;x.^.5 ...
-    ;sat_fact.*(1./(sun_flag+.1))...
-%     ;(1./(sun_flag+.1)).*clouds;...
-%     ;sat_fact.*clear_diffuse;sat_fact.*clouds;...
-%     ;clear_diffuse./max(0.1,clouds);...
-%     ;zenith.*clouds;zenith.*DAY;zenith.*TM...
-%     ;clouds.*DAY;clouds.*TM...
-%     ;DAY.*TM...
-    ];
-x=normalize(x,0,1);
-train = [x; y]';
+irr1 = cellfun(@(d) d.irr(1), data(train_ind));
+irr2 = cellfun(@(d) d.irr(2), data(train_ind));
+offset=45;
+clear_DNI = cellfun(@(d) d.clear_irr(2), data(train_ind));
+DNI = clear_DNI .* sun_flag;
+DHI1 = irr1 - cosd(zenith).*DNI;
+DHI2 = irr2 - max(0,cosd(zenith+offset)).*DNI;
 
+%test features
 yt = cellfun(@(d) d.corr_tilt_diff, data(test_ind));
 sun_flag_t = cellfun(@(d) d.sun_flag, data(test_ind));
 sun_flag_t=normalize(sun_flag_t,0,1);
@@ -111,10 +96,55 @@ DV  = DV(:, 1:3); DV2 = DV;
 DV2(:, 2:3) = repmat([7,1],[size(DV2,1),1]);
 DAY_t = double(abs(int64(time_t' - datenum(DV2))))';
 
+irr1_t = cellfun(@(d) d.irr(1), data(test_ind));
+irr2_t = cellfun(@(d) d.irr(2), data(test_ind));
+offset=45;
+clear_DNI_t = cellfun(@(d) d.clear_irr(2), data(test_ind));
+DNI_t = clear_DNI_t .* sun_flag_t;
+DHI1_t = irr1_t - cosd(zenith_t).*DNI_t;
+DHI2_t = irr2_t - max(0,cosd(zenith_t+offset)).*DNI_t;
+y=DHI2;
+yt=DHI2_t;
+
+x_img =[sun_flag;sat_fact;clouds;mean(cc_fact(1:4,:))];
+x_no_img = [clear_diffuse;zenith;DAY;TM];
+x_img=normalize(x_img,0,1);
+x_no_img=normalize(x_no_img,0,1);
+
+x = [
+    sun_flag...
+    ; sat_fact...
+    ; clear_diffuse...%.*(1-clouds./100)...
+    ; zenith...
+    ; clouds...
+    ; mean(cc_fact(1:4,:))...
+    ; DAY...
+    ; TM
+    ];
+x = [
+    x...
+%     ;x.^2 ...
+%     ;x.^.5 ...
+%     ;sat_fact.*(1./(sun_flag+.1))...
+%     ;(1./(sun_flag+.1)).*clouds;...
+%     ;sat_fact.*clear_diffuse;sat_fact.*clouds;...
+%     ;clear_diffuse./max(0.1,clouds);...
+%     ;zenith.*clouds;zenith.*DAY;zenith.*TM...
+%     ;clouds.*DAY;clouds.*TM...
+%     ;DAY.*TM...
+    ];
+x=normalize(x,0,1);
+train = [x; y]';
+
+x_img_t =[sun_flag_t;sat_fact_t;clouds_t;mean(cc_fact_t(1:4,:))];
+x_no_img_t = [clear_diffuse_t;zenith_t;DAY_t;TM_t];
+x_img_t=normalize(x_img_t,0,1);
+x_no_img_t=normalize(x_no_img_t,0,1);
+
 test = [
     sun_flag_t...
     ; sat_fact_t...
-    ; clear_diffuse_t.*(1-clouds_t./100)...
+    ; clear_diffuse_t...%.*(1-clouds_t./100)...
     ; zenith_t...
     ; clouds_t...
     ; mean(cc_fact_t(1:4,:))...
@@ -124,8 +154,8 @@ test = [
 test = [
     test...
 %      ;test.^2 ...
-     ;test.^.5 ...
-    ;sat_fact_t.*(1./(sun_flag_t+.1))...
+%      ;test.^.5 ...
+%     ;sat_fact_t.*(1./(sun_flag_t+.1))...
 %     ;(1./(sun_flag_t+.1)).*clouds_t;...
 %     ;sat_fact_t.*clear_diffuse_t;sat_fact_t.*clouds_t;...
 %     ;clear_diffuse_t./max(0.1,clouds_t);...
@@ -134,6 +164,7 @@ test = [
 %     ;DAY_t.*TM_t...
     ];
 test=normalize(test,0,1);
+x_t = test;
 
 %% Standard regression
 if normal_regress
@@ -147,6 +178,41 @@ ylabel('measured');
 grid on;
 title('Standard regression');
 end
+
+[ranked,weights] = relieff(x',y',3);
+figure(919);
+bar(weights(ranked));
+xlabel('Predictor rank');
+ylabel('Predictor importance weight');
+
+%% k-nearest neighbors
+[IDX,D] = knnsearch(x([1,3,4,5,6,7,8],:)',x_t([1,3,4,5,6,7,8],:)','K',2);
+WD=D./repmat(sum(D,2),[1,2]);
+knn_y_hat = sum(y(IDX).*WD,2);
+err5 = abs(yt - knn_y_hat').*(log(yt)/log(100));
+% disp(['Error knn: ' num2str(mean(err5)), '   std: ', num2str(std(err5))]);
+rmse5 = sqrt(mean((yt - knn_y_hat').^2));
+rmse = sqrt((yt - knn_y_hat').^2);
+knn_R_sq = 1-sum((yt - knn_y_hat').^2)/sum(yt.^2);
+knn_MBE = mean(yt - knn_y_hat');
+disp(['Error knn regres: ' num2str(rmse5)]);
+result_show(data(test_ind),knn_y_hat',yt,IDX,data(train_ind));
+
+maxdev = chi2inv(.70,1);     
+opt = statset('display','iter',...
+              'TolFun',maxdev,...
+              'TolTypeFun','abs');
+
+inmodel = sequentialfs(@critfun,x',y',...
+                       'cv','none',...
+                       'nullmodel',false,...
+                       'options',opt,...
+                       'direction','forward');
+                   
+% cross-validated knn model
+% mdl = fitcknn(x',y ,'NumNeighbors',2);
+% knn_y_hat = predict(mdl,x_t');
+% rmse5 = sqrt(mean((yt - knn_y_hat').^2));
 
 %% SV Ordinal regression
 if svorm
@@ -241,20 +307,12 @@ dlmwrite('E:/ABB/svorim/d_test.0',[test;yt]',' ');
 % svrobj = svr_trainer(x',y',400,0.000000025,'gaussian',0.5);
 % y_hat = svrobj.predict(test);
 
-%% k-nearest neighbors
-[IDX,D] = knnsearch(x',test','K',3);
-knn_y_hat = mean(y(IDX),2);
-err5 = abs(yt - knn_y_hat').*(log(yt)/log(100));
-disp(['Error knn: ' num2str(mean(err5)), '   std: ', num2str(std(err5))]);
-rmse5 = sqrt(mean((yt - knn_y_hat').^2));
-knn_R_sq = 1-sum((yt - knn_y_hat').^2)/sum(yt.^2);
-knn_MBE = mean(yt - knn_y_hat');
-disp(['Error knn regres: ' num2str(rmse5)]);
 
+if svm_regress
 % libSVM regressor
-svm_model = svmtrain(y', x(1:17,:)', '-s 3 -t 2 -g 8 -c 250 -p 9');
+svm_model = svmtrain(y', x(:,:)', '-s 3 -t 2 -g 8 -c 250 -p 9');
 % cross_valid
-[y_hat,Acc,~] = svmpredict(yt', test(1:17,:)', svm_model);
+[y_hat,Acc,~] = svmpredict(yt', test(:,:)', svm_model);
 
 result_show(data(test_ind),y_hat',yt);
 
@@ -264,3 +322,4 @@ rmse4 = sqrt(mean((yt - y_hat').^2));
 R_sq = 1-sum((yt - y_hat').^2)/sum(yt.^2);
 MBE = mean(yt - y_hat');
 disp(['Error svm regres: ' num2str(rmse4), '   std: ', num2str(std(err4))]);
+end

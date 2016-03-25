@@ -1,4 +1,4 @@
-function result_show(data,xt,yt)
+function result_show(data,xt,yt,knn_IDX,data_tr)
     close all;
     img_save_path='';
     prj_path='';
@@ -23,8 +23,17 @@ function result_show(data,xt,yt)
         if nargin==2, i=event_obj.DataIndex; end
         d = data{i};
         figure(figno);
-        subplot(2,4,[1 2 5 6]); 
+%         subplot(2,4,[1 2 5 6]); 
+        subplot(2,4,1); 
         imshow([img_save_path d.day '__' num2str(d.j) '.jpeg']);
+%         figure(123);
+        sbop = [2,5,6];
+        for j=1:size(knn_IDX,2)
+            nb_d = data_tr{knn_IDX(i,j)};
+            subplot(2,4,sbop(j));
+            imshow([img_save_path nb_d.day '__' num2str(nb_d.j) '.jpeg']);
+        end
+        
         drawnow;
         if nargin<2, out=[]; 
         else
