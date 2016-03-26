@@ -1,5 +1,11 @@
 \begin{thebibliography}{10}
 
+\bibitem{sun_angle_pic}
+{Shperical model for position of sun}.
+\newblock
+  \url{https://pvpmc.sandia.gov/modeling-steps/1-weather-design-inputs/sun-position/}.
+\newblock Accessed: 2016-03-10.
+
 \bibitem{sun_pos1}
 P.~Blanc and L~Wald.
 \newblock {A Library for Computing the Relative Position of the Sun and the
@@ -66,11 +72,24 @@ R.~Johnson, W.~Hering, and J.~Shields.
   Imaging System}.
 \newblock 1989.
 
+\bibitem{Kabsch_alg}
+Wolfgang Kabsch.
+\newblock {A solution for the best rotation to relate two sets of vectors}.
+\newblock 32:922--930, 1976.
+
 \bibitem{sat_based13}
 J.~Kühnert, E.~Lorenz, and D.~Heinemann.
 \newblock {Satellite-based irradiance and power forecasting for the German
   energy market}.
 \newblock page 504, 2013.
+
+\bibitem{mcclear_alg}
+P.~Blanc B. Espinar B. Gschwind Z. Qu L. Wald M. Schroedter-Homscheidt C.
+  Hoyer-Klick A. Arola A. Benedetti J. W.~Kaiser Lefèvre~M., A.~Oumbe and
+  J.-J. Morcrette.
+\newblock {McClear: a new model estimating downwelling solar radiation at
+  ground level in clear-sky conditions}.
+\newblock 6:2403--2418, 2013.
 
 \bibitem{survay2}
 E.~Lorenz and D.~Heinemann.
@@ -103,6 +122,11 @@ G.~Pfister, R.~L. McKenzie, J.~B. Liley, A.~Thomas, B.~W. Forgan, and C.~N.
 \newblock {Cloud coverage based on all-sky imaging and its impact on surface
   solar irradiance}.
 \newblock 42:1421–1434, 2003.
+
+\bibitem{our_sun_position}
+I.~Reda and A.~Andreas.
+\newblock {Solar position algorithm for solar radiation application.}
+\newblock Technical report, 2003.
 
 \bibitem{time_serise09}
 G.~Reikard.

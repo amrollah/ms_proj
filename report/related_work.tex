@@ -32,6 +32,7 @@ R_{mod,i,j} =  R_{orig,i,j} - R_{CSL,i,j} \times (a \times S - b \times (I_{i,j}
 Where $0<S<1$ is the average pixel intensity in circumsolar area. For more detailed discussion on results, they also apply a image-based cloud type classification using several visual cloud characteristics , and classify them into 7 different cloud types.
 
 \subsection{Image un-distorion}
+\label{sec:image_undistortion_schmidt}
 Since the raw image is from a fisheye lens, they apply a transformation to project it into geometric coordinates for convenience in other calculations. For that, intrinsic parameters of camera are determined using Scaramuzza Matlab toolbox \cite{fisheye_undistort} which solves a fifth-degree polynomial function of point-mapping between fisheye image and plain image. The extrinsic parameters are calculated as the best rotation which matches position of sun re-projection (derived mathematically) and sun position in the image. They calculate sun zenith and azimuth by using solar geometry2 algorithm\cite{sun_pos1}.
 
 \subsection{Shadow mapping}
