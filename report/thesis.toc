@@ -2,27 +2,35 @@
 \select@language {english}
 \contentsline {chapter}{Contents}{\textlatin {iii}}{section*.1}
 \contentsline {chapter}{\chapternumberline {1}Introduction}{1}{chapter.1}
-\contentsline {section}{\numberline {1.1}Very short-time power prediction for PV plant (overview of methods)}{2}{section.1.1}
-\contentsline {subsection}{\numberline {1.1.1}Satellite-based imagery}{2}{subsection.1.1.1}
-\contentsline {subsection}{\numberline {1.1.2}Ground Sky imagery}{2}{subsection.1.1.2}
-\contentsline {subsection}{\numberline {1.1.3}Several irradiance sensors in ground}{2}{subsection.1.1.3}
-\contentsline {section}{\numberline {1.2}Image acquisition setup(fisheye HDR), sensors setup and measurements}{2}{section.1.2}
-\contentsline {section}{\numberline {1.3}Cloud segmentation, cloud tracking, power prediction adaptation}{2}{section.1.3}
-\contentsline {section}{\numberline {1.4}Using sky imagery for irradiance estimation (and hopefully prediction)}{2}{section.1.4}
-\contentsline {section}{\numberline {1.5}Irradiance components and relations}{2}{section.1.5}
-\contentsline {section}{\numberline {1.6}Accuracy measures}{2}{section.1.6}
-\contentsline {section}{\numberline {1.7}Challenges}{2}{section.1.7}
-\contentsline {subsection}{\numberline {1.7.1}Cloud height unknown (solvable using special sensors)}{2}{subsection.1.7.1}
-\contentsline {subsection}{\numberline {1.7.2}Cloud color variation, thresholding }{2}{subsection.1.7.2}
-\contentsline {section}{\numberline {1.8}T. Schmidt work on irradiance estimation}{2}{section.1.8}
-\contentsline {subsection}{\numberline {1.8.1}Extra package includes}{3}{subsection.1.8.1}
-\contentsline {subsection}{\numberline {1.8.2}Layout setup}{3}{subsection.1.8.2}
-\contentsline {subsection}{\numberline {1.8.3}Theorem setup}{3}{subsection.1.8.3}
-\contentsline {subsection}{\numberline {1.8.4}Macro setup}{4}{subsection.1.8.4}
-\contentsline {chapter}{\chapternumberline {2}Related work}{5}{chapter.2}
-\contentsline {chapter}{\chapternumberline {3}Irradiance estimation from sky image}{7}{chapter.3}
-\contentsline {chapter}{\chapternumberline {4}Results}{9}{chapter.4}
-\contentsline {chapter}{\chapternumberline {5}Discusion}{11}{chapter.5}
-\contentsline {chapter}{\chapternumberline {6}Conclusion}{13}{chapter.6}
-\contentsline {appendix}{\chapternumberline {A}Dummy Appendix}{15}{appendix.A}
-\contentsline {chapter}{Bibliography}{17}{section*.3}
+\contentsline {section}{\numberline {1.1}Power prediction approaches for a PV plant}{1}{section.1.1}
+\contentsline {subsection}{\numberline {1.1.1}Ground whole-sky imagery}{2}{subsection.1.1.1}
+\contentsline {section}{\numberline {1.2}Data acquisition setup}{2}{section.1.2}
+\contentsline {section}{\numberline {1.3}Cloud segmentation, cloud tracking}{3}{section.1.3}
+\contentsline {section}{\numberline {1.4}Image irradiance estimation for power prediction}{4}{section.1.4}
+\contentsline {section}{\numberline {1.5}Irradiance components}{4}{section.1.5}
+\contentsline {section}{\numberline {1.6}Accuracy metrics}{5}{section.1.6}
+\contentsline {chapter}{\chapternumberline {2}Related work}{7}{chapter.2}
+\contentsline {section}{\numberline {2.1}Estimate irradiance from zone types in sky images}{7}{section.2.1}
+\contentsline {section}{\numberline {2.2}Using clear sky irradiance model and binary cloud mask}{8}{section.2.2}
+\contentsline {subsection}{\numberline {2.2.1}Cloud detection}{9}{subsection.2.2.1}
+\contentsline {subsection}{\numberline {2.2.2}Image un-distorion}{9}{subsection.2.2.2}
+\contentsline {subsection}{\numberline {2.2.3}Shadow mapping}{10}{subsection.2.2.3}
+\contentsline {subsection}{\numberline {2.2.4}Irradiance retrieval}{10}{subsection.2.2.4}
+\contentsline {subsection}{\numberline {2.2.5}Irradiance forecast}{11}{subsection.2.2.5}
+\contentsline {section}{\numberline {2.3}Retrieval of direct and diffuse irradiance from sky images}{11}{section.2.3}
+\contentsline {subsection}{\numberline {2.3.1}Image features}{11}{subsection.2.3.1}
+\contentsline {subsection}{\numberline {2.3.2}irradiance estimation}{12}{subsection.2.3.2}
+\contentsline {chapter}{\chapternumberline {3}Estimating Diffuse Horizontal Irradiance (DHI) from sky image}{13}{chapter.3}
+\contentsline {subsection}{\numberline {3.0.1}Experimental Setup}{13}{subsection.3.0.1}
+\contentsline {subsection}{\numberline {3.0.2}Acquired Data}{14}{subsection.3.0.2}
+\contentsline {paragraph}{T}{14}{section*.2}
+\contentsline {subsection}{\numberline {3.0.3}Camera calibration for sun positions}{14}{subsection.3.0.3}
+\contentsline {subsection}{\numberline {3.0.4}Clear-sky irradiance model}{14}{subsection.3.0.4}
+\contentsline {subsection}{\numberline {3.0.5}Estimating diffuse from pyranometers}{15}{subsection.3.0.5}
+\contentsline {subsection}{\numberline {3.0.6}Key image features affecting DHI}{15}{subsection.3.0.6}
+\contentsline {subsubsection}{Discuss cloud coverage geometrical polar feature around sun and also the whole image}{15}{section*.3}
+\contentsline {subsubsection}{Discuss saturation detection algorithm and its results}{15}{section*.4}
+\contentsline {subsection}{\numberline {3.0.7}Learning the relation between image features and DHI}{15}{subsection.3.0.7}
+\contentsline {subsection}{\numberline {3.0.8}Translating irradiance to power}{15}{subsection.3.0.8}
+\contentsline {subsubsection}{Estimating shadow ratio on the plant site}{15}{section*.5}
+\contentsline {chapter}{Bibliography}{17}{section*.7}

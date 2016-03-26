@@ -29,7 +29,7 @@ Firstly, they use Red-to-Blue Ratio (RBR) threshold for cloud detection which wa
 \label{eq:RBR_correction}
 R_{mod,i,j} =  R_{orig,i,j} - R_{CSL,i,j} \times (a \times S - b \times (I_{i,j} - 200))
 \end{equation}
-Where $0<S<1$ is the average pixel intensity in circumsolar area.
+Where $0<S<1$ is the average pixel intensity in circumsolar area. For more detailed discussion on results, they also apply a image-based cloud type classification using several visual cloud characteristics , and classify them into 7 different cloud types.
 
 \subsection{Image un-distorion}
 Since the raw image is from a fisheye lens, they apply a transformation to project it into geometric coordinates for convenience in other calculations. For that, intrinsic parameters of camera are determined using Scaramuzza Matlab toolbox \cite{fisheye_undistort} which solves a fifth-degree polynomial function of point-mapping between fisheye image and plain image. The extrinsic parameters are calculated as the best rotation which matches position of sun re-projection (derived mathematically) and sun position in the image. They calculate sun zenith and azimuth by using solar geometry2 algorithm\cite{sun_pos1}.
@@ -59,14 +59,32 @@ GHI = k^{*}_{hist} \times GHI_{clear}
 \end{equation}
 
 \subsection{Irradiance forecast}
-For forecasting the irradiance, they use optical flow algorithms to extract clouds' motion vector.
-cloud motion vector using standard optical flow. cloud edges and corners in past 2 min.
-ray tracing to map new cloud state on ground and forecast irradiance.
-grid of pyranometers for evaluating effects of using only one pyranometer next to camera
-compare forecast skill to persistent model (mention persistent model)
-compare forecast skill in different cloud types
-
+For forecasting the cloud map, they use optical flow algorithm (Lucas-Kanade) on cloud edges and corners (Shi-Tomasi method) in the past 2 minutes to extract clouds' motion vector. Then, by applying that motion vector to current cloud state, cloud map at different time horizons is estimated, and ray tracing from sun position at that times through cloud maps gives the shadow map on the ground. After determining shadow or no-shadow states for points on the ground, forecast GHI is estimated using Eq. \ref{eq:calc_GHI} . They compare results of using GHI histogram from the nearest pyranometer station versus using only the pyranometer close to the camera as a representation for the whole area. These comparison is separately done for different cloud types, and the results shows for cumulus clouds using one pyranometer close to camera is enough to forecast irradiance for up to 2km radius. However, the forecast skill is highly varies depending on cloud types and overall does not do better than persistent model which uses median of past several minutes' irradiance.
 
 
 \section{Retrieval of direct and diffuse irradiance from sky images}
-In another recent work, T. Schmidt et al.\cite{tSchmidt15} aim to estimate components of irradiance (direct, diffuse) from the sky images.
+In another recent work, T. Schmidt et al.\cite{tSchmidt15} aims to estimate components of irradiance (direct, diffuse) instead of just GHI from the sky images using machine learning on image features. They hope this kind of irradiance detail helps in estimating GHI in cloudy and partial sunny states more accurately. The Experimental setup includes a fish-eye camera  with sample rate of 10 sec and a pyranometers package next to it that records direct, diffuse and global irradiance every second. 
+\subsection{Image features}
+As image features they calculate several local and global features including: 
+\begin{itemize}
+\item Texture properties of the Grey Level Co-occurrence Matrix (GLCM)
+\item Color statistics (RGB space)
+\item Inter-color relations ( e.g. Red-Blue-Ratio)
+\item Statistics of saturated pixels in circumsolar area in RGB and HSV color space
+\item Derived features like cloud coverage
+\item Solar elevation angle
+\end{itemize}
+For prediction, two k-nearest-neighbor (kNN) models are trained that estimate the clear sky index of diffuse horizontal ($k^{*}_{DHI}$) and direct normal ($k^{*}_{DNI}$) components which are defined as ratio of each component to their clear-sky values obtained from Ineichen's algorithm\cite{Ineichen}.
+Since the initial feature list contained 37 features, for reducing computation time and avoiding over-fitting they apply a feature selection using decision tree feature ranking algorithm to choose the optimal feature set among them. 
+\subsection{irradiance estimation}
+The result of KNN predication for DHI and DNI clear-sky indexes compared to measured values shows a correlation around .085 in Figure \ref{fig:knn_result_Schmidt}. In forecast applications, GHI can be derived from predicted irradiance components using \ref{eq:irr_components}. However, predictability of some of the used image features such as color statistics in this method is not robust enough. This leads to some errors in irradiation forecast.
+
+\begin{figure}[h]
+\caption{Comparing estimated  $k^{*}_{DHI}$ and $k^{*}_{DNI}$ to measured values.  source:\cite{tSchmidt15}}
+\label{fig:knn_result_Schmidt}
+\includegraphics[scale=.44]{schmidt_knn_result}
+%\includegraphics[scale=.2]{schmidt_knn_DNI}
+%\includegraphics[scale=.2]{schmidt_knn_DHI}
+\centering
+\end{figure} 
+ 

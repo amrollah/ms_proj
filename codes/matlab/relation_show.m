@@ -23,8 +23,8 @@ b1=1.14;
 a2=1;
 b2=.78;
 elev=33.5;
+az = 12;  
 
-az = 12;   
 plate_cord = repmat([deg2rad(az),deg2rad(elev),1],[length(irr1),1]);
 [px,py,pz] = sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3));
 plate_cord = [px,py,pz];
@@ -32,13 +32,18 @@ plate_cord = [px,py,pz];
 sun_cords = [sx',sy',sz'];
 nrm=sqrt(sum(abs(cross(sun_cords,plate_cord,2)).^2,2));
 angles = atan2d(nrm, dot(sun_cords,plate_cord,2));
-% effective_DNI = clear_irr'.*max(0,cosd(angles));
 
 DHI1 = irr1 - cosd(zenith).*DNI;
 DHI2 = irr2 - max(0,cosd(zenith+elev)).*DNI;
 
 cal_irr1 = a1*cosd(zenith).*DNI + b1*DHI;
 cal_irr2 = a2*max(0,cosd(angles')).*DNI + b2*DHI;
+
+ind = 2;
+A=[a1*cosd(zenith(ind)) b1;
+   a2*max(0,cosd(angles(ind))) b2];
+dni_dhi = A\[irr1(ind); irr2(ind)]
+
 figure(107);
 subplot(2,2,2);
 plot(irr1,cal_irr1,'.');

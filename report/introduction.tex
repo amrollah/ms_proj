@@ -22,7 +22,7 @@ For predicting the future state of clouds in the sky we need to first know where
 \begin{figure}[h]
 \caption{Cloud segmentation sample}
 \label{fig:cloud_seg}
-\includegraphics[scale=.6]{cloud_segment2}
+\includegraphics[scale=.5]{cloud_segment2}
 \centering
 \end{figure}
 
@@ -47,6 +47,7 @@ Total irradiation is related to other three components with this formula:
 where Z is the solar zenith angle-the angle between the direction of the sun and the line directly overhead.
 Since distinguishing between the reflected and diffuse irradiation is practically hard and also there is not any ground truth value for training, we decided to combine both of them as the diffuse component. Thus, the formula changes to:
 \begin{equation}
+\label{eq:irr_components}
 GHI = DNI \times cos (Z) + DHI
 \end{equation}
 where DHI is sum of all non direct irradiations.
