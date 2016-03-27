@@ -169,13 +169,13 @@ classdef vmlSeq < handle
       end
       
       if ~isempty(obj.Irr)
-          LinkeTurbidity = prep_LinkeTurbidity(obj);
-          UTC_offset = obj.calib.model3D.UTC;
+%           LinkeTurbidity = prep_LinkeTurbidity(obj);
+          UTC_offset = obj.calib.model3D.UTC + 1;
           if ~isdst(datetime(datevec(obj.ti(end)),'TimeZone',obj.conf.timezone))
-            UTC_offset =  UTC_offset - 1;
+            UTC_offset =  UTC_offset;
           end
           times = pvl_maketimestruct(obj.Irr(:,1), UTC_offset);
-          [ClearSkyGHI,ClearSkyDNI,ClearSkyDHI] = pvl_clearsky_ineichen(times,obj.calib.model3D.Location,'LinkeTurbidityInput',LinkeTurbidity);
+          [ClearSkyGHI,ClearSkyDNI,ClearSkyDHI] = pvl_clearsky_ineichen(times,obj.calib.model3D.Location);%,'LinkeTurbidityInput',LinkeTurbidity);
 
           obj.ClearSkyOrigRef = [obj.Irr(:,1),ClearSkyGHI*obj.conf.irr_scale,ClearSkyDNI*obj.conf.irr_scale,ClearSkyDHI*obj.conf.irr_scale]; 
           obj.ClearSkyRef = obj.ClearSkyOrigRef;
@@ -193,7 +193,7 @@ classdef vmlSeq < handle
       obj.ext_calib = load([conf.datafolder conf.calibration{2}]);
       % calculate sun positions for all images and store them in object
       %% TEMP Comment
-      obj.calc_sun_positions();
+      %obj.calc_sun_positions();
       
       %do a median downscale of the image and compute the sky mask...
       [obj.mfi.sm,obj.mfi.xx,obj.mfi.yy] = ...

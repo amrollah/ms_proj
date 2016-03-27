@@ -88,6 +88,11 @@ J.~Kühnert, E.~Lorenz, and D.~Heinemann.
   energy market}.
 \newblock page 504, 2013.
 
+\bibitem{pv_lib_toolbox}
+Sandia~National Laboratories.
+\newblock {PVLIB Toobox v1.2 for Matlab}.
+\newblock 2012.
+
 \bibitem{mcclear_alg}
 M.~Lefèvre, A.~Oumbe, P.~Blanc, B.~Espinar, B.~Gschwind, Z.~Qu, L.~Wald,
   M.~Schroedter-Homscheidt, C.~Hoyer-Klick, A.~Arola, A.~Benedetti, J.~W.

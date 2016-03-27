@@ -72,33 +72,77 @@ The variation of sun color in the images is so much that using Support Vector Ma
 Using these sun states along with the sun position in cloud segmentation algorithm, will lead to better segmentation results close to sun that is particularly a difficult area for cloud segmentation due to highly saturated pixels with different sky or cloud colors. In irradiance estimation which is the main focus of this study, sun position is used to create two specific feature vectors in a bounding circle around the sun. These features are explained section \ref{sec:img-features} in detail.
 
 \subsection{Clear-sky irradiance model}
-Before dealing with the problem of irradiance estimation from cloudy images we should know first know how much the irradiance would be at any time in clear sky conditions when there is no cloud in the sky at all. Fortunately, there are a few number of models which provide irradiance components at each given time for many locations on the Earth. In this study we investigate two of the these methods, Ineichen \cite{clear_sky_model} and McClear \cite{mcclear_alg}. Both of these methods use location coordinates (latitude, longitude) and query time (consisting of year,day,month,day,minute,second) to calculate sun angles internally and return the irradiation based on optic formulas which determine how much sun should reach the ground in as direct sunlight and how much should be scattered in hemisphere and forms the diffuse irradiance. The amount of scattered sunlight is varying throughout the year and also depends on the location, ground albedo\footnote{The fraction of solar energy (shortwave radiation) which is reflected from the Earth back into space. It is a measure of the reflectivity of the earth's surface. Ice, especially with snow on top of it, has a high albedo.} and aerosol parameters including ozone column content, water vapour column content,  optical depth and Angstrom coefficient. Therefore, any model should use some data profiles for various locations and climates to predict irradiance. 
-\subsubsection{Ineichen method}
-Ineichen model statistically and physically relates some irradiance measurements to the aforementioned parameters as Linke Turbidity profiles which are available for different locations . We used the Linke Turbidity values of Bourges \cite{turbidity} which comes as a separate file and is representative for most locations in Europe. However, one might need to use other appropriate Linke Turbidity profiles for locations far from Europe. 
-\subsubsection{McClear method}
-On contrary to this approach, McClear uses a fully physical model that exploits recent aerosol properties, total column content in water vapour and ozone produced by the MACC project (Monitoring Atmosphere Composition and Climate). The MACC project, funded by the European Commission, uses  data of many measurement centers distributed around the world to provide a global aerosol property forecasts together with physically consistent total column content in water vapour and ozone. For the sake of speed, McClear irradiance estimates are pre-computed for the the location of these measurement centers and are interpolated for all other point on th Earth using a look-up table approach. Of course the closer we are to one of these measurement centers, the more accurate McClear estimate will be. The McClear irradiance estimates are available worldwide for every minutes from 2004 to present with 2 days lag under this web service \cite{mcclear_site}. This means that if we want to get the irradiance for today, we need to interpolate data of several days or weeks before to get an estimate for the current time. Nevertheless, one can use the original data of past 2 days for current time as well, since irradiance does not change considerably in two days.
+Before dealing with the problem of irradiance estimation from cloudy images we should know first know how much the irradiance would be at any time in clear sky conditions when there is no cloud in the sky at all. Fortunately, there are a few number of models which provide irradiance components at each given time for many locations on the Earth. In this study we investigate two of the these methods, Ineichen \cite{clear_sky_model} and McClear \cite{mcclear_alg}. Both of these methods use location coordinates (latitude, longitude) and query time (consisting of year,day,month,day,minute,second) to calculate sun angles internally and return the irradiation based on optic formulas which determine how much sun should reach the ground in as direct sunlight and how much should be scattered in hemisphere and forms the diffuse irradiance. The amount of scattered sunlight is varying throughout the year and also depends on the location, ground albedo\footnote{The fraction of solar energy (shortwave radiation) which is reflected from the Earth back into space. It is a measure of the reflectivity of the earth's surface. Ice, especially with snow on top of it, has a high albedo.} and aerosol parameters including pressure, ozone column content, water vapour column content,  optical depth and Angstrom coefficient. 
 
-\subsubsection{Comparison of estimation results}
-To evaluate performance of these two clear-sky models we choose several days which have a significant clear part during the day (just because complete clear days are very rare). The chosen days should be from different months of year in order to represent performance of models for the whole year better. Figure shows the irradiance estimation of both models plotted on top of the actual measurements for one summer day and one winter day.
+\subsubsection{Ineichen method}
+Ineichen model statistically and physically relates some irradiance measurements to the aforementioned parameters as Linke Turbidity profiles which are available for different locations . We used the default Linke Turbidity values which come as a separate file in PV-Lib toolbox \cite{pv_lib_toolbox} in Matlab and is representative for most locations in Europe. However, one might need to use other appropriate Linke Turbidity profiles for other locations to get more accurate results.
+ 
+\subsubsection{McClear method}
+On contrary to this approach, McClear uses a fully physical model that exploits recent aerosol properties, total column content in water vapour and ozone produced by the MACC project (Monitoring Atmosphere Composition and Climate). The MACC project, funded by the European Commission, uses  data of many Numerical Weather Prediction (NWP) centers distributed around the world to provide a global aerosol property forecasts together with physically consistent total column content in water vapour and ozone. In other words, since McClear uses synthetic data of NWP's, it does not depend on any local atmospheric observations for irradiance prediction. For the sake of speed, McClear irradiance estimates are pre-computed for the the location of these measurement centers and are interpolated for all other point on th Earth using a look-up table approach. Of course the closer we are to one of these measurement centers, the more accurate McClear estimate will be. The McClear irradiance estimates are available worldwide for every minutes from 2004 to present with 2 days lag under this web service \cite{mcclear_site}. This means that if we want to get the irradiance for today, we need to interpolate data of several days or weeks before to get an estimate for the current time. Nevertheless, one can use the original data of past 2 days for current time as well, since irradiance does not change considerably in two days.
+
+\subsubsection{Comparison of simulation results}
+To evaluate performance of these two clear-sky models we choose several days which have a significant clear part during the day (just because complete clear days are very rare). The chosen days should be from different months of year in order to represent performance of models for the whole year better. After observing the irradiance logs and images for verification, the following days were selected for comparison: 2015/07/19, 2015/08/03, 2015/09/21, 2015/10/24, 2015/11/24 and 2016/02/05. As an example, simulated GHI of three days are plotted in Figure \ref{fig:mcclear_vs_Ineichen_days} next to the observation. 
 
 \begin{figure}[h]
-\caption{Irradiance estimation of McClear vs Ineichen vs real data on 3th August 2015}
-\label{fig:mcclear_to_Ineichen}
-\includegraphics[scale=.6]{mcclear}
+\caption{GHI estimation of McClear vs Ineichen vs observation}
+\label{fig:mcclear_vs_Ineichen_days}
+\includegraphics[scale=.2]{2015_07_19_irr}
+\includegraphics[scale=.2]{2015_10_24_irr}
+\includegraphics[scale=.2]{2016_02_05_irr}
 \centering
 \end{figure}
 
+As it can be seen, both methods can predict the shape of irradiance curve very accurately around the year, but both have biases in the result such that the simulated values are always smaller than observed ones. During the summer days, McClear and  Ineichen results are biased almost equally, and as we get closer to winter days, the bias of McClear gets smaller and bias of Ineichen get slightly bigger. 
+Figure \ref{fig:mcclear_to_Ineichen} shows the correlation of simulated GHI of both models plotted with respect to the actual measurements of all of the examined days.
+
+\begin{figure}[h]
+\caption{Correlation of GHI simulation of McClear and Ineichen with observations on selected days}
+\label{fig:mcclear_to_Ineichen}
+\includegraphics[scale=.7]{mcclear_inceichen}
+\centering
+\end{figure}
+
+This plot again shows that the bias of McClear and Ineichen for large values of GHI is the same, and for small GHI values McClear result is closer to the observed irradiance. however, it also suggests that since Ineichen methods has lower variation in terms of bias, this bias can be compensated with a scaling factor more easily than the bias of McClear which shows larger variation throughout the year. Note that, the outliers in this figure are representing cloudy times. Furthermore, this bias of Ineichen method is strongly related to the Turbidity factors that are neglected in our case by using the default values. It would be not surprising to see smaller bias if one uses Turbidity factors which are verified for the location of PV plant. The correlation of DNI and DHI values of both methods are illustrated in Figure \ref{fig:mcclear_vs_Ineichen_DNI_DHI}. One can see that DNI is predicted much higher in Ineichen method and DHI is also simulated slightly higher than McClear values. This behavior is intensified during autumn for DNI, but it is not varying a lot for DHI. Since we do not have observation values of DHI and DNI, we cannot compare correlation of methods' results to the observed values in this figure.  However, we can hypothesize than during a complete sunny day, if at a very short time (i.e. seconds) a cloud covers the sun completely, the direct irradiance (DHI) is almost zero and all the irradiation only comes from DHI source which is the scattered light in the sky. Therefore, we can use our GHI irradiance observations as DHI and compare it to the DHI simulated values for that particular time. 
 
 
+\begin{figure}[h]
+\caption{DNI and DHI correlation of McClear to Ineichen}
+\label{fig:mcclear_vs_Ineichen_DNI_DHI}
+\includegraphics[scale=.4]{mcclear_inceichen_DHI}
+\includegraphics[scale=.4]{mcclear_inceichen_DNI}
+\centering
+\end{figure}
 
-ii.	clear-sky DNI is a good approximation for actual DNI. Showing some clear or cloudy days to prove this point.
+In Figure \ref{fig:McClear_DHI_vs_ineichen} this has been shown for a moment around 13:00 which sun is occluded by a small thick cloud and therefore, GHI is dropped rapidly to a value close to 150 which is very close to simulated DHI values from McClear and Ineichen methods. Also, there is no other cloud in the sky to influence the DHI component. Furthermore, the simulated DHI values are very close to each other at any time and resemble the shape of GHI relatively well during whole day. Thus, we can conclude that these models can predict DHI with good accuracy, and since DNI is a function of GHI and DHI according to Eq \ref{eq:irr_components}, DNI values calculated from McClear and Ineichen models are also accurate enough and for our application. This hypothesize has been verified by looking at many other data points where GHI observation gets very close to DHI simulation values and there is a cloud obstructing the direct sun light.
 
+\begin{figure}[h]
+\caption{Comparison of DHI of McClear and Ineichen to observed GHI}
+\label{fig:McClear_DHI_vs_ineichen}
+\includegraphics[scale=.5]{McClear_DHI_vs_ineichen}
+\centering
+\end{figure}
+
+We know  that DNI should be always larger than DHI during clear-sky condition. Looking at Figure \ref{fig:clean_sky_day_irr}, pattern of changes in the simulated values of DNI and DHI during a day confirms this condition too.
+
+\begin{figure}[h]
+\caption{Variation of irradiance components during day}
+\label{fig:clean_sky_day_irr}
+\includegraphics[scale=.5]{clean_sky_day}
+\centering
+\end{figure}
+
+\subsubsection{Choosing the clear-sky model}
+As we discuss in this chapter, McClear and Ineichen models both predict the clear-sky irradiance components relatively accurately,however the bias for Ineichen method is more robust and manageable than McClear bias. Furthermore, obtaining the McClear values requires downloading the irradiance files from their web service since there is not offline library for calculating them. All this considered together, we decided to use Ineichen as the clear-sky irradiance model for this study. The scaling factor for compensating the bias in Ineichen is set to 1.08 which is empirically calculated based on several clear day observations.
 
 \subsection{Estimating diffuse from pyranometers}
-Using clearsun-flag and clear-sky DNI for calculating diffuse from tilted plate
+
+Using clear-sun-flag and clear-sky DNI for calculating diffuse from tilted plate
+ 
+ii.	clear-sky DNI is a good approximation for actual DNI. Showing some clear or cloudy days to prove this point.
+
 We only consider images with complete visible sun or no sun at all.
-ii.	Comparing tilted diffuse with diffuse from the main irradiance plate, then correcting tilted diffuse. Showing its robustness.
-Show the result of relation of DNI DHI to irr1 irr2 with plots.
+ii.	Comparing tilted diffuse with diffuse from the main irradiance plate, (then correcting tilted diffuse??). Showing its robustness.
+Show the result of relation of DNI DHI to irr1 irr2 with plots.my  recent work.
 
 \subsection{Key image features affecting DHI}
 \label{sec:img-features}
@@ -118,7 +162,7 @@ Compare to other method to regress, or penalty [no result]
 
 \subsection{Translating irradiance to power}
 \subsubsection{Estimating shadow ratio on the plant site}
-refer to Figure \ref{fig:overall_system_design_powe}.
+refer to Figure \ref{fig:overall_system_design_power}.
 Projecting plant coordinates into the sky using assumed cloud height
 Adaptation to smooth changes of power by using the histogram of irradiance over past 30 minutes
 \begin{figure}[h]

@@ -1,0 +1,23 @@
+\select@language {english}
+\addvspace {10pt}
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Cloud segmentation sample}}{5}{figure.1.1}
+\contentsline {figure}{\numberline {1.2}{\ignorespaces Irradiance components}}{7}{figure.1.2}
+\addvspace {10pt}
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Three different zones identified in images (sun, cloud, sky)}}{10}{figure.2.1}
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Correlation between estimated DNI and recorded DNI.}}{10}{figure.2.2}
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Comparing estimated $k^{*}_{DHI}$ and $k^{*}_{DNI}$ to measured values. source:\cite {tSchmidt15}}}{14}{figure.2.3}
+\addvspace {10pt}
+\contentsline {figure}{\numberline {3.1}{\ignorespaces wide-angle camera system used at Carviglia site}}{16}{figure.3.1}
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Two pyranometers (one horizontal, one 45 degrees titled to north) located close to the camera location}}{16}{figure.3.2}
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Sun position angles. source:\cite {sun_angle_pic}}}{18}{figure.3.3}
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Different sun states, from left to right: sun flag=4, 3, 2, 1 respectively.}}{19}{figure.3.4}
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Variation of sun appearance in the images.}}{20}{figure.3.5}
+\contentsline {figure}{\numberline {3.6}{\ignorespaces GHI estimation of McClear vs Ineichen vs observation}}{24}{figure.3.6}
+\contentsline {figure}{\numberline {3.7}{\ignorespaces Correlation of GHI simulation of McClear and Ineichen with observations on selected days}}{25}{figure.3.7}
+\contentsline {figure}{\numberline {3.8}{\ignorespaces DNI and DHI correlation of McClear to Ineichen}}{26}{figure.3.8}
+\contentsline {figure}{\numberline {3.9}{\ignorespaces Comparison of DHI of McClear and Ineichen to observed GHI}}{26}{figure.3.9}
+\contentsline {figure}{\numberline {3.10}{\ignorespaces Variation of irradiance components during day}}{27}{figure.3.10}
+\contentsline {figure}{\numberline {3.11}{\ignorespaces Overall simple system design for power prediction}}{27}{figure.3.11}
+\addvspace {10pt}
+\addvspace {10pt}
+\addvspace {10pt}

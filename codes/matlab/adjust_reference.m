@@ -1,9 +1,9 @@
 function [ irr ] = adjust_reference(obj,irr)
 %ADJUST MCCLEAR clear sky model estimated values to compensate for bias
     irr = irr.*obj.conf.irr_scale;
-    if obj.conf.adaptive_clearsky_reference
-        irr=adaptive_adjust(irr);
-    end
+%     if obj.conf.adaptive_clearsky_reference
+%         irr=adaptive_adjust(irr);
+%     end
     function [ref_irr] = adaptive_adjust(ref_irr)
         for i=1:length(ref_irr)
             if ref_irr(i)<1
