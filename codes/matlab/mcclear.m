@@ -2,26 +2,26 @@ close all; clear all; clc;
 
 %% Path of data
 % folder of McClear export files
-mcclear_path = 'C:\data\mcclear\';
+mcclear_path = 'E:\ABB\';
 % base folder for Cavriglia image and data files
 cav_data_path = 'U:\HDRImages_Cavriglia\img\';
-local_cav_data_path = 'C:\data\cav\';
+local_cav_data_path = 'E:\ABB\cav\img\';
 
 %% set the date for comparison
-date = '2015_07_17';
+date = '2015_08_03';
 
 %% read McClear data file (estimated data)
-filename_mcclear = strcat(mcclear_path, 'irradiation-clear_sky_cav_2015_till_september_v2.csv');
+filename_mcclear = strcat(mcclear_path, 'McClear_July_to_Feb.csv');
 fid = fopen(filename_mcclear);
-mc_data = textscan(fid,'%s%s%f%f%f%f%f%f%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f%s','delimiter',';');
+mc_data = textscan(fid,'%s%s%s%s%f%f%f%f%f','delimiter',';');
 fclose(fid);
 
 %% read PV log data file (real data)
-log_file = strcat(local_cav_data_path, date, '_data.log');
-if ~exist(log_file, 'file')
-    filename_log = strcat(cav_data_path, date, '\', date, '_data');
-    [status,result] = system(['"C:\Program Files\7-Zip\7z.exe" -y x ' '"' filename_log '.7z"' ' -o' '"' local_cav_data_path '"']); 
-end
+log_file = strcat(local_cav_data_path, date, '\', date, '_data.log');
+% if ~exist(log_file, 'file')
+%     filename_log = strcat(cav_data_path, date, '\', date, '_data');
+%     [status,result] = system(['"C:\Program Files\7-Zip\7z.exe" -y x ' '"' filename_log '.7z"' ' -o' '"' local_cav_data_path '"']); 
+% end
 fid = fopen(log_file);
 log_data = textscan(fid,'%s%s%f%f%f%f%f%f','delimiter',' ');
 fclose(fid);
@@ -64,8 +64,9 @@ while i<=n
     while ~strcmp(mc_data{1,1}(idx), log_data{1,1}(last_i)) || ~strcmp(mc_data{1,2}(idx), mcclear_tim) 
        idx = idx + 1;
     end
-    data_est(counter,1) = mc_data{1,5}(idx)*60; % direct beam irradiation
-    data_est(counter,2) = mc_data{1,6}(idx)*60; % diffuse irradiation
+    data_est(counter,1) = mc_data{1,7}(idx)*60; % direct beam irradiation
+    data_est(counter,2) = mc_data{1,8}(idx)*60; % diffuse irradiation
+    data_est(counter,3) = mc_data{1,6}(idx)*60; % total irradiation
     counter = counter + 1;
 end
 

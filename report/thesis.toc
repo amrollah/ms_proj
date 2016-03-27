@@ -23,12 +23,15 @@
 \contentsline {subsection}{\numberline {3.0.1}Experimental Setup}{13}{subsection.3.0.1}
 \contentsline {subsection}{\numberline {3.0.2}Acquired Data}{15}{subsection.3.0.2}
 \contentsline {subsection}{\numberline {3.0.3}Sun positions and sun states in image}{15}{subsection.3.0.3}
-\contentsline {subsection}{\numberline {3.0.4}Clear-sky irradiance model}{18}{subsection.3.0.4}
-\contentsline {subsection}{\numberline {3.0.5}Estimating diffuse from pyranometers}{18}{subsection.3.0.5}
-\contentsline {subsection}{\numberline {3.0.6}Key image features affecting DHI}{18}{subsection.3.0.6}
-\contentsline {subsubsection}{Discuss cloud coverage geometrical polar feature around sun and also the whole image}{18}{section*.2}
-\contentsline {subsubsection}{Discuss saturation detection algorithm and its results}{18}{section*.3}
-\contentsline {subsection}{\numberline {3.0.7}Learning the relation between image features and DHI}{18}{subsection.3.0.7}
-\contentsline {subsection}{\numberline {3.0.8}Translating irradiance to power}{18}{subsection.3.0.8}
-\contentsline {subsubsection}{Estimating shadow ratio on the plant site}{18}{section*.4}
-\contentsline {chapter}{Bibliography}{19}{section*.6}
+\contentsline {subsection}{\numberline {3.0.4}Clear-sky irradiance model}{17}{subsection.3.0.4}
+\contentsline {subsubsection}{Ineichen method}{18}{section*.2}
+\contentsline {subsubsection}{McClear method}{19}{section*.3}
+\contentsline {subsubsection}{Comparison of estimation results}{19}{section*.4}
+\contentsline {subsection}{\numberline {3.0.5}Estimating diffuse from pyranometers}{19}{subsection.3.0.5}
+\contentsline {subsection}{\numberline {3.0.6}Key image features affecting DHI}{19}{subsection.3.0.6}
+\contentsline {subsubsection}{Discuss cloud coverage geometrical polar feature around sun and also the whole image}{20}{section*.5}
+\contentsline {subsubsection}{Discuss saturation detection algorithm and its results}{20}{section*.6}
+\contentsline {subsection}{\numberline {3.0.7}Learning the relation between image features and DHI}{20}{subsection.3.0.7}
+\contentsline {subsection}{\numberline {3.0.8}Translating irradiance to power}{20}{subsection.3.0.8}
+\contentsline {subsubsection}{Estimating shadow ratio on the plant site}{20}{section*.7}
+\contentsline {chapter}{Bibliography}{23}{section*.9}
