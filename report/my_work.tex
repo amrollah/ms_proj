@@ -181,25 +181,26 @@ DHI =
     \end{cases}
 \end{equation}
 
-where GHI is the observed total irradiance by the sensor, $angle=\theta$ for tilted sensor and $angle=zenith_{sun}$ for the horizontal sensor. Note that our experiment dataset is pruned to only contain image samples from these two sun-flags. Furthermore, we do not consider images for early morning (i.e before 8) and very late evening (i.e. after 19) for our training, since the GHI in those moments is very low -less than 100- which makes them insignificant for power generation and not interesting for our application. Plus that the pattern of sun in the horizon widely varies and result in unusual errors in our algorithms. Since the exact tilt angle of sensor 2 and its azimuth to the north is not given for sure, we need to evaluate a range of possible values to find the angles that bring results with less error during sunny days compared to $DHI_{clear\_sky}$.  The optimal angles found to be \textbf{56.5} degrees for zenith and \textbf{0.7} degrees for azimuth. 
+where GHI is the observed total irradiance by the sensor, $angle=\theta$ for tilted sensor and $angle=zenith_{sun}$ for the horizontal sensor. Note that our experiment dataset is pruned to only contain image samples from these two sun-flags. Furthermore, we do not consider images for early morning (i.e before 8) and very late evening (i.e. after 19) for our training, since the GHI in those moments is very low -less than 100- which makes them insignificant for power generation and not interesting for our application. Plus that the pattern of sun in the horizon widely varies and result in unusual errors in our algorithms. Since the exact tilt angle of sensor 2 and its azimuth to the north is not given for sure, we need to evaluate a range of possible values to find the angles that bring results with less error during sunny days compared to $DHI_{clear\_sky}$.  The optimal angles found to be \textbf{57.5} degrees for zenith and \textbf{-0.7} degrees for azimuth. 
 In Figure \ref{fig:calc_DHI_day}, calculated DHI values for a sunny summer and a sunny winter day are shown.
 
 \begin{figure}[h]
 \caption{Calculated DHI}
 \label{fig:calc_DHI_day}
-\includegraphics[scale=.5]{Overall_Simple_System_Design}
+\includegraphics[scale=.4]{DHI_calced}
+\includegraphics[scale=.8]{DHI_calced_winter}
 \centering
 \end{figure}
 
-As we can see the DHI values of tilted sensor show more robustness compared to values of horizontal sensor. The reason is some complex effects of clouds on DNI which we are not considering for so far. The shadowed tilted sensor is more immune to this DNI variation. Therefore, we decided to use DHI of titled sensor as actual DHI for both sensors on further calculations.
+As we can see the DHI values of tilted sensor show more robustness compared to values of horizontal sensor. The reason is some complex effects of clouds on DNI which we are not considering for so far. The shadowed tilted sensor is more immune to this DNI variation.  Even though during the winter days, the calculated DHI for horizontal sensor is closer to clear-sky DHR, but the DHI of tilted sensor shows more robustness to cloud condition variations. Therefore, we decided to use DHI of titled sensor as actual DHI for both sensors on further calculations.
 
 We also experimented reconstruction of observed irradiances for both sensors based on calculated DHI values (from tilted sensor), assumed DNI values and respective angles using Eq \ref{eq:GHI_reconstruct} . 
 
 \begin{equation}
 \label{eq:GHI_reconstruct}
-\left[ \begin{array}{c} GHI_1 \\ GHI_2 \end{array} \right] = \begin{bmatrix} a_1 \times cos(zenith) & b_1 \\ a_2 \times max(0,cos(\theta)) & b_2 \end{bmatrix} \times \left[ \begin{array}{c} DNI \\ DHI \end{array} \right]
+\left[ \begin{array}{c} GHI_1 \\ GHI_2 \end{array} \right] = \begin{bmatrix} a_1 \times cos(zenith) & b_1 \\ a_2 \times max(0, cos(\theta)) & b_2 \end{bmatrix} \times \left[ \begin{array}{c} DNI \\ DHI \end{array} \right]
 \end{equation}
-where $GHI_1$ is irradiance reconstructed for horizontal senor (1), $GHI_2$ is the tilted sensor irradiance, $\theta$ is the angle between sun and tilted sensor normal, $a_1, a_2, b_1, b_2$ are constant values needed to be tuned for the best fit in result. For reconstruction we evaluated different values in range of 5 to 60 to find zenith and azimuth of the tilted sensor which result in best fit. The optimal angles found to be \textbf{56.5} degrees for zenith and \textbf{11.5} degrees for azimuth.
+where $GHI_1$ is irradiance reconstructed for horizontal senor (1), $GHI_2$ is the tilted sensor irradiance, $\theta$ is the angle between sun and tilted sensor normal, $a_1, a_2, b_1, b_2$ are constant values needed to be tuned for the best fit in result. For reconstruction we evaluated different values in range of 5 to 60 to find zenith and azimuth of the tilted sensor which result in best fit. Also, for the constant parameters the following values worked best: $a_1=0.9, a_2=1, b_1=1.14, b_2=0.78$. The optimal angles found to be \textbf{56.5} degrees for zenith and \textbf{11.5} degrees for azimuth which is different for the azimuth we used for obtaining the DHI values before (i.e. -0.7). However, we are only interested in reconstructing GHI for the horizontal sensor which does not depend on tilted sensor azimuth according to the aforementioned equation.
 
 The correlation of reconstruction result to actual GHI values is shown in Figure \ref{fig:GHI_reconstruct_result} and proves that GHI values of horizontal (and tilted) sensor can be estimated using a simple DNI model and DHI of tilted sensor.
 
@@ -207,14 +208,16 @@ The correlation of reconstruction result to actual GHI values is shown in Figure
 \begin{figure}[h]
 \caption{Calculated GHI based on DHI and DNI for both sensors}
 \label{fig:GHI_reconstruct_result}
-\includegraphics[scale=.5]{Overall_Simple_System_Design}
-\includegraphics[scale=.5]{Overall_Simple_System_Design}
+\includegraphics[scale=.5]{GHI_reconstructed}
 \centering
 \end{figure}
 
-The idea is that as we limit the effect of clouds on DNI by assuming ($DNI=0$) or $DNI=DNI_{clear\_sky}$ in occlusion or not occlusion situations, the only part that clouds can affect GHI is through DHI. In next section we investigate characteristic of clouds in images to understand this effect better.
+The hope was that by using the tuned version of Eq \ref{eq:GHI_reconstruct} and feeding it with GHI measurements of both irradiance sensors ( $GHI_1$ and  $GHI_2$) , we would be able to estimate DNI and DHI by multiplying GHI to inverse of coefficient matrix. In other word, we would be able to determine DHI and DNI for any situation including sun-flag=2 and sun-flag=3 which we excluded earlier for convenience. However, the results of this experiment was not satisfactory to hold our hypothesize. This could partially be due to the fact we are using DHI of tilted sensor instead of DNI of sensor 1 in this equation. Anyways,   the result of DHI and DNI for sun-flag=1 and 4 is still valid and we should now try to estimate these values from images.
+
+The idea is that as we limit the effect of clouds on DNI by assuming ($DNI=0$) or $DNI=DNI_{clear\_sky}$ in occlusion or not occlusion situations, the only way that clouds can affect GHI is through DHI variations. In next section we investigate characteristic of clouds in images to understand this effect better.
 
 \subsection{Key image features affecting DHI}
+
 \label{sec:img-features}
 iii.	Investigate different parameters which affect diffuse
 \subsubsection{Discuss cloud coverage geometrical polar feature around sun and also the whole image}
@@ -225,8 +228,8 @@ iv.	Show their correlation to diffuse, discuss cases based on images and corresp
 
 
 \subsection{Learning the relation between image features and DHI}
-Regression, or svorim method for estimation
-Compare to other method to regress, or penalty [no result]
+Knn Regression method for estimation
+Compare to other method to regress such as svm-regress, svorim, or penalty [no result]
 
 
 

@@ -21,9 +21,29 @@ classdef vml < vmlSeq
                 obj.data.zenith = zenith;
                 obj.data.ti_azimuth = azimuth;
                 obj.data.ti_IrrClear = [obj.data.ti', ti_ClearSkyGHI, ti_ClearSkyDNI, ti_ClearSkyDHI];
+                %dirty fix
+                irr1 = interp1(obj.data.Irr(:,1),obj.data.Irr(:,2),obj.data.ti);
+                irr2 = interp1(obj.data.Irr(:,1),obj.data.Irr(:,3),obj.data.ti);
+                obj.data.Irr = [obj.data.ti;irr1;irr2]';
                 
                 obj.calc.Irr = NaN(length(obj.data.ti),4);
                 obj.calc.Irr(:,1) = obj.data.ti(:);
+                diffuse = obj.data.Irr(:,2)-obj.data.ti_IrrClear(:,3).*cosd(obj.data.zenith);
+                obj.calc.Irr(:,2) = diffuse;
+                
+                elev = 33.5;
+                az = -.7;  
+                plate_cord = repmat([deg2rad(az),deg2rad(elev),1],[length(azimuth),1]);
+                [px,py,pz] = sph2cart(plate_cord(:,1),plate_cord(:,2),plate_cord(:,3));
+                plate_cord = [px,py,pz];
+                [sx,sy,sz] = sph2cart(deg2rad(azimuth),deg2rad(90-zenith),ones(size(azimuth)));
+                sun_cords = [sx,sy,sz];
+                nrm=sqrt(sum(abs(cross(sun_cords,plate_cord,2)).^2,2));
+                angles = atan2d(nrm, dot(sun_cords,plate_cord,2));
+                tilted_diffuse = obj.data.Irr(:,3)-obj.data.ti_IrrClear(:,3).*max(0,cosd(angles));
+                obj.calc.Irr(:,3) = tilted_diffuse;
+                obj.plot_diffuse
+
             end
         end
         
@@ -106,6 +126,19 @@ classdef vml < vmlSeq
         end
 
 
+        function y = get_tilted_DiffuseIrr(obj,t,tpred)
+          %get the irradiation data for time(s) t
+          if nargin<2
+              y = obj.calc.Irr(:,2);
+              return;
+          elseif any(t<obj.data.ti(1)-1), t=obj.data.ti(t); 
+          end
+          if nargin>=3, t = t+tpred/86400; end
+          [~, idt] = arrayfun(@(ti) min(abs(obj.calc.Irr(:,1)-ti)),t);
+          y = obj.calc.Irr(idt,3);
+        end
+
+        
         function plot45irr(obj)
           %plot the irradiation profiles
           plot(obj.data.ti,obj.getIrrClear(obj.data.ti),'bl', obj.data.ti,obj.getIrr(obj.data.ti),'r',...
@@ -116,6 +149,25 @@ classdef vml < vmlSeq
           grid on;
           datetickzoom;
         end
+        
+        function plot_diffuse(obj)
+          %plot the irradiation profiles
+          figure(15);
+          h(1)=plot(obj.data.ti,obj.get45Irr(obj.data.ti),'b--');
+          hold on;
+          h(2)=plot(obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'g--');
+          h(3)=plot(obj.data.ti,obj.getDiffuseIrr(obj.data.ti),'r--');
+          h(4)=plot(obj.data.ti,obj.get_tilted_DiffuseIrr(obj.data.ti),'k--');
+          legend([h(1),h(2),h(3),h(4)],{'GHI tilted sensor'; 'DHI clear-sky'; 'calculated DHI sensor 1'; 'calculated DHI tilted sensor'}); 
+          ylim = get(gca,'ylim'); ylim(1) = 0;
+          set(gca,'ylim',ylim);
+          grid on;
+          datetickzoom;
+          xlabel('Time');
+          ylabel('Irradiance (W/m^2)');
+          title(['Irradiance observed vs calculated on ' strrep(obj.data.day,'_','/')]);
+        end
+        
 
         function plot_tilted(obj)
           %plot the irradiation profiles
