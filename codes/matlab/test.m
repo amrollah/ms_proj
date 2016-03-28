@@ -105,21 +105,33 @@
 %     save(['D:\abb_data\cc_data',num2str(rr), '.mat'], 'ccp');
 % end
 % % load('D:\abb_data\cc_data.mat','cc');
-cc_all = cellfun(@(d) sum(d.cc_fact), data);
-clouds = cellfun(@(d) d.clouds, data);
-time = cellfun(@(d) d.time, data);
-TV  = datevec(time);
-mm=mean(TV(inx,4:5));
-inx = find(isnan(cc_all));
-img_save_path = 'E:\ABB\cav\diffuse\';
-img_save_path2 = 'E:\ABB\cav\diffuse_cc_0\';
-for pp=1:length(inx)
-    disp(pp);
-    d=data{inx(pp)};
-    nan_idx=find(isnan(d.cc_fact));
-    d.cc_fact(nan_idx)=100;
-    data{inx(pp)}=d;
-%     disp(tm(4:5));
-%     filename=[d.day '__' num2str(d.j) '.jpeg'];
-%     copyfile([img_save_path filename],strcat(img_save_path2,filename));  
-end
+% cc_all = cellfun(@(d) sum(d.cc_fact), data);
+% clouds = cellfun(@(d) d.clouds, data);
+% time = cellfun(@(d) d.time, data);
+% TV  = datevec(time);
+% mm=mean(TV(inx,4:5));
+% inx = find(isnan(cc_all));
+% img_save_path = 'E:\ABB\cav\diffuse\';
+% img_save_path2 = 'E:\ABB\cav\diffuse_cc_0\';
+% for pp=1:length(inx)
+%     disp(pp);
+%     d=data{inx(pp)};
+%     nan_idx=find(isnan(d.cc_fact));
+%     d.cc_fact(nan_idx)=100;
+%     data{inx(pp)}=d;
+% %     disp(tm(4:5));
+% %     filename=[d.day '__' num2str(d.j) '.jpeg'];
+% %     copyfile([img_save_path filename],strcat(img_save_path2,filename));  
+% end
+% close(1);
+figure(1);
+data1 = randn(1,1e5); %// example data
+data2 = randn(1,1e5) + .5*data1; %// example data correlated to above
+values = hist3([data1(:) data2(:)],[51 51]);
+imagesc(values)
+newmap = jet;
+newmap(1,:) = [1 1 1];
+colormap(newmap);    
+colorbar
+axis equal
+axis xy

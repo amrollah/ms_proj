@@ -31,6 +31,7 @@ The pyranometers measure GHI values with the sample rate of 6 seconds. The tempe
 
 
 \subsection{Sun positions and sun states in image}
+\label{sec:sun-states}
 Knowing position of sun is very important both in cloud segmentation and in irradiance estimation. First of all, since our images are from a wide-angle fisheye lens, they need to be transformed into geometric coordinates by an un-distortion algorithm to make them ready for further image processing steps including sun position, cloud segmentation and etc. This can be done by multiplying the raw image coordinates to camera transformation matrix which consists of intrinsic and extrinsic parameters of the camera system. As described in section \ref{sec:image_undistortion_schmidt}, intrinsic parameters are calculated using image of a chessboard\cite{fisheye_undistort} and extrinsic parameters are estimated using Kabsch algorithm\cite{Kabsch_alg} based on position of the sun appeared in the image versus the expected position of sun in image. The theoretical sun positions are calculated for the location of our PV plant site at every image time-stamp using NREL algorithm \cite{our_sun_position} in Matlab represented in unit sphere polar coordinates. As shown in Figure \ref{fig:sun_position_angles} this position is described as two angles (zenith and azimuth) which are converted to Cartesian coordinates using sphere to Cartesian conversion and later on are scaled to the image size to correspond with an image pixel. That pixel will be assumed as center of the sun.
 
 \begin{figure}[h]
@@ -80,7 +81,8 @@ Ineichen model statistically and physically relates some irradiance measurements
 \subsubsection{McClear method}
 On contrary to this approach, McClear uses a fully physical model that exploits recent aerosol properties, total column content in water vapour and ozone produced by the MACC project (Monitoring Atmosphere Composition and Climate). The MACC project, funded by the European Commission, uses  data of many Numerical Weather Prediction (NWP) centers distributed around the world to provide a global aerosol property forecasts together with physically consistent total column content in water vapour and ozone. In other words, since McClear uses synthetic data of NWP's, it does not depend on any local atmospheric observations for irradiance prediction. For the sake of speed, McClear irradiance estimates are pre-computed for the the location of these measurement centers and are interpolated for all other point on th Earth using a look-up table approach. Of course the closer we are to one of these measurement centers, the more accurate McClear estimate will be. The McClear irradiance estimates are available worldwide for every minutes from 2004 to present with 2 days lag under this web service \cite{mcclear_site}. This means that if we want to get the irradiance for today, we need to interpolate data of several days or weeks before to get an estimate for the current time. Nevertheless, one can use the original data of past 2 days for current time as well, since irradiance does not change considerably in two days.
 
-\subsubsection{Comparison of simulation results}
+\subsubsection{Comparison of clear-sky simulation results}
+\label{sec:compare-clear-sky-result}
 To evaluate performance of these two clear-sky models we choose several days which have a significant clear part during the day (just because complete clear days are very rare). The chosen days should be from different months of year in order to represent performance of models for the whole year better. After observing the irradiance logs and images for verification, the following days were selected for comparison: 2015/07/19, 2015/08/03, 2015/09/21, 2015/10/24, 2015/11/24 and 2016/02/05. As an example, simulated GHI of three days are plotted in Figure \ref{fig:mcclear_vs_Ineichen_days} next to the observation. 
 
 \begin{figure}[h]
@@ -122,7 +124,7 @@ In Figure \ref{fig:McClear_DHI_vs_ineichen} this has been shown for a moment aro
 \centering
 \end{figure}
 
-We know  that DNI should be always larger than DHI during clear-sky condition. Looking at Figure \ref{fig:clean_sky_day_irr}, pattern of changes in the simulated values of DNI and DHI during a day confirms this condition too.
+We know that DNI should be always larger than DHI during clear-sky condition. Looking at Figure \ref{fig:clean_sky_day_irr}, pattern of changes in the simulated values of DNI and DHI during a day confirms this condition too.
 
 \begin{figure}[h]
 \caption{Variation of irradiance components during day}
@@ -135,12 +137,44 @@ We know  that DNI should be always larger than DHI during clear-sky condition. L
 As we discuss in this chapter, McClear and Ineichen models both predict the clear-sky irradiance components relatively accurately,however the bias for Ineichen method is more robust and manageable than McClear bias. Furthermore, obtaining the McClear values requires downloading the irradiance files from their web service since there is not offline library for calculating them. All this considered together, we decided to use Ineichen as the clear-sky irradiance model for this study. The scaling factor for compensating the bias in Ineichen is set to 1.08 which is empirically calculated based on several clear day observations.
 
 \subsection{Estimating diffuse from pyranometers}
+After picking the suitable clear-sky model, we can predict the irradiance components for any given day in clear-sky conditions, but for determining the irradiation in cloudy conditions we need to first detect them and then find a relation between cloud states in the sky and the observed irradiance. Since GHI is composed of DHI and DNI, and because we want to get some hints from the images for determining GHI, the reasonable approach is to first estimate DNI and DHI values and then construct the GHI from them using sun zenith angle and Eq \ref{eq:irr_components}. Thus, for the learning algorithm we need DNI and DHI observations to relate them to image features. Ideally, we would have DHI and DNI observations separately along the GHI values from an advanced irradiance sensor\footnote{This type of pyranometers such as Zonen CM11 have a dynamic shade-band along the sun path to make sure that the sensor is always in shadow, this recording only DHI component. Then DNI can be computed from GHI and DHI or by using another type of pyranometer such as Eppley NIP.}, but in our experimental setup only GHI values are observed in horizontal and 40 degrees north. The idea behind putting one of the pyranometers tilted towards north is that based on sun path from an observant in that regions of the world, tilted surfaces toward the north do not get direct sun light during most of the day. That's why the PV plates are tilted towards the south to get more sunlight. The sun path at Cavriglia can be seen in Figure \ref{fig:cavriglia_sun_path}. There is a simple geometric rule that confirms this idea. If the angle between sun and the normal vector of a surface is greater than or equal to 90 degrees, sun rays which are coming straight from sun will not hit the surface. This condition will hold for many times during a day for the sensor with around 40 degrees tilt toward north.
 
-Using clear-sun-flag and clear-sky DNI for calculating diffuse from tilted plate
+\begin{figure}[h]
+\caption{The sun path during a spring day at Cavriglia, Italy, location of ABB PV plant.}
+\label{fig:cavriglia_sun_path}
+\includegraphics[scale=.5]{cavriglia_sun_path}
+\centering
+\end{figure}
+
+ Anyways, the sun path changes during the year, for example during the summer two edges of this path come higher towards north, and in winter they go lower towards south. This brings some direct sunlight to the tilted pyranometer in early morning and late evening during summer time. However, during winter and most of the autumn and spring, the tilted sensor is in complete shadow and does not receive direct sun irradiance (DNI). As a result, we can safely assume that during those times, the values recorded by this tilted sensor represent the diffuse irradiance component. This can be seen more clearly in Figure \ref{fig:tilted_irr_cmp}. In this picture, the dark blue curve represents irradiance observations of tilted sensor (sensor 1) during a sunny summer day -3th August. As one can see, around the morning and evening when the sun has a shine on the sensor, there is a bump in the irradiance. However, during rest of the day that the sensor goes into shadow, the irradiance is close to clear sky DHI. As we expect, during the winter the tilted sensor will be always shadowed, thus should not have any DNI part in its measurement during the whole day. Looking at Figure \ref{fig:tilted_irr_cmp2} confirms this idea, since there is no bump in the morning and evening records.
+
+\begin{figure}[h]
+\caption{Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a summer day}
+\label{fig:tilted_irr_cmp}
+\includegraphics[scale=.4]{tilted_irr}
+\centering
+\end{figure}
+
+\begin{figure}[h]
+\caption{Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a winter day}
+\label{fig:tilted_irr_cmp2}
+\includegraphics[scale=.4]{tilted_irr2}
+\centering
+\end{figure}
+
+Therefore, if we deduct the direct irradiance component from sensor observations, we can obtain diffuse component which is required for our learning algorithm.  We previously have shown in \ref{sec:compare-clear-sky-result} that our DHI and DNI values obtained from our clear-sky model have enough accuracy for this application. But for calculating the effective direct irradiance on tilted sensor we need to find the angle between sun and surface of the sensor at any time, since this angle is different than sun zenith. According to Figure we can use sun azimuth and sun zenith angles to locate the sun vector. The normal vector of tilted sensor surface can also be defined based on its zenith and azimuth angles. Then using this linear algebra equation \ref{eq:angle_sun_tilted} we can find the angle between two vectors in 3D space.
+
+\begin{equation}
+\label{eq:angle_sun_tilted}
+angle = Arctan2(\| a \otimes b \|, a \cdot b)
+\end{equation} 
+where Arctan2 is four quadrant arctangent of the elements.
+
+However, for the horizontal sensor the effective direct irradiance can be simply computed as $DNI \times cos(zenith)$. We have shown in Figure \ref{fig:mcclear_vs_Ineichen_DNI_DHI} that DNI is almost zero(0) when the cloud occlude the sun completely. This case correspond to $sun\-flag=1$ as we explained in \ref{sec:sun-states}. And if the sun is completely shining like a star, hence resulting in full DNI, it corresponds to  $sun\-flag=4$. For other sun states where the sun is partially obstructed, the DNI is not the same as clear sky DNI. We hypothesize that the DNI for sun-flag=2 and 3 are somewhere between 0 and clear-sky DNI. However, for the sake of simplicity we skip them in this study.
  
 ii.	clear-sky DNI is a good approximation for actual DNI. Showing some clear or cloudy days to prove this point.
 
-We only consider images with complete visible sun or no sun at all.
+
 ii.	Comparing tilted diffuse with diffuse from the main irradiance plate, (then correcting tilted diffuse??). Showing its robustness.
 Show the result of relation of DNI DHI to irr1 irr2 with plots.my  recent work.
 

@@ -117,6 +117,23 @@ classdef vml < vmlSeq
           datetickzoom;
         end
 
+        function plot_tilted(obj)
+          %plot the irradiation profiles
+          figure(12);
+          h(1)=plot(obj.data.ti,obj.getIrr(obj.data.ti),'r-');
+          hold on;
+          h(2)=plot(obj.data.ti,obj.get45Irr(obj.data.ti),'b.-');
+          h(3)=plot(obj.data.ti,obj.getDiffuseIrrClear(obj.data.ti),'g');
+          legend([h(1),h(2),h(3)],{'GHI sensor 1'; 'GHI sensor 2'; 'clear-sky DHI'}); 
+          ylim = get(gca,'ylim'); ylim(1) = 0;
+          set(gca,'ylim',ylim);
+          grid on;
+          datetickzoom;
+          xlabel('Time');
+          ylabel('Irradiance (W/m^2)');
+          title(['Irradiance observed on ' strrep(obj.data.day,'_','/')]);
+        end
+        
         function [d,tilted_DNI] = get45diffuse(obj,t,az,elev)
             if nargin<4
               az = .7;
