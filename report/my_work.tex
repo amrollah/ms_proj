@@ -1,7 +1,7 @@
 \chapter{Estimating Diffuse Horizontal Irradiance (DHI) from sky image}
 In this chapter, a new approach that we developed for estimating DHI from sky images is explained. First, our experimental setup and data is presented, then we talk about clear-sky model used here, and why estimating DHI is very important in predicting GHI. Furthermore, DHI estimation using the irradiance sensors and also sky-images is discussed. Afterwards, machine learning regression methods for obtaining DHI from sky-image are studies. Finally, the general strategy for power prediction in a photovoltaic power plant using the forecast irradiance components is proposed.
 
-\subsection{Experimental Setup}
+\section{Experimental Setup}
 This study is conducted on one of the photovoltaic(solar) power plants operated by ABB company. This PV plant which is located in Cavriglia region in Italy is chosen as a pilot site for the "forecasting power prediction using sky-imagery" project. Therefore, it is equipped with the following instruments for recording irradiation and sky images:
 \begin{itemize}
 \item A customized wide-angle high resolution (4MP) camera system with a fisheye lens covering 185 degrees of field of view. The camera is in a packaging attached to a pole on rooftop of the building next to the site. Figure \ref{fig:camera_on_site} shows the camera and its position next to the PV plates.
@@ -24,13 +24,13 @@ This study is conducted on one of the photovoltaic(solar) power plants operated 
 \centering
 \end{figure} 
 
-\subsection{Acquired Data}
+\section{Acquired Data}
 The camera system captures several images from the whole-sky every 8 seconds with different narrow exposure ranges. These images which are labeled according to capture time, are combined to create an HDR (High Dynamic Range) image for every sample time. The original narrow exposure images are generally deleted except the images at each hour time (i.e. around 7:00, 8:00, 9:00 etc.). Since capturing images at night is not useful for power prediction applications, camera is instructed to only take pictures during daytime (i.e. sunrise to sunset) which is obtained for that specific location for each day using mathematical models. Nevertheless, according to the captures images, this is not enough and still there are some black images taken at the minutes before sunrise and after sunset. Therefore, while processing the images on the application side, we exclude those images using a threshold on average pixel intensity of each image. This threshold is determined empirically. The images are further filtered against a sky mask which is been designed to exclude nearby mountains and buildings in the field of view and also limit the field of view to 170 degrees since transforming the points which are further in horizon is not accurate enough and the sun light is not negligible when the sun is in those points.  It is worth mentioning that using HDR images in the image processing step is one of the key advantages of this study to related works specifically \cite{tSchmidt15}.
 
 The pyranometers measure GHI values with the sample rate of 6 seconds. The temperature is also recorded with the  same sample rate. However, the generate power is measured and logged every 3 seconds. These different sample rate make it necessary to interpolate the available data to find the estimated data for a time which there is no data available. Therefore, we can assign total irradiance, temperature and generated power to any given image using its capture time. This data acquisition setup has been running since 7th July 2015 until present. However, there are some short periods of time (usually lasting several days up to two weeks) which one of the sensors (pyranometers or the camera) had problems or the power plant was not working to produce power data. Considering the relatively small sample rate (less than 8 seconds), the amount of recorded data is big enough to make those off-days negligible in data processing steps. The data used in this study spans from 15th July to 10 February, meaning that many summer, autumn and winter days are available in the dataset to make it a good representation for the whole year. 
 
 
-\subsection{Sun positions and sun states in image}
+\section{Sun positions and sun states in image}
 \label{sec:sun-states}
 Knowing position of sun is very important both in cloud segmentation and in irradiance estimation. First of all, since our images are from a wide-angle fisheye lens, they need to be transformed into geometric coordinates by an un-distortion algorithm to make them ready for further image processing steps including sun position, cloud segmentation and etc. This can be done by multiplying the raw image coordinates to camera transformation matrix which consists of intrinsic and extrinsic parameters of the camera system. As described in section \ref{sec:image_undistortion_schmidt}, intrinsic parameters are calculated using image of a chessboard\cite{fisheye_undistort} and extrinsic parameters are estimated using Kabsch algorithm\cite{Kabsch_alg} based on position of the sun appeared in the image versus the expected position of sun in image. The theoretical sun positions are calculated for the location of our PV plant site at every image time-stamp using NREL algorithm \cite{our_sun_position} in Matlab represented in unit sphere polar coordinates. As shown in Figure \ref{fig:sun_position_angles} this position is described as two angles (zenith and azimuth) which are converted to Cartesian coordinates using sphere to Cartesian conversion and later on are scaled to the image size to correspond with an image pixel. That pixel will be assumed as center of the sun.
 
@@ -72,20 +72,20 @@ The variation of sun color in the images is so much that using Support Vector Ma
 
 Using these sun states along with the sun position in cloud segmentation algorithm, will lead to better segmentation results close to sun that is particularly a difficult area for cloud segmentation due to highly saturated pixels with different sky or cloud colors. In irradiance estimation which is the main focus of this study, sun position is used to create two specific feature vectors in a bounding circle around the sun. These features are explained section \ref{sec:img-features} in detail.
 
-\subsection{Clear-sky irradiance model}
+\section{Clear-sky irradiance model}
 Before dealing with the problem of irradiance estimation from cloudy images we should know first know how much the irradiance would be at any time in clear sky conditions when there is no cloud in the sky at all. Fortunately, there are a few number of models which provide irradiance components at each given time for many locations on the Earth. In this study we investigate two of the these methods, Ineichen \cite{clear_sky_model} and McClear \cite{mcclear_alg}. Both of these methods use location coordinates (latitude, longitude) and query time (consisting of year,day,month,day,minute,second) to calculate sun angles internally and return the irradiation based on optic formulas which determine how much sun should reach the ground in as direct sunlight and how much should be scattered in hemisphere and forms the diffuse irradiance. The amount of scattered sunlight is varying throughout the year and also depends on the location, ground albedo\footnote{The fraction of solar energy (shortwave radiation) which is reflected from the Earth back into space. It is a measure of the reflectivity of the earth's surface. Ice, especially with snow on top of it, has a high albedo.} and aerosol parameters including pressure, ozone column content, water vapour column content,  optical depth and Angstrom coefficient. 
 
-\subsubsection{Ineichen method}
+\subsection{Ineichen method}
 Ineichen model statistically and physically relates some irradiance measurements to the aforementioned parameters as Linke Turbidity profiles which are available for different locations . We used the default Linke Turbidity values which come as a separate file in PV-Lib toolbox \cite{pv_lib_toolbox} in Matlab and is representative for most locations in Europe. However, one might need to use other appropriate Linke Turbidity profiles for other locations to get more accurate results.
  
-\subsubsection{McClear method}
+\subsection{McClear method}
 On contrary to this approach, McClear uses a fully physical model that exploits recent aerosol properties, total column content in water vapour and ozone produced by the MACC project (Monitoring Atmosphere Composition and Climate). The MACC project, funded by the European Commission, uses  data of many Numerical Weather Prediction (NWP) centers distributed around the world to provide a global aerosol property forecasts together with physically consistent total column content in water vapour and ozone. In other words, since McClear uses synthetic data of NWP's, it does not depend on any local atmospheric observations for irradiance prediction. For the sake of speed, McClear irradiance estimates are pre-computed for the the location of these measurement centers and are interpolated for all other point on th Earth using a look-up table approach. Of course the closer we are to one of these measurement centers, the more accurate McClear estimate will be. The McClear irradiance estimates are available worldwide for every minutes from 2004 to present with 2 days lag under this web service \cite{mcclear_site}. This means that if we want to get the irradiance for today, we need to interpolate data of several days or weeks before to get an estimate for the current time. Nevertheless, one can use the original data of past 2 days for current time as well, since irradiance does not change considerably in two days.
 
-\subsubsection{Comparison of clear-sky simulation results}
+\subsection{Comparison of clear-sky simulation results}
 \label{sec:compare-clear-sky-result}
 To evaluate performance of these two clear-sky models we choose several days which have a significant clear part during the day (just because complete clear days are very rare). The chosen days should be from different months of year in order to represent performance of models for the whole year better. After observing the irradiance logs and images for verification, the following days were selected for comparison: 2015/07/19, 2015/08/03, 2015/09/21, 2015/10/24, 2015/11/24 and 2016/02/05. As an example, simulated GHI of three days are plotted in Figure \ref{fig:mcclear_vs_Ineichen_days} next to the observation. 
 
-\begin{figure}[h]
+\begin{figure}[!ht]
 \caption{GHI estimation of McClear vs Ineichen vs observation}
 \label{fig:mcclear_vs_Ineichen_days}
 \includegraphics[scale=.2]{2015_07_19_irr}
@@ -133,10 +133,10 @@ We know that DNI should be always larger than DHI during clear-sky condition. Lo
 \centering
 \end{figure}
 
-\subsubsection{Choosing the clear-sky model}
+\subsection{Choosing the clear-sky model}
 As we discuss in this chapter, McClear and Ineichen models both predict the clear-sky irradiance components relatively accurately,however the bias for Ineichen method is more robust and manageable than McClear bias. Furthermore, obtaining the McClear values requires downloading the irradiance files from their web service since there is not offline library for calculating them. All this considered together, we decided to use Ineichen as the clear-sky irradiance model for this study. The scaling factor for compensating the bias in Ineichen is set to 1.08 which is empirically calculated based on several clear day observations.
 
-\subsection{Estimating diffuse from pyranometers}
+\section{Estimating diffuse from pyranometers}
 After picking the suitable clear-sky model, we can predict the irradiance components for any given day in clear-sky conditions, but for determining the irradiation in cloudy conditions we need to first detect them and then find a relation between cloud states in the sky and the observed irradiance. Since GHI is composed of DHI and DNI, and because we want to get some hints from the images for determining GHI, the reasonable approach is to first estimate DNI and DHI values and then construct the GHI from them using sun zenith angle and Eq \ref{eq:irr_components}. Thus, for the learning algorithm we need DNI and DHI observations to relate them to image features. Ideally, we would have DHI and DNI observations separately along the GHI values from an advanced irradiance sensor\footnote{This type of pyranometers such as Zonen CM11 have a dynamic shade-band along the sun path to make sure that the sensor is always in shadow, this recording only DHI component. Then DNI can be computed from GHI and DHI or by using another type of pyranometer such as Eppley NIP.}, but in our experimental setup only GHI values are observed in horizontal and 40 degrees north. The idea behind putting one of the pyranometers tilted towards north is that based on sun path from an observant in that regions of the world, tilted surfaces toward the north do not get direct sun light during most of the day. That's why the PV plates are tilted towards the south to get more sunlight. The sun path at Cavriglia can be seen in Figure \ref{fig:cavriglia_sun_path}. There is a simple geometric rule that confirms this idea. If the angle between sun and the normal vector of a surface is greater than or equal to 90 degrees, sun rays which are coming straight from sun will not hit the surface. This condition will hold for many times during a day for the sensor with around 40 degrees tilt toward north.
 
 \begin{figure}[h]
@@ -214,27 +214,47 @@ The correlation of reconstruction result to actual GHI values is shown in Figure
 
 The hope was that by using the tuned version of Eq \ref{eq:GHI_reconstruct} and feeding it with GHI measurements of both irradiance sensors ( $GHI_1$ and  $GHI_2$) , we would be able to estimate DNI and DHI by multiplying GHI to inverse of coefficient matrix. In other word, we would be able to determine DHI and DNI for any situation including sun-flag=2 and sun-flag=3 which we excluded earlier for convenience. However, the results of this experiment was not satisfactory to hold our hypothesize. This could partially be due to the fact we are using DHI of tilted sensor instead of DNI of sensor 1 in this equation. Anyways,   the result of DHI and DNI for sun-flag=1 and 4 is still valid and we should now try to estimate these values from images.
 
-The idea is that as we limit the effect of clouds on DNI by assuming ($DNI=0$) or $DNI=DNI_{clear\_sky}$ in occlusion or not occlusion situations, the only way that clouds can affect GHI is through DHI variations. In next section we investigate characteristic of clouds in images to understand this effect better.
+The idea is that as we limit the effect of clouds on DNI by assuming $DNI=0$ or $DNI=DNI_{clear\_sky}$ in occlusion or not occlusion situations, the only way that clouds can affect GHI is through DHI variations. In next section we investigate characteristic of clouds in images to understand this effect better.
 
-\subsection{Key image features affecting DHI}
-
+\section{Key factors influencing DHI}
 \label{sec:img-features}
-iii.	Investigate different parameters which affect diffuse
-\subsubsection{Discuss cloud coverage geometrical polar feature around sun and also the whole image}
-\subsubsection{Discuss saturation detection algorithm and its results}
+As we have shown in Figure \ref{fig:clean_sky_day_irr} all the irradiance components including DHI follow a bell-shape curve during a clear day and this curve varies throughout a year -lower in winter, higher in summer. We call these factors, non-image features as they are not obtained from images and are independent of cloud characteristics. We formulate these features as following:
+\begin{itemize}
+\item Day of the year; defined as the number of days between query time and the first day of August.
+\item Time of the day; defined as the number of minutes passed the midnight at query time
+\item Zenith angle of the sun; between around 20 up to around 80 degrees
+\item $DHI_{clear sky}$
+\end{itemize}
+Query time is the time image was taken. Even though, these features are correlated; for example $DHI_{clear sky}$ is dependent to time and day of the year, but experiments shows including all of them in the features list is beneficial.
+\newline
 
+Besides non-image features, we extract some visual features from sky images to help estimating DHI in not-clear situations. For image-based features there are several intuitions about what factors might affect DHI most. These includes cloud coverage, cloud type, shininess of sun, cloud color and etc. However, using cloud color features is not a good idea for our application, since they vary a lot even in very short-time ahead and predicting cloud color is not accurate enough. And since the aim of this study is to forecast irradiance for predicted cloud states in several minutes ahead, we restrict our image-based features to highly predictable features. This includes:
+\begin{itemize}
+\item sun-flag; as we explained in section \ref{sec:sun-states}, it is an integer number between 1 and 4. However, we only consider states 1 and 2. 
+\item Total cloud coverage; defined as the percentage of image pixels which are classified as cloud (i.e. 100\% for full cloud coverage, 0 for no cloud)
+\item Cloud coverage around the sun; defined as the percentage of image pixels in a small circle around the sun which are classified as cloud. This feature is explained in more detail in section \ref{sec:cc_around_sun}.
+\item Saturation factor; defined as the number of saturated cloud pixels (i.e. with very high brightness). For complete description of this feature refer to section \ref{sec:saturation}.
+\end{itemize}
+
+\subsection{Cloud coverage features}
+\label{sec:cc_around_sun}
+Note that pixels that are classified as neither cloud nor sky, are sun. Therefore, these pixels are not included in total number of pixels when calculating the cloud coverage percentage. The intuition is that cloud coverage around the sun is more important that total cloud coverage for DHI, since those clouds usually reflect sunlight more to the ground. 
+
+\subsection{Discuss saturation detection algorithm and its results}
+\label{sec:saturation}
+Due to time limitation, we did not investigate cloud type or cloud texture pattern features.
 
 iv.	Show their correlation to diffuse, discuss cases based on images and corresponding irradiance components
 
 
-\subsection{Learning the relation between image features and DHI}
+\section{Learning the relation between image features and DHI}
 Knn Regression method for estimation
 Compare to other method to regress such as svm-regress, svorim, or penalty [no result]
 
 
 
-\subsection{Translating irradiance to power}
-\subsubsection{Estimating shadow ratio on the plant site}
+\section{Translating irradiance to power}
+\subsection{Estimating shadow ratio on the plant site}
 refer to Figure \ref{fig:overall_system_design_power}.
 Projecting plant coordinates into the sky using assumed cloud height
 Adaptation to smooth changes of power by using the histogram of irradiance over past 30 minutes

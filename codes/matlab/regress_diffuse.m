@@ -71,13 +71,13 @@ DV  = DV(:, 1:3); DV2 = DV;
 DV2(:, 2:3) = repmat([7,1],[size(DV2,1),1]);
 DAY = double(abs(int64(time' - datenum(DV2))))';
 
-irr1 = cellfun(@(d) d.irr(1), data(train_ind));
-irr2 = cellfun(@(d) d.irr(2), data(train_ind));
-offset=45;
-clear_DNI = cellfun(@(d) d.clear_irr(2), data(train_ind));
-DNI = clear_DNI .* sun_flag;
-DHI1 = irr1 - cosd(zenith).*DNI;
-DHI2 = irr2 - max(0,cosd(zenith+offset)).*DNI;
+% irr1 = cellfun(@(d) d.irr(1), data(train_ind));
+% irr2 = cellfun(@(d) d.irr(2), data(train_ind));
+% offset=45;
+% clear_DNI = cellfun(@(d) d.clear_irr(2), data(train_ind));
+% DNI = clear_DNI .* sun_flag;
+% DHI1 = irr1 - cosd(zenith).*DNI;
+% DHI2 = irr2 - max(0,cosd(zenith+offset)).*DNI;
 
 %test features
 yt = cellfun(@(d) d.corr_tilt_diff, data(test_ind));
@@ -96,15 +96,15 @@ DV  = DV(:, 1:3); DV2 = DV;
 DV2(:, 2:3) = repmat([7,1],[size(DV2,1),1]);
 DAY_t = double(abs(int64(time_t' - datenum(DV2))))';
 
-irr1_t = cellfun(@(d) d.irr(1), data(test_ind));
-irr2_t = cellfun(@(d) d.irr(2), data(test_ind));
-offset=45;
-clear_DNI_t = cellfun(@(d) d.clear_irr(2), data(test_ind));
-DNI_t = clear_DNI_t .* sun_flag_t;
-DHI1_t = irr1_t - cosd(zenith_t).*DNI_t;
-DHI2_t = irr2_t - max(0,cosd(zenith_t+offset)).*DNI_t;
-y=DHI2;
-yt=DHI2_t;
+% irr1_t = cellfun(@(d) d.irr(1), data(test_ind));
+% irr2_t = cellfun(@(d) d.irr(2), data(test_ind));
+% offset=45;
+% clear_DNI_t = cellfun(@(d) d.clear_irr(2), data(test_ind));
+% DNI_t = clear_DNI_t .* sun_flag_t;
+% DHI1_t = irr1_t - cosd(zenith_t).*DNI_t;
+% DHI2_t = irr2_t - max(0,cosd(zenith_t+offset)).*DNI_t;
+% y=DHI2;
+% yt=DHI2_t;
 
 x_img =[sun_flag;sat_fact;clouds;mean(cc_fact(1:4,:))];
 x_no_img = [clear_diffuse;zenith;DAY;TM];
@@ -186,7 +186,7 @@ xlabel('Predictor rank');
 ylabel('Predictor importance weight');
 
 %% k-nearest neighbors
-[IDX,D] = knnsearch(x([1,3,4,5,6,7,8],:)',x_t([1,3,4,5,6,7,8],:)','K',2);
+[IDX,D] = knnsearch(x([1,2,3,4,5,6,7,8],:)',x_t([1,2,3,4,5,6,7,8],:)','K',2);
 WD=D./repmat(sum(D,2),[1,2]);
 knn_y_hat = sum(y(IDX).*WD,2);
 err5 = abs(yt - knn_y_hat').*(log(yt)/log(100));

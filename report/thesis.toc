@@ -22,22 +22,22 @@
 \contentsline {subsection}{\numberline {2.3.1}Image features}{13}{subsection.2.3.1}
 \contentsline {subsection}{\numberline {2.3.2}irradiance estimation}{14}{subsection.2.3.2}
 \contentsline {chapter}{\chapternumberline {3}Estimating Diffuse Horizontal Irradiance (DHI) from sky image}{15}{chapter.3}
-\contentsline {subsection}{\numberline {3.0.1}Experimental Setup}{15}{subsection.3.0.1}
-\contentsline {subsection}{\numberline {3.0.2}Acquired Data}{17}{subsection.3.0.2}
-\contentsline {subsection}{\numberline {3.0.3}Sun positions and sun states in image}{17}{subsection.3.0.3}
-\contentsline {subsection}{\numberline {3.0.4}Clear-sky irradiance model}{19}{subsection.3.0.4}
-\contentsline {subsubsection}{Ineichen method}{20}{section*.4}
-\contentsline {subsubsection}{McClear method}{21}{section*.5}
-\contentsline {subsubsection}{Comparison of clear-sky simulation results}{21}{section*.6}
-\contentsline {subsubsection}{Choosing the clear-sky model}{22}{section*.7}
-\contentsline {subsection}{\numberline {3.0.5}Estimating diffuse from pyranometers}{23}{subsection.3.0.5}
-\contentsline {subsection}{\numberline {3.0.6}Key image features affecting DHI}{26}{subsection.3.0.6}
-\contentsline {subsubsection}{Discuss cloud coverage geometrical polar feature around sun and also the whole image}{26}{section*.8}
-\contentsline {subsubsection}{Discuss saturation detection algorithm and its results}{26}{section*.9}
-\contentsline {subsection}{\numberline {3.0.7}Learning the relation between image features and DHI}{26}{subsection.3.0.7}
-\contentsline {subsection}{\numberline {3.0.8}Translating irradiance to power}{26}{subsection.3.0.8}
-\contentsline {subsubsection}{Estimating shadow ratio on the plant site}{26}{section*.10}
+\contentsline {section}{\numberline {3.1}Experimental Setup}{15}{section.3.1}
+\contentsline {section}{\numberline {3.2}Acquired Data}{17}{section.3.2}
+\contentsline {section}{\numberline {3.3}Sun positions and sun states in image}{17}{section.3.3}
+\contentsline {section}{\numberline {3.4}Clear-sky irradiance model}{19}{section.3.4}
+\contentsline {subsection}{\numberline {3.4.1}Ineichen method}{20}{subsection.3.4.1}
+\contentsline {subsection}{\numberline {3.4.2}McClear method}{21}{subsection.3.4.2}
+\contentsline {subsection}{\numberline {3.4.3}Comparison of clear-sky simulation results}{21}{subsection.3.4.3}
+\contentsline {subsection}{\numberline {3.4.4}Choosing the clear-sky model}{25}{subsection.3.4.4}
+\contentsline {section}{\numberline {3.5}Estimating diffuse from pyranometers}{26}{section.3.5}
+\contentsline {section}{\numberline {3.6}Key factors influencing DHI}{32}{section.3.6}
+\contentsline {subsection}{\numberline {3.6.1}Cloud coverage features}{33}{subsection.3.6.1}
+\contentsline {subsection}{\numberline {3.6.2}Discuss saturation detection algorithm and its results}{33}{subsection.3.6.2}
+\contentsline {section}{\numberline {3.7}Learning the relation between image features and DHI}{33}{section.3.7}
+\contentsline {section}{\numberline {3.8}Translating irradiance to power}{33}{section.3.8}
+\contentsline {subsection}{\numberline {3.8.1}Estimating shadow ratio on the plant site}{33}{subsection.3.8.1}
 \contentsline {chapter}{\chapternumberline {4}Results}{35}{chapter.4}
 \contentsline {chapter}{\chapternumberline {5}Discusion}{37}{chapter.5}
 \contentsline {chapter}{\chapternumberline {6}Conclusion}{39}{chapter.6}
-\contentsline {chapter}{Bibliography}{41}{section*.12}
+\contentsline {chapter}{Bibliography}{41}{section*.5}
