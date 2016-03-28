@@ -31,13 +31,13 @@
 \contentsline {subsubsection}{Comparison of clear-sky simulation results}{21}{section*.6}
 \contentsline {subsubsection}{Choosing the clear-sky model}{22}{section*.7}
 \contentsline {subsection}{\numberline {3.0.5}Estimating diffuse from pyranometers}{23}{subsection.3.0.5}
-\contentsline {subsection}{\numberline {3.0.6}Key image features affecting DHI}{24}{subsection.3.0.6}
-\contentsline {subsubsection}{Discuss cloud coverage geometrical polar feature around sun and also the whole image}{25}{section*.8}
-\contentsline {subsubsection}{Discuss saturation detection algorithm and its results}{25}{section*.9}
-\contentsline {subsection}{\numberline {3.0.7}Learning the relation between image features and DHI}{25}{subsection.3.0.7}
-\contentsline {subsection}{\numberline {3.0.8}Translating irradiance to power}{25}{subsection.3.0.8}
-\contentsline {subsubsection}{Estimating shadow ratio on the plant site}{25}{section*.10}
-\contentsline {chapter}{\chapternumberline {4}Results}{33}{chapter.4}
-\contentsline {chapter}{\chapternumberline {5}Discusion}{35}{chapter.5}
-\contentsline {chapter}{\chapternumberline {6}Conclusion}{37}{chapter.6}
-\contentsline {chapter}{Bibliography}{39}{section*.12}
+\contentsline {subsection}{\numberline {3.0.6}Key image features affecting DHI}{25}{subsection.3.0.6}
+\contentsline {subsubsection}{Discuss cloud coverage geometrical polar feature around sun and also the whole image}{26}{section*.8}
+\contentsline {subsubsection}{Discuss saturation detection algorithm and its results}{26}{section*.9}
+\contentsline {subsection}{\numberline {3.0.7}Learning the relation between image features and DHI}{26}{subsection.3.0.7}
+\contentsline {subsection}{\numberline {3.0.8}Translating irradiance to power}{26}{subsection.3.0.8}
+\contentsline {subsubsection}{Estimating shadow ratio on the plant site}{26}{section*.10}
+\contentsline {chapter}{\chapternumberline {4}Results}{35}{chapter.4}
+\contentsline {chapter}{\chapternumberline {5}Discusion}{37}{chapter.5}
+\contentsline {chapter}{\chapternumberline {6}Conclusion}{39}{chapter.6}
+\contentsline {chapter}{Bibliography}{41}{section*.12}

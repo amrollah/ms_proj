@@ -39,7 +39,7 @@ DHI2 = irr2 - max(0,cosd(zenith+elev)).*DNI;
 cal_irr1 = a1*cosd(zenith).*DNI + b1*DHI;
 cal_irr2 = a2*max(0,cosd(angles')).*DNI + b2*DHI;
 
-ind = 2;
+ind = 1;
 A=[a1*cosd(zenith(ind)) b1;
    a2*max(0,cosd(angles(ind))) b2];
 dni_dhi = A\[irr1(ind); irr2(ind)]

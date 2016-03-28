@@ -146,7 +146,7 @@ After picking the suitable clear-sky model, we can predict the irradiance compon
 \centering
 \end{figure}
 
- Anyways, the sun path changes during the year, for example during the summer two edges of this path come higher towards north, and in winter they go lower towards south. This brings some direct sunlight to the tilted pyranometer in early morning and late evening during summer time. However, during winter and most of the autumn and spring, the tilted sensor is in complete shadow and does not receive direct sun irradiance (DNI). As a result, we can safely assume that during those times, the values recorded by this tilted sensor represent the diffuse irradiance component. This can be seen more clearly in Figure \ref{fig:tilted_irr_cmp}. In this picture, the dark blue curve represents irradiance observations of tilted sensor (sensor 1) during a sunny summer day -3th August. As one can see, around the morning and evening when the sun has a shine on the sensor, there is a bump in the irradiance. However, during rest of the day that the sensor goes into shadow, the irradiance is close to clear sky DHI. As we expect, during the winter the tilted sensor will be always shadowed, thus should not have any DNI part in its measurement during the whole day. Looking at Figure \ref{fig:tilted_irr_cmp2} confirms this idea, since there is no bump in the morning and evening records.
+Anyways, the sun path changes during the year, for example during the summer two edges of this path come higher towards north, and in winter they go lower towards south. This brings some direct sunlight to the tilted pyranometer in early morning and late evening during summer time. However, during winter and most of the autumn and spring, the tilted sensor is in complete shadow and does not receive direct sun irradiance (DNI). As a result, we can safely assume that during those times, the values recorded by this tilted sensor represent the diffuse irradiance component. This can be seen more clearly in Figure \ref{fig:tilted_irr_cmp}. In this picture, the dark blue curve represents irradiance observations of tilted sensor (sensor 1) during a sunny summer day -3th August. As one can see, around the morning and evening when the sun has a shine on the sensor, there is a bump in the irradiance. However, during rest of the day that the sensor goes into shadow, the irradiance is close to clear sky DHI. As we expect, during the winter the tilted sensor will be always shadowed, thus should not have any DNI part in its measurement during the whole day. Looking at Figure \ref{fig:tilted_irr_cmp2} confirms this idea, since there is no bump in the morning and evening records.
 
 \begin{figure}[h]
 \caption{Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a summer day}
@@ -162,21 +162,57 @@ After picking the suitable clear-sky model, we can predict the irradiance compon
 \centering
 \end{figure}
 
-Therefore, if we deduct the direct irradiance component from sensor observations, we can obtain diffuse component which is required for our learning algorithm.  We previously have shown in \ref{sec:compare-clear-sky-result} that our DHI and DNI values obtained from our clear-sky model have enough accuracy for this application. But for calculating the effective direct irradiance on tilted sensor we need to find the angle between sun and surface of the sensor at any time, since this angle is different than sun zenith. According to Figure we can use sun azimuth and sun zenith angles to locate the sun vector. The normal vector of tilted sensor surface can also be defined based on its zenith and azimuth angles. Then using this linear algebra equation \ref{eq:angle_sun_tilted} we can find the angle between two vectors in 3D space.
+Therefore, if we deduct the direct irradiance component from sensor observations, we can obtain diffuse component which is required for our learning algorithm.  We previously have shown in \ref{sec:compare-clear-sky-result} that our DHI and DNI values obtained from clear-sky model have enough accuracy for this application. But for calculating the effective direct irradiance on tilted sensor we need to find the angle between sun and surface of the sensor at any time, since this angle is different than sun zenith. According to Figure we can use sun azimuth and sun zenith angles to locate the sun vector. The normal vector of tilted sensor surface can also be defined based on its zenith and azimuth angles. Then using this linear algebra equation \ref{eq:angle_sun_tilted} we can find the angle between two vectors in 3D space.
 
 \begin{equation}
 \label{eq:angle_sun_tilted}
-angle = Arctan2(\| a \otimes b \|, a \cdot b)
+\theta = Arctan2(\| a \otimes b \|, a \cdot b)
 \end{equation} 
 where Arctan2 is four quadrant arctangent of the elements.
 
-However, for the horizontal sensor the effective direct irradiance can be simply computed as $DNI \times cos(zenith)$. We have shown in Figure \ref{fig:mcclear_vs_Ineichen_DNI_DHI} that DNI is almost zero(0) when the cloud occlude the sun completely. This case correspond to $sun\-flag=1$ as we explained in \ref{sec:sun-states}. And if the sun is completely shining like a star, hence resulting in full DNI, it corresponds to  $sun\-flag=4$. For other sun states where the sun is partially obstructed, the DNI is not the same as clear sky DNI. We hypothesize that the DNI for sun-flag=2 and 3 are somewhere between 0 and clear-sky DNI. However, for the sake of simplicity we skip them in this study.
- 
-ii.	clear-sky DNI is a good approximation for actual DNI. Showing some clear or cloudy days to prove this point.
+However, for the horizontal sensor the effective direct irradiance can be simply computed as $DNI \times cos(zenith)$. We have shown in Figure \ref{fig:mcclear_vs_Ineichen_DNI_DHI} that DNI is almost zero(0) when the cloud occlude the sun completely. This case correspond to $sun\_flag=1$ as we explained in \ref{sec:sun-states}. And if the sun is completely shining like a star, hence resulting in full DNI, it corresponds to  $sun\_flag=4$. For other sun states where the sun is partially obstructed, the DNI is not the same as clear sky DNI. We hypothesize that the DNI for sun-flag=2 and 3 is somewhere between 0 and clear-sky DNI. However, for the sake of simplicity we do not consider these states in this study. In other words, we only try to estimate the DHI for the conditions that either sun is completely occluded ($DNI=0$) or it is completely visible and shining(i.e. $DNI=DNI_{clear\_sky}$. With this simplification we can compute the DHI for each irradiance sensor by re-writing Eq \ref{eq:irr_components} as:
+
+\begin{equation}
+\label{eq:DHI_eq}
+DHI =
+    \begin{cases}
+      GHI - DNI \times cos (angle), & \text{if}\ sun\_flag=4 \\
+      GHI, & \text{if}\ sun\_flag=1 \\
+    \end{cases}
+\end{equation}
+
+where GHI is the observed total irradiance by the sensor, $angle=\theta$ for tilted sensor and $angle=zenith_{sun}$ for the horizontal sensor. Note that our experiment dataset is pruned to only contain image samples from these two sun-flags. Furthermore, we do not consider images for early morning (i.e before 8) and very late evening (i.e. after 19) for our training, since the GHI in those moments is very low -less than 100- which makes them insignificant for power generation and not interesting for our application. Plus that the pattern of sun in the horizon widely varies and result in unusual errors in our algorithms. Since the exact tilt angle of sensor 2 and its azimuth to the north is not given for sure, we need to evaluate a range of possible values to find the angles that bring results with less error during sunny days compared to $DHI_{clear\_sky}$.  The optimal angles found to be \textbf{56.5} degrees for zenith and \textbf{0.7} degrees for azimuth. 
+In Figure \ref{fig:calc_DHI_day}, calculated DHI values for a sunny summer and a sunny winter day are shown.
+
+\begin{figure}[h]
+\caption{Calculated DHI}
+\label{fig:calc_DHI_day}
+\includegraphics[scale=.5]{Overall_Simple_System_Design}
+\centering
+\end{figure}
+
+As we can see the DHI values of tilted sensor show more robustness compared to values of horizontal sensor. The reason is some complex effects of clouds on DNI which we are not considering for so far. The shadowed tilted sensor is more immune to this DNI variation. Therefore, we decided to use DHI of titled sensor as actual DHI for both sensors on further calculations.
+
+We also experimented reconstruction of observed irradiances for both sensors based on calculated DHI values (from tilted sensor), assumed DNI values and respective angles using Eq \ref{eq:GHI_reconstruct} . 
+
+\begin{equation}
+\label{eq:GHI_reconstruct}
+\left[ \begin{array}{c} GHI_1 \\ GHI_2 \end{array} \right] = \begin{bmatrix} a_1 \times cos(zenith) & b_1 \\ a_2 \times max(0,cos(\theta)) & b_2 \end{bmatrix} \times \left[ \begin{array}{c} DNI \\ DHI \end{array} \right]
+\end{equation}
+where $GHI_1$ is irradiance reconstructed for horizontal senor (1), $GHI_2$ is the tilted sensor irradiance, $\theta$ is the angle between sun and tilted sensor normal, $a_1, a_2, b_1, b_2$ are constant values needed to be tuned for the best fit in result. For reconstruction we evaluated different values in range of 5 to 60 to find zenith and azimuth of the tilted sensor which result in best fit. The optimal angles found to be \textbf{56.5} degrees for zenith and \textbf{11.5} degrees for azimuth.
+
+The correlation of reconstruction result to actual GHI values is shown in Figure \ref{fig:GHI_reconstruct_result} and proves that GHI values of horizontal (and tilted) sensor can be estimated using a simple DNI model and DHI of tilted sensor.
 
 
-ii.	Comparing tilted diffuse with diffuse from the main irradiance plate, (then correcting tilted diffuse??). Showing its robustness.
-Show the result of relation of DNI DHI to irr1 irr2 with plots.my  recent work.
+\begin{figure}[h]
+\caption{Calculated GHI based on DHI and DNI for both sensors}
+\label{fig:GHI_reconstruct_result}
+\includegraphics[scale=.5]{Overall_Simple_System_Design}
+\includegraphics[scale=.5]{Overall_Simple_System_Design}
+\centering
+\end{figure}
+
+The idea is that as we limit the effect of clouds on DNI by assuming ($DNI=0$) or $DNI=DNI_{clear\_sky}$ in occlusion or not occlusion situations, the only part that clouds can affect GHI is through DHI. In next section we investigate characteristic of clouds in images to understand this effect better.
 
 \subsection{Key image features affecting DHI}
 \label{sec:img-features}
