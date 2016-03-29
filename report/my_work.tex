@@ -231,23 +231,41 @@ Query time is the time image was taken. Even though, these features are correlat
 Besides non-image features, we extract some visual features from sky images to help estimating DHI in not-clear situations. For image-based features there are several intuitions about what factors might affect DHI most. These includes cloud coverage, cloud type, shininess of sun, cloud color and etc. However, using cloud color features is not a good idea for our application, since they vary a lot even in very short-time ahead and predicting cloud color is not accurate enough. And since the aim of this study is to forecast irradiance for predicted cloud states in several minutes ahead, we restrict our image-based features to highly predictable features. This includes:
 \begin{itemize}
 \item sun-flag; as we explained in section \ref{sec:sun-states}, it is an integer number between 1 and 4. However, we only consider states 1 and 2. 
-\item Total cloud coverage; defined as the percentage of image pixels which are classified as cloud (i.e. 100\% for full cloud coverage, 0 for no cloud)
+%\item Total cloud coverage; defined as the percentage of image pixels which are classified as cloud (i.e. 100\% for full cloud coverage, 0 for no cloud)
+\item Semi-local cloud coverage; defined as the percentages of cloud pixels (i.e. image pixels which are classified as cloud) in four parts of the image separately, i.e. top right, top left, bottom right, bottom left. For each region, 100\% indicates full cloud coverage and 0 means no cloud. More information is given in section \ref{sec:cc_around_sun}.
 \item Cloud coverage around the sun; defined as the percentage of image pixels in a small circle around the sun which are classified as cloud. This feature is explained in more detail in section \ref{sec:cc_around_sun}.
-\item Saturation factor; defined as the number of saturated cloud pixels (i.e. with very high brightness). For complete description of this feature refer to section \ref{sec:saturation}.
+\item Saturation factor; defined as the percentage of saturated cloud pixels (i.e. with very high brightness). For complete description of this feature refer to section \ref{sec:saturation}.
 \end{itemize}
 
 \subsection{Cloud coverage features}
 \label{sec:cc_around_sun}
-Note that pixels that are classified as neither cloud nor sky, are sun. Therefore, these pixels are not included in total number of pixels when calculating the cloud coverage percentage. The intuition is that cloud coverage around the sun is more important that total cloud coverage for DHI, since those clouds usually reflect sunlight more to the ground. 
+For designing a cloud feature we took several issues into consideration. Firstly, this feature should be not too sensitive to the position of clouds, since clouds are very dynamic and position sensitivity will lead to not consistent feature vectors for actually similar cases in terms of DHI. Secondly, the relative position of clouds should be taken into account in the feature, for example clouds which are close to sun are most probable to reflect the irradiation than clouds in other parts. As a middle-ground for this two conditions we initially designed a feature vector that is sensitive to clouds position but not too much. For that, the image is divided into four equal part by connecting the central point to middle of each side. Then, a feature vector with four elements is created consisting of cloud coverage percentage for each part. However, this feature does not put enough emphasis on cloud variations around the sun which is desired for reflection situations. Therefore, another feature is created for cloud coverage in a circle around the sun. Since this circle is small (40 pixels radius), position of clouds is not likely to cause considerable difference on DHI, thus we calculate the cloud percentage in this circle around the sun as a one value feature between 0 to 100. Note that pixels that are classified as neither cloud nor sky, are most probably sun. Therefore, these pixels are not included in total number of pixels when calculating the cloud coverage percentage. The intuition is that cloud coverage around the sun is more important that total cloud coverage for DHI, since those clouds usually reflect more sunlight to the ground. 
 
-\subsection{Discuss saturation detection algorithm and its results}
+\subsection{Saturation factor}
 \label{sec:saturation}
-Due to time limitation, we did not investigate cloud type or cloud texture pattern features.
+In some images that sun is occluded by a relatively thin cloud, we can see some pixels around position of sun, which are in fact part of the cloud but are very much illuminated by the sunlight which is passing through them. One example of this effect is shown in Figure \ref{fig:saturated_example}. 
 
-iv.	Show their correlation to diffuse, discuss cases based on images and corresponding irradiance components
+\begin{figure}[h]
+\caption{One example of saturated cloud pixels}
+\label{fig:saturated_example}
+\includegraphics[scale=.5]{saturated}
+\centering
+\end{figure}
+
+Even though, the sun is not directly visible int these images, resulting in DNI=0, our DHI observations show a considerable improvement in such cases. Therefore, we hypothesize than measuring this saturated pixels can be valuable feature vector for DHI estimation. Depending on the cloud type, and sun position these saturated areas can be predicated in very close future. That makes such feature valid for our forecast application. For calculating this feature we visually inspected many samples and realized that in all of them there is a very hight brightness band around the saturated regions which is even brighter than the saturated pixels. Based on this observation we designed the following algorithm for measuring saturation factor in any image. Firs, we crop an 120X120 pixel area around the sun as the only place saturation can occur. We convert this RGB patch into gray-scale and then find the pixels with intensity values more than 215. This threshold is been set empirically. These pixels are representing a contour for the saturated area. Since there are some discontinuity is this contour, we do the following approximation to find area inside. Every pixel in the patch is considered inside the contour, if that pixel or one of its side-neighbors (i.e. right or left) is bounded by at least 3 contour pixels in different directions (top,down,left,right). The results show that approximates saturated area is very close to actual area in the images. Finally, the saturation factor feature is calculated as the percentage of saturated pixels with respect to total patch pixels. This percentage is bounded to 60\% to comply with visual observation and reduce effect of errors in the detection algorithm. One example of detected saturated area is depicted in Figure \ref{fig:saturated_result_example}.
+
+\begin{figure}[h]
+\caption{Detected saturated area in a patch around sun}
+\label{fig:saturated_result_example}
+\includegraphics[scale=.5]{saturation_detect}
+\centering
+\end{figure}
+
+Due to time limitation, we did not investigate cloud type or cloud texture pattern features.
 
 
 \section{Learning the relation between image features and DHI}
+
 Knn Regression method for estimation
 Compare to other method to regress such as svm-regress, svorim, or penalty [no result]
 

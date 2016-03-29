@@ -7,7 +7,7 @@ proj_path;
 
 addpath(prj_path);
 s = vml('cavriglia','2015_12_11',[],true);
-load('calc\clean_data_with_8cc_nan_corrected2.mat', 'data');
+load('calc\clean_data_with_8cc_nan_corrected3.mat', 'data');
 p_w = 4;
 R = 150;
 % rd = randperm(length(data),100);
@@ -47,17 +47,17 @@ for i=1:length(data)
             l(:,yi) = sum(sat_contour(:,1:yi),2);
         end
         for xi=1:size(g_area,1)
-            for yi=1:size(g_area,2)
-                if g_area(xi,yi)>140 && ~sat_contour(xi,yi) && sum(r(max(1,xi-1):min(xi+1,size(g_area,1)),yi))>0 && sum(l(max(1,xi-1):min(xi+1,size(g_area,1)),yi))>0 && sum(dw(xi,max(yi-1,1):min(yi+1,size(g_area,2))))>0 && sum(u(xi,max(yi-1,1):min(yi+1,size(g_area,2))))>0
+            for yi=1:size(g_area,2)%&& ~sat_contour(xi,yi)
+                if g_area(xi,yi)>140  && sum(r(max(1,xi-1):min(xi+1,size(g_area,1)),yi))>0 && sum(l(max(1,xi-1):min(xi+1,size(g_area,1)),yi))>0 && sum(dw(xi,max(yi-1,1):min(yi+1,size(g_area,2))))>0 && sum(u(xi,max(yi-1,1):min(yi+1,size(g_area,2))))>0
                     inside_sat(xi,yi) = true;
                 end
             end
         end
         inside_sat = bwareaopen(inside_sat,10);
-%         figure(1); subplot(1,3,1); imshow(inside_sat); subplot(1,3,2); imshow(area); subplot(1,3,3); imshow(g_area);
-%         pause();
+        figure(1); subplot(1,3,3); imshow(inside_sat); title('Detected saturated area'); subplot(1,3,2); imshow(sat_contour); title('Detected contour'); subplot(1,3,1); imshow(area); title('Sun patch');
+        pause();
         d.sat_fact = min(.6,sum(sum(inside_sat))/numel(g_area));
-        ndata{i} = d;
+%         ndata{i} = d;
 end
-data=ndata;
-save('calc\data_with_new_sat_factTTTTTTTTT.mat', 'data');
+% data=ndata;
+% save('calc\data_with_new_sat_factTTTTTTTTT.mat', 'data');
