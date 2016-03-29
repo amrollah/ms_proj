@@ -16,8 +16,8 @@ function diffuse_calc(az,elev)
 %     model3D = model3D.model3D;
 
     times = cellfun(@(d) d.time, data);
-%     irr = cellfun(@(d) d.irr(1), data);
-%     irr45 = cellfun(@(d) d.irr(2), data);
+    irr = cellfun(@(d) d.irr(1), data);
+    irr45 = cellfun(@(d) d.irr(2), data);
     diffuse = cellfun(@(d) d.diff_irr, data);
     clouds = cellfun(@(d) d.clouds, data);
     diffuse_median = cellfun(@(d) d.diff_median, data);
@@ -47,7 +47,14 @@ function diffuse_calc(az,elev)
     figure; plot(clouds(clear_sky),corrected_tilted_diffuse(clear_sky), 'b.');
     hold on; plot(clouds(not_clear),corrected_tilted_diffuse(not_clear), 'r.');
     
-
+    figure;
+    plot(times,irr45,'b.-');
+    grid on;
+    datetickzoom;
+    title('sensor 2');
+    xlabel('Time');
+    ylabel('Irradiance (W/m^2)');
+    
     figno=11;
     figure(figno); 
     ax(1) = subplot(2,4,3:4); % plot(times,ClearSkyGHI);

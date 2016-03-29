@@ -188,7 +188,7 @@ xlabel('Predictor rank');
 ylabel('Predictor importance weight');
 
 %% k-nearest neighbors
-% [IDX,D] = knnsearch(x([1,2,3,4,5,6,7,8],:)',x_t([1,2,3,4,5,6,7,8],:)','K',2);
+% [IDX,D] = knnsearch(x([1 6 8 9 11 12],:)',x_t([1 6 8 9 11 12],:)','K',2);
 [IDX,D] = knnsearch(x',x_t','K',2);
 WD=D./repmat(sum(D,2),[1,2]);
 knn_y_hat = sum(y(IDX).*WD,2);
@@ -200,6 +200,27 @@ knn_R_sq = 1-sum((yt - knn_y_hat').^2)/sum(yt.^2);
 knn_MBE = mean(yt - knn_y_hat');
 disp(['Error knn regres: ' num2str(rmse5)]);
 result_show(data(test_ind),knn_y_hat',yt,IDX,data(train_ind));
+
+figure(1);
+% values = hist3([knn_y_hat(:)./clear_diffuse_t' yt(:)./clear_diffuse_t'],[20 20]);
+% newmap = jet;
+% newmap(1,:) = [1 1 1];
+% colormap(newmap); 
+plot(knn_y_hat, yt,'.');
+% imagesc(values)
+% lowrange = 1;
+% highrange = 10;
+% caxis manual
+% caxis([lowrange highrange]);
+% colorbar
+% axis equal
+% axis xy
+ylabel('DHI observed (W/m^2)');
+xlabel('DHI estimated (W/m^2)');
+hold on;
+plot([0 400], [0 400],'r-');
+title('Correlation of DHI estimation from K-NN regresor');
+
 
 maxdev = chi2inv(.70,1);     
 opt = statset('display','iter',...
@@ -317,7 +338,7 @@ svm_model = svmtrain(y', x(:,:)', '-s 3 -t 2 -g 8 -c 250 -p 9');
 % cross_valid
 [y_hat,Acc,~] = svmpredict(yt', test(:,:)', svm_model);
 
-result_show(data(test_ind),y_hat',yt);
+result_show(data(test_ind),y_hat',yt,IDX,data(train_ind));
 
 err4 = abs(yt - y_hat').*(log(yt)/log(100));
 err14 = abs(yt - y_hat')./log(yt);

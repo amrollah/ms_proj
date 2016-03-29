@@ -35,8 +35,9 @@
 \contentsline {subsection}{\numberline {3.6.1}Cloud coverage features}{33}{subsection.3.6.1}
 \contentsline {subsection}{\numberline {3.6.2}Saturation factor}{33}{subsection.3.6.2}
 \contentsline {section}{\numberline {3.7}Learning the relation between image features and DHI}{35}{section.3.7}
-\contentsline {section}{\numberline {3.8}Translating irradiance to power}{35}{section.3.8}
-\contentsline {subsection}{\numberline {3.8.1}Estimating shadow ratio on the plant site}{35}{subsection.3.8.1}
+\contentsline {subsection}{\numberline {3.7.1}Linear regression}{35}{subsection.3.7.1}
+\contentsline {subsection}{\numberline {3.7.2}K-nearest-neighbor regression}{35}{subsection.3.7.2}
+\contentsline {subsection}{\numberline {3.7.3}Support Vector Machine regression}{35}{subsection.3.7.3}
 \contentsline {chapter}{\chapternumberline {4}Results}{37}{chapter.4}
 \contentsline {chapter}{\chapternumberline {5}Discusion}{39}{chapter.5}
 \contentsline {chapter}{\chapternumberline {6}Conclusion}{41}{chapter.6}

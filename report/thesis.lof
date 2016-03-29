@@ -22,9 +22,10 @@
 \contentsline {figure}{\numberline {3.13}{\ignorespaces Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a winter day}}{28}{figure.3.13}
 \contentsline {figure}{\numberline {3.14}{\ignorespaces Calculated DHI}}{30}{figure.3.14}
 \contentsline {figure}{\numberline {3.15}{\ignorespaces Calculated GHI based on DHI and DNI for both sensors}}{31}{figure.3.15}
-\contentsline {figure}{\numberline {3.16}{\ignorespaces One example of saturated cloud pixels}}{34}{figure.3.16}
-\contentsline {figure}{\numberline {3.17}{\ignorespaces Detected saturated area in a patch around sun}}{34}{figure.3.17}
-\contentsline {figure}{\numberline {3.18}{\ignorespaces Overall simple system design for power prediction}}{35}{figure.3.18}
+\contentsline {figure}{\numberline {3.16}{\ignorespaces Regions of interest for extracting cloud coverage features}}{34}{figure.3.16}
+\contentsline {figure}{\numberline {3.17}{\ignorespaces One example of saturated cloud pixels}}{34}{figure.3.17}
+\contentsline {figure}{\numberline {3.18}{\ignorespaces Detected saturated area in a patch around sun}}{35}{figure.3.18}
 \addvspace {10pt}
+\contentsline {figure}{\numberline {4.1}{\ignorespaces K-NN estimation result}}{37}{figure.4.1}
 \addvspace {10pt}
 \addvspace {10pt}

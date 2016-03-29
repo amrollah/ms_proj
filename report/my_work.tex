@@ -218,7 +218,7 @@ The idea is that as we limit the effect of clouds on DNI by assuming $DNI=0$ or 
 
 \section{Key factors influencing DHI}
 \label{sec:img-features}
-As we have shown in Figure \ref{fig:clean_sky_day_irr} all the irradiance components including DHI follow a bell-shape curve during a clear day and this curve varies throughout a year -lower in winter, higher in summer. We call these factors, non-image features as they are not obtained from images and are independent of cloud characteristics. We formulate these features as following:
+As we have shown in Figure \ref{fig:clean_sky_day_irr} all the irradiance components including DHI follow a bell-shape curve during a clear day and this curve varies throughout a year -lower in winter, higher in summer. We call these factors, \textbf{non-image} features as they are not obtained from images and are independent of cloud characteristics. We formulate these features as following:
 \begin{itemize}
 \item Day of the year; defined as the number of days between query time and the first day of August.
 \item Time of the day; defined as the number of minutes passed the midnight at query time
@@ -239,7 +239,14 @@ Besides non-image features, we extract some visual features from sky images to h
 
 \subsection{Cloud coverage features}
 \label{sec:cc_around_sun}
-For designing a cloud feature we took several issues into consideration. Firstly, this feature should be not too sensitive to the position of clouds, since clouds are very dynamic and position sensitivity will lead to not consistent feature vectors for actually similar cases in terms of DHI. Secondly, the relative position of clouds should be taken into account in the feature, for example clouds which are close to sun are most probable to reflect the irradiation than clouds in other parts. As a middle-ground for this two conditions we initially designed a feature vector that is sensitive to clouds position but not too much. For that, the image is divided into four equal part by connecting the central point to middle of each side. Then, a feature vector with four elements is created consisting of cloud coverage percentage for each part. However, this feature does not put enough emphasis on cloud variations around the sun which is desired for reflection situations. Therefore, another feature is created for cloud coverage in a circle around the sun. Since this circle is small (40 pixels radius), position of clouds is not likely to cause considerable difference on DHI, thus we calculate the cloud percentage in this circle around the sun as a one value feature between 0 to 100. Note that pixels that are classified as neither cloud nor sky, are most probably sun. Therefore, these pixels are not included in total number of pixels when calculating the cloud coverage percentage. The intuition is that cloud coverage around the sun is more important that total cloud coverage for DHI, since those clouds usually reflect more sunlight to the ground. 
+For designing a cloud feature we took several issues into consideration. Firstly, this feature should be not too sensitive to the position of clouds, since clouds are very dynamic and position sensitivity will lead to not consistent feature vectors for actually similar cases in terms of DHI. Secondly, the relative position of clouds should be taken into account in the feature, for example clouds which are close to sun are most probable to reflect the irradiation than clouds in other parts. As a middle-ground for this two conditions we initially designed a feature vector that is sensitive to clouds position but not too much. For that, the image is divided into four equal part by connecting the central point to middle of each side. Then, a feature vector with four elements is created consisting of cloud coverage percentage for each part. However, this feature does not put enough emphasis on cloud variations around the sun which is desired for reflection situations. Therefore, another feature is created for cloud coverage in a circle around the sun. Since this circle is small (40 pixels radius), position of clouds is not likely to cause considerable difference on DHI, thus we calculate the cloud percentage in this circle around the sun as a one value feature between 0 to 100. Note that pixels that are classified as neither cloud nor sky, are most probably sun. Therefore, these pixels are not included in total number of pixels when calculating the cloud coverage percentage. The intuition is that cloud coverage around the sun is more important that total cloud coverage for DHI, since those clouds usually reflect more sunlight to the ground. The areas for extracting cloud coverage features are illustrated in Figure \ref{fig:cloud_coverage_features}.
+
+\begin{figure}[h]
+\caption{Regions of interest for extracting cloud coverage features}
+\label{fig:cloud_coverage_features}
+\includegraphics[scale=.5]{cloud_coverage_features}
+\centering
+\end{figure}
 
 \subsection{Saturation factor}
 \label{sec:saturation}
@@ -261,24 +268,29 @@ Even though, the sun is not directly visible int these images, resulting in DNI=
 \centering
 \end{figure}
 
-Due to time limitation, we did not investigate cloud type or cloud texture pattern features.
+Our final feature vector for each sky image consists of all the non-image and image-based features, resulting in a 11-element vector. Due to time limitation, we did not investigate cloud type or cloud texture pattern features.
 
 
 \section{Learning the relation between image features and DHI}
+In previous sections we approximated DHI from the pyranometers and also created a feature vector representing an image. Now, we need to find a way to related them together in order to be able estimate DHI values from a given feature vector. Since DHI values are real numbers, this is a regression problem. for solving that we experimented with several regression solvers. But because the domain values of our feature elements is different, we normalize every feature to [0,1] range before using in any regressor algorithm. 
 
-Knn Regression method for estimation
-Compare to other method to regress such as svm-regress, svorim, or penalty [no result]
+\subsection{Linear regression}
+
+\subsection{K-nearest-neighbor regression}
+
+
+\subsection{Support Vector Machine regression}
 
 
 
-\section{Translating irradiance to power}
-\subsection{Estimating shadow ratio on the plant site}
-refer to Figure \ref{fig:overall_system_design_power}.
-Projecting plant coordinates into the sky using assumed cloud height
-Adaptation to smooth changes of power by using the histogram of irradiance over past 30 minutes
-\begin{figure}[h]
-\caption{Overall simple system design for power prediction}
-\label{fig:overall_system_design_power}
-\includegraphics[scale=.5]{Overall_Simple_System_Design}
-\centering
-\end{figure}
+%\section{Translating irradiance to power}
+%\subsection{Estimating shadow ratio on the plant site}
+%refer to Figure \ref{fig:overall_system_design_power}.
+%Projecting plant coordinates into the sky using assumed cloud height
+%Adaptation to smooth changes of power by using the histogram of irradiance over past 30 minutes
+%\begin{figure}[h]
+%\caption{Overall simple system design for power prediction}
+%\label{fig:overall_system_design_power}
+%\includegraphics[scale=.5]{Overall_Simple_System_Design}
+%\centering
+%\end{figure}
