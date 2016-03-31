@@ -7,6 +7,8 @@ normal_regress=false;
 svorm = false;
 svm_regress = true;
 remove_rare = false;
+knn=false;
+
 w=5;
 fold=1;
 img_save_path='';
@@ -16,7 +18,7 @@ addpath(prj_path);
 if ~exist('data','var')
     load('calc\clean_data_with_8cc_nan_corrected3.mat', 'data');
 end
-N = 30000; % train size
+N = 9000;%30000; % train size
 train_ind = [];
 A=1:length(data);
 all_y = cellfun(@(d) d.corr_tilt_diff, data);
@@ -105,22 +107,23 @@ DAY_t = double(abs(int64(time_t' - datenum(DV2))))';
 % DHI2_t = irr2_t - max(0,cosd(zenith_t+offset)).*DNI_t;
 % y=DHI2;
 % yt=DHI2_t;
-
+% sun_flag(sun_flag==0) = sat_fact(sun_flag==0);
 x_img =[sun_flag;sat_fact;clouds;mean(cc_fact(1:4,:))];
-x_no_img = [clear_diffuse;zenith;DAY;TM];
+x_no_img = [clear_diffuse;zenith];%;DAY;TM];
 x_img=normalize(x_img,0,1);
 x_no_img=normalize(x_no_img,0,1);
+% sat_fact = max(sat_fact,sun_flag);
 
 x = [
     sun_flag...
     ; sat_fact...
-    ; cc_fact(4:8,:)...
+    ; cc_fact(5:8,:)...
     ; clear_diffuse...%.*(1-clouds./100)...
     ; zenith...
 %     ; clouds...
     ; mean(cc_fact(1:4,:))...
-    ; DAY...
-    ; TM
+%     ; DAY...
+%     ; TM
     ];
 x = [
     x...
@@ -138,20 +141,21 @@ x=normalize(x,0,1);
 train = [x; y]';
 
 x_img_t =[sun_flag_t;sat_fact_t;clouds_t;mean(cc_fact_t(1:4,:))];
-x_no_img_t = [clear_diffuse_t;zenith_t;DAY_t;TM_t];
+x_no_img_t = [clear_diffuse_t;zenith_t];%;DAY_t;TM_t];
 x_img_t=normalize(x_img_t,0,1);
 x_no_img_t=normalize(x_no_img_t,0,1);
+% sat_fact_t = max(sat_fact_t,sun_flag_t);
 
 test = [
     sun_flag_t...
     ; sat_fact_t...
-    ; cc_fact_t(4:8,:)...
+    ; cc_fact_t(5:8,:)...
     ; clear_diffuse_t...%.*(1-clouds_t./100)...
     ; zenith_t...
 %     ; clouds_t...
     ; mean(cc_fact_t(1:4,:))...
-    ; DAY_t...
-    ; TM_t
+%     ; DAY_t...
+%     ; TM_t
     ];
 test = [
     test...
@@ -171,37 +175,135 @@ x_t = test;
 %% Standard regression
 if normal_regress
 model = fitlm(x',y','interactions');
-y_hat = max(0,predict(model,test'));
-figure(100);
+y_hat = max(0,predict(model,x_t'));
+rmse1 = sqrt(mean((yt - y_hat').^2));
+disp(['Error linear regres: ' num2str(rmse1)]);
+% x=x_no_img;
+maxdev = chi2inv(.60,1);     
+opt = statset('display','iter',...
+              'TolFun',maxdev,...
+              'TolTypeFun','abs');
+
+inmodel = sequentialfs(@critfun2,[x',sqrt(x'),(x').^2],y',...
+                       'cv','none',...
+                       'nullmodel',false,...
+                       'options',opt,...
+                       'direction','forward');
+
+
+new_x = [x',sqrt(x'),(x').^2];
+model = fitlm(new_x(:,inmodel),y','interactions');
+% x_t=x_no_img_t;
+new_x_t = [x_t',sqrt(x_t'),(x_t').^2];
+y_hat = max(0,predict(model,new_x_t(:,inmodel)));
+new_rmse1 = sqrt(mean((yt - y_hat').^2));
+disp(['Error linear regres: ' num2str(new_rmse1)]);
+err1 = yt - y_hat';
+
+y_hat_tr = max(0,predict(model,new_x(:,inmodel)));
+disp(['Error linear regres: ' num2str(sqrt(mean((y - y_hat_tr').^2)))]);
+err3 = y - y_hat_tr';
+
+maxdev = chi2inv(.60,1);     
+opt = statset('display','iter',...
+              'TolFun',maxdev,...
+              'TolTypeFun','abs');
+
+inmodel = sequentialfs(@critfun2,[x_no_img',sqrt(x_no_img'),(x_no_img').^2],y',...
+                       'cv','none',...
+                       'nullmodel',false,...
+                       'options',opt,...
+                       'direction','forward');
+
+
+new_x = [x_no_img',sqrt(x_no_img'),(x_no_img').^2];
+model = fitlm(new_x(:,inmodel),y','interactions');
+% x_t=x_no_img_t;
+new_x_t = [x_no_img_t',sqrt(x_no_img_t'),(x_no_img_t').^2];
+y_hat = max(0,predict(model,new_x_t(:,inmodel)));
+new_rmse1 = sqrt(mean((yt - y_hat').^2));
+disp(['Error linear regres: ' num2str(new_rmse1)]);
+err2 = yt - y_hat';
+
+y_hat_tr = max(0,predict(model,new_x(:,inmodel)));
+disp(['Error linear regres: ' num2str(sqrt(mean((y - y_hat_tr').^2)))]);
+err4 = y - y_hat_tr';
+
+
+
+figure(101);
 scatter(y_hat,yt,'b','.');
 lsline;
-xlabel('predit');
-ylabel('measured');
+hold on;
 grid on;
-title('Standard regression');
+plot([0 400], [0 400],'r-');
+xlabel('Predit Irradiance W/M^2');
+ylabel('Measured Irradiance W/M^2');
+xlim([0 400]);
+ylim([0 400]);
+title('Standard regression (non-image feature)');
+    
 end
 
-[ranked,weights] = relieff(x',y',3);
-figure(919);
-bar(weights(ranked));
-xlabel('Predictor rank');
-ylabel('Predictor importance weight');
-
+% [ranked,weights] = relieff(x',y',3);
+% figure(919);
+% bar(weights(ranked));
+% xlabel('Predictor rank');
+% ylabel('Predictor importance weight');
+if knn
 %% k-nearest neighbors
+maxdev = chi2inv(.60,1);     
+opt = statset('display','iter',...
+              'TolFun',maxdev,...
+              'TolTypeFun','abs');
+
+inmodel = sequentialfs(@critfun,x',y',...
+                       'cv','none',...
+                       'nullmodel',false,...
+                       'options',opt,...
+                       'direction','forward');
+                   
 % [IDX,D] = knnsearch(x([1 6 8 9 11 12],:)',x_t([1 6 8 9 11 12],:)','K',2);
-[IDX,D] = knnsearch(x',x_t','K',2);
-WD=D./repmat(sum(D,2),[1,2]);
+[IDX,D] = knnsearch(x',x_t','K',10,'Distance','minkowski','P',1);
+WD=D./repmat(sum(D,2),[1,10]);
 knn_y_hat = sum(y(IDX).*WD,2);
-err5 = abs(yt - knn_y_hat').*(log(yt)/log(100));
+% err5 = abs(yt - knn_y_hat').*(log(yt)/log(100));
 % disp(['Error knn: ' num2str(mean(err5)), '   std: ', num2str(std(err5))]);
 rmse5 = sqrt(mean((yt - knn_y_hat').^2));
-rmse = sqrt((yt - knn_y_hat').^2);
-knn_R_sq = 1-sum((yt - knn_y_hat').^2)/sum(yt.^2);
-knn_MBE = mean(yt - knn_y_hat');
+% rmse = sqrt((yt - knn_y_hat').^2);
+% knn_R_sq = 1-sum((yt - knn_y_hat').^2)/sum(yt.^2);
+% knn_MBE = mean(yt - knn_y_hat');
 disp(['Error knn regres: ' num2str(rmse5)]);
-result_show(data(test_ind),knn_y_hat',yt,IDX,data(train_ind));
+% result_show(data(test_ind),knn_y_hat',yt,IDX,data(train_ind));
+err1=yt - knn_y_hat';
 
-figure(1);
+[IDX,D] = knnsearch(x',x','K',10,'Distance','minkowski','P',1);
+WD=D./repmat(sum(D,2),[1,10]);
+knn_y_hat = sum(y(IDX).*WD,2);
+rmse5 = sqrt(mean((y - knn_y_hat').^2));
+disp(['Error knn regres: ' num2str(rmse5)]);
+err3=y - knn_y_hat';
+
+[IDX,D] = knnsearch(x_no_img',x_no_img_t','K',10,'Distance','minkowski','P',1);
+WD=D./repmat(sum(D,2),[1,10]);
+knn_y_hat = sum(y(IDX).*WD,2);
+rmse = sqrt(mean((yt - knn_y_hat').^2));
+disp(['Error knn regres: ' num2str(rmse)]);
+err2=yt - knn_y_hat';
+
+[IDX,D] = knnsearch(x_no_img',x_no_img','K',10,'Distance','minkowski','P',1);
+WD=D./repmat(sum(D,2),[1,10]);
+knn_y_hat = sum(y(IDX).*WD,2);
+rmse = sqrt(mean((y - knn_y_hat').^2));
+disp(['Error knn regres: ' num2str(rmse)]);
+err4=y - knn_y_hat';
+
+[y1,x1] = hist(err1,50); [y2,x2] = hist(err2,50); [y3,x3] = hist(err3,50); [y4,x4] = hist(err4,50);
+figure(13); h1=plot(x1,y1,'b'); grid on; hold on; h2=plot(x2,y2,'r'); h3=plot(x3,y3,'b--'); h4=plot(x4,y4,'r--'); xlim([-300,300]); legend([h1,h2,h3,h4],{'All features(test)'; 'non-image features(test)';'All features(train)';'non-image features(train)'});
+xlabel('Error (W/m^2)'); ylabel('log(frequency)'); title('Histogram of errors'); hold off;
+
+
+figure(2);
 % values = hist3([knn_y_hat(:)./clear_diffuse_t' yt(:)./clear_diffuse_t'],[20 20]);
 % newmap = jet;
 % newmap(1,:) = [1 1 1];
@@ -221,18 +323,17 @@ hold on;
 plot([0 400], [0 400],'r-');
 title('Correlation of DHI estimation from K-NN regresor');
 
+% stairs
+% hist
+[y1,x1] = hist(err1,50); [y2,x2] = hist(err2,50); [y3,x3] = hist(err3,50); [y4,x4] = hist(err4,50);
+figure(10); h1=stairs(x1,y1,'b'); grid on; hold on; h2=stairs(x2,y2,'r'); h3=stairs(x3,y3,'b--'); h4=stairs(x4,y4,'r--'); xlim([-300,300]); legend([h1,h2,h3,h4],{'All features(test)'; 'non-image features(test)';'All features(train)';'non-image features(train)'});
+xlabel('Error (W/m^2)'); ylabel('log(frequency)'); title('Histogram of errors'); hold off;
 
-maxdev = chi2inv(.70,1);     
-opt = statset('display','iter',...
-              'TolFun',maxdev,...
-              'TolTypeFun','abs');
+[y1,x1] = hist(err1,50); [y2,x2] = hist(err2,50); [y3,x3] = hist(err3,50); [y4,x4] = hist(err4,50);
+figure(12); h1=plot(x1,y1,'b'); grid on; hold on; h2=plot(x2,y2,'r'); h3=plot(x3,y3,'b--'); h4=plot(x4,y4,'r--'); xlim([-300,300]); legend([h1,h2,h3,h4],{'All features(test)'; 'non-image features(test)';'All features(train)';'non-image features(train)'});
+xlabel('Error (W/m^2)'); ylabel('log(frequency)'); title('Histogram of errors'); hold off;
 
-inmodel = sequentialfs(@critfun,x',y',...
-                       'cv','none',...
-                       'nullmodel',false,...
-                       'options',opt,...
-                       'direction','forward');
-                   
+end                   
 % cross-validated knn model
 % mdl = fitcknn(x',y ,'NumNeighbors',2);
 % knn_y_hat = predict(mdl,x_t');
@@ -323,8 +424,8 @@ end
 % end
 
 %% Other Methods
-dlmwrite('E:/ABB/svorim/d_train.0',train,' ');
-dlmwrite('E:/ABB/svorim/d_test.0',[test;yt]',' ');
+% dlmwrite('E:/ABB/svorim/d_train.0',train,' ');
+% dlmwrite('E:/ABB/svorim/d_test.0',[test;yt]',' ');
 
 
 % Another library for svm-regression
@@ -334,15 +435,40 @@ dlmwrite('E:/ABB/svorim/d_test.0',[test;yt]',' ');
 
 if svm_regress
 % libSVM regressor
-svm_model = svmtrain(y', x(:,:)', '-s 3 -t 2 -g 8 -c 250 -p 9');
-% cross_valid
-[y_hat,Acc,~] = svmpredict(yt', test(:,:)', svm_model);
+svm_model = svmtrain(y', x', '-s 3 -t 2 -g 8 -c 250 -p 9');
+[y_hat,Acc,~] = svmpredict(yt', test', svm_model);
+rmse4 = sqrt(mean((yt - y_hat').^2));
+disp(['Error svm regres: ' num2str(rmse4)]);
+err1 = yt - y_hat';
+
+[y_hat,Acc,~] = svmpredict(y', x', svm_model);
+rmse4 = sqrt(mean((y - y_hat').^2));
+disp(['Error svm regres: ' num2str(rmse4)]);
+err3 = y - y_hat';
+
+svm_model = svmtrain(y', x_no_img', '-s 3 -t 2 -g 8 -c 250 -p 9');
+[y_hat,Acc,~] = svmpredict(yt', x_no_img_t', svm_model);
+rmse4 = sqrt(mean((yt - y_hat').^2));
+disp(['Error svm regres: ' num2str(rmse4)]);
+err2 = yt - y_hat';
+
+[y_hat,Acc,~] = svmpredict(y', x_no_img', svm_model);
+rmse4 = sqrt(mean((y - y_hat').^2));
+disp(['Error svm regres: ' num2str(rmse4)]);
+err4 = y - y_hat';
+
+
+[y1,x1] = hist(err1,50); [y2,x2] = hist(err2,50); [y3,x3] = hist(err3,50); [y4,x4] = hist(err4,50);
+figure(14); h1=plot(x1,y1,'b'); grid on; hold on; h2=plot(x2,y2,'r'); h3=plot(x3,y3,'b--'); h4=plot(x4,y4,'r--'); xlim([-300,300]); legend([h1,h2,h3,h4],{'All features(test)'; 'non-image features(test)';'All features(train)';'non-image features(train)'});
+xlabel('Error (W/m^2)'); ylabel('log(frequency)'); title('Histogram of errors'); hold off;
+
+
 
 result_show(data(test_ind),y_hat',yt,IDX,data(train_ind));
 
 err4 = abs(yt - y_hat').*(log(yt)/log(100));
 err14 = abs(yt - y_hat')./log(yt);
-rmse4 = sqrt(mean((yt - y_hat').^2));
+
 R_sq = 1-sum((yt - y_hat').^2)/sum(yt.^2);
 MBE = mean(yt - y_hat');
 disp(['Error svm regres: ' num2str(rmse4), '   std: ', num2str(std(err4))]);

@@ -39,6 +39,11 @@ A.~Cazorla, F.~J. Olmo, and L.~Alados-Arboledas.
 \newblock {Development of a sky imager for cloud cover assessment}.
 \newblock 25:29–39, 2008.
 
+\bibitem{svm_r}
+O.~Chapelle and Vapnik V.
+\newblock {Model Selection for Support Vector Machines}.
+\newblock 12, 1999.
+
 \bibitem{cloud_detection_using_RBR}
 C.~W. Chow, B.~Urquhart, M.~Lave, A.~Dominguez, J.~Kleissl, J.~Shields, and
   B.~Washom.

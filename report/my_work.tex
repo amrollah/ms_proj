@@ -25,6 +25,7 @@ This study is conducted on one of the photovoltaic(solar) power plants operated 
 \end{figure} 
 
 \section{Acquired Data}
+\label{sec:data}
 The camera system captures several images from the whole-sky every 8 seconds with different narrow exposure ranges. These images which are labeled according to capture time, are combined to create an HDR (High Dynamic Range) image for every sample time. The original narrow exposure images are generally deleted except the images at each hour time (i.e. around 7:00, 8:00, 9:00 etc.). Since capturing images at night is not useful for power prediction applications, camera is instructed to only take pictures during daytime (i.e. sunrise to sunset) which is obtained for that specific location for each day using mathematical models. Nevertheless, according to the captures images, this is not enough and still there are some black images taken at the minutes before sunrise and after sunset. Therefore, while processing the images on the application side, we exclude those images using a threshold on average pixel intensity of each image. This threshold is determined empirically. The images are further filtered against a sky mask which is been designed to exclude nearby mountains and buildings in the field of view and also limit the field of view to 170 degrees since transforming the points which are further in horizon is not accurate enough and the sun light is not negligible when the sun is in those points.  It is worth mentioning that using HDR images in the image processing step is one of the key advantages of this study to related works specifically \cite{tSchmidt15}.
 
 The pyranometers measure GHI values with the sample rate of 6 seconds. The temperature is also recorded with the  same sample rate. However, the generate power is measured and logged every 3 seconds. These different sample rate make it necessary to interpolate the available data to find the estimated data for a time which there is no data available. Therefore, we can assign total irradiance, temperature and generated power to any given image using its capture time. This data acquisition setup has been running since 7th July 2015 until present. However, there are some short periods of time (usually lasting several days up to two weeks) which one of the sensors (pyranometers or the camera) had problems or the power plant was not working to produce power data. Considering the relatively small sample rate (less than 8 seconds), the amount of recorded data is big enough to make those off-days negligible in data processing steps. The data used in this study spans from 15th July to 10 February, meaning that many summer, autumn and winter days are available in the dataset to make it a good representation for the whole year. 
@@ -192,7 +193,7 @@ In Figure \ref{fig:calc_DHI_day}, calculated DHI values for a sunny summer and a
 \centering
 \end{figure}
 
-As we can see the DHI values of tilted sensor show more robustness compared to values of horizontal sensor. The reason is some complex effects of clouds on DNI which we are not considering for so far. The shadowed tilted sensor is more immune to this DNI variation.  Even though during the winter days, the calculated DHI for horizontal sensor is closer to clear-sky DHR, but the DHI of tilted sensor shows more robustness to cloud condition variations. Therefore, we decided to use DHI of titled sensor as actual DHI for both sensors on further calculations.
+Interestingly, one can see two horn shape anomalies in the morning and evening on calculated DHI of a summer day. One hypothesize is that reflection of light from nearby mountains are causing this extra irradiance which is no accounted for in our model. Anyways, as we can see the DHI values of tilted sensor show more robustness compared to values of horizontal sensor. The reason is some complex effects of clouds on DNI which we are not considering so far. The tilted sensor is more immune to this DNI variation. Even though during the winter days, the calculated DHI for horizontal sensor is closer to clear-sky DHR, but the DHI of tilted sensor shows more robustness to cloud condition variations. Therefore, we decided to use DHI of titled sensor as actual DHI for both sensors on further calculations.
 
 We also experimented reconstruction of observed irradiances for both sensors based on calculated DHI values (from tilted sensor), assumed DNI values and respective angles using Eq \ref{eq:GHI_reconstruct} . 
 
@@ -200,6 +201,7 @@ We also experimented reconstruction of observed irradiances for both sensors bas
 \label{eq:GHI_reconstruct}
 \left[ \begin{array}{c} GHI_1 \\ GHI_2 \end{array} \right] = \begin{bmatrix} a_1 \times cos(zenith) & b_1 \\ a_2 \times max(0, cos(\theta)) & b_2 \end{bmatrix} \times \left[ \begin{array}{c} DNI \\ DHI \end{array} \right]
 \end{equation}
+
 where $GHI_1$ is irradiance reconstructed for horizontal senor (1), $GHI_2$ is the tilted sensor irradiance, $\theta$ is the angle between sun and tilted sensor normal, $a_1, a_2, b_1, b_2$ are constant values needed to be tuned for the best fit in result. For reconstruction we evaluated different values in range of 5 to 60 to find zenith and azimuth of the tilted sensor which result in best fit. Also, for the constant parameters the following values worked best: $a_1=0.9, a_2=1, b_1=1.14, b_2=0.78$. The optimal angles found to be \textbf{56.5} degrees for zenith and \textbf{11.5} degrees for azimuth which is different for the azimuth we used for obtaining the DHI values before (i.e. -0.7). However, we are only interested in reconstructing GHI for the horizontal sensor which does not depend on tilted sensor azimuth according to the aforementioned equation.
 
 The correlation of reconstruction result to actual GHI values is shown in Figure \ref{fig:GHI_reconstruct_result} and proves that GHI values of horizontal (and tilted) sensor can be estimated using a simple DNI model and DHI of tilted sensor.
@@ -220,17 +222,17 @@ The idea is that as we limit the effect of clouds on DNI by assuming $DNI=0$ or 
 \label{sec:img-features}
 As we have shown in Figure \ref{fig:clean_sky_day_irr} all the irradiance components including DHI follow a bell-shape curve during a clear day and this curve varies throughout a year -lower in winter, higher in summer. We call these factors, \textbf{non-image} features as they are not obtained from images and are independent of cloud characteristics. We formulate these features as following:
 \begin{itemize}
-\item Day of the year; defined as the number of days between query time and the first day of August.
-\item Time of the day; defined as the number of minutes passed the midnight at query time
-\item Zenith angle of the sun; between around 20 up to around 80 degrees
+%\item Day of the year; defined as the number of days between query time and the first day of August.
+%\item Time of the day; defined as the number of minutes passed the midnight at query time
 \item $DHI_{clear sky}$
+\item Zenith angle of the sun; between around 20 up to around 80 degrees
 \end{itemize}
-Query time is the time image was taken. Even though, these features are correlated; for example $DHI_{clear sky}$ is dependent to time and day of the year, but experiments shows including all of them in the features list is beneficial.
+Even though $DHI_{clear sky}$ is dependent on zenith angle, but experiments show including both in the features list is beneficial.
 \newline
 
 Besides non-image features, we extract some visual features from sky images to help estimating DHI in not-clear situations. For image-based features there are several intuitions about what factors might affect DHI most. These includes cloud coverage, cloud type, shininess of sun, cloud color and etc. However, using cloud color features is not a good idea for our application, since they vary a lot even in very short-time ahead and predicting cloud color is not accurate enough. And since the aim of this study is to forecast irradiance for predicted cloud states in several minutes ahead, we restrict our image-based features to highly predictable features. This includes:
 \begin{itemize}
-\item sun-flag; as we explained in section \ref{sec:sun-states}, it is an integer number between 1 and 4. However, we only consider states 1 and 2. 
+\item sun-flag; as we explained in section \ref{sec:sun-states}, it is an integer number between 1 and 4. However, we only consider states 1 and 4. 
 %\item Total cloud coverage; defined as the percentage of image pixels which are classified as cloud (i.e. 100\% for full cloud coverage, 0 for no cloud)
 \item Semi-local cloud coverage; defined as the percentages of cloud pixels (i.e. image pixels which are classified as cloud) in four parts of the image separately, i.e. top right, top left, bottom right, bottom left. For each region, 100\% indicates full cloud coverage and 0 means no cloud. More information is given in section \ref{sec:cc_around_sun}.
 \item Cloud coverage around the sun; defined as the percentage of image pixels in a small circle around the sun which are classified as cloud. This feature is explained in more detail in section \ref{sec:cc_around_sun}.
@@ -268,19 +270,43 @@ Even though, the sun is not directly visible int these images, resulting in DNI=
 \centering
 \end{figure}
 
-Our final feature vector for each sky image consists of all the non-image and image-based features, resulting in a 11-element vector. Due to time limitation, we did not investigate cloud type or cloud texture pattern features.
+Our final feature vector for each sky image consists of all the non-image and image-based features, resulting in a 9-element vector. Due to time limitation, we did not investigate cloud type or cloud texture pattern features.
 
+\section{Dataset}
+As it was mentioned in section \ref{sec:data}, we have data records and images from August 2015 until present for every 8 seconds during the day. Since we created our feature vector dataset in February 2016, the time span of images are from August 2015 to February 2016.  As we showed in Figure \ref{fig:calc_DHI_day}, HDI calculated values in the morning and evening are not accurate, therefore we skip these times in our final dataset. Furthermore, since estimating DNI for images with sun-flag 2 and 3 is too difficult and there is not ground-truth information for verifying results, we decided to restrict our data to only images with sun-flag 1 and 4, which corresponds to sun not visible and complete shining sun visible, respectively. This restriction reduces our usable data sample around 30\%. We also prune our data set to remove data samples that are too close to each other both in time and cloud conditions. For that, we iterate through images of each day for sampling a data set, but change the sampling rate by amount of change in cloud coverage from last sampled image to current one. This means that if there is long steady sunny condition during a day, we only sample handful of them. The same goes for continues full cloud coverage times during a day. On the other hand, when the cloud condition is changing a lot, we take more data samples to diversity our dataset and include as many variation of cloud situation as we can. The final data set after all these pruning, includes around 44,000 data samples from many different cloud conditions and many days from summer to winter.
 
 \section{Learning the relation between image features and DHI}
-In previous sections we approximated DHI from the pyranometers and also created a feature vector representing an image. Now, we need to find a way to related them together in order to be able estimate DHI values from a given feature vector. Since DHI values are real numbers, this is a regression problem. for solving that we experimented with several regression solvers. But because the domain values of our feature elements is different, we normalize every feature to [0,1] range before using in any regressor algorithm. 
+In previous sections we approximated DHI from the pyranometers and also created a feature vector representing an image. Now, we need to find a way to relate them to each other in order to be able estimate DHI values from a given feature vector. Since DHI values are real numbers, this is a regression problem. 
+Therefore, for we used several regression methods for solving that to find the best performing regressor on this particular problem. Because the domain value of our feature elements is different, we normalize every feature to [0,1] range before feeding it in any regressor algorithm. 
 
-\subsection{Linear regression}
+\subsection{Linear Regression}
+We tried linear regression to determine if DHI can be written as a polynomial function of feature vectors lile in Eq \ref{eq:linear_regress}.
 
-\subsection{K-nearest-neighbor regression}
+\begin{equation}
+\label{eq:linear_regress}
+y_i = \beta_{1}x_{i1} + \ldots + \beta_{p}x_{ip} + \epsilon_{i}
+\end{equation}
+Where $y_i$ is DHI and $x_i$ is a feature vector. Also, square ($x^{2}$) and quadrate ($\sqrt(x)$) of features are added to the feature list to evaluate non-linear relation of features to target as well. To consider mutual relation of features, interaction of features (i.e. $x_{i}x_{j}$) were added to final feature list, resulting in 63 element feature vector. To prevent cluttering the features any further, we did not evaluate logarithmic or exponential of features.
+
+\subsection{K-nearest-neighbors (K-NN) Regression}
+Another approach that we tried was K-NN regression. This method aims to find unknown target value of a feature vector by calculating a weighted average of target values from K training feature vectors that are most closest (i.e. neighbors) to the query feature vector in the feature space. In other word, K-NN assumes that if two feature vector are very similar to each other based on a similarity measure, then their target should be similar too. And this is a valid assumption for our application. These neighbors of input vector are weighted by the inverse of their distance for averaging. The distance between feature vectors can be defined arbitrarily, but popular distance choices for continues variables are Euclidean, Manhattan and Minkowski. We experimented all three of these distances to find the one with least error. To reduce the noise in data, usually the number of neighbors (K) for averaging should be 10 or more. However, the best K can vary depending on the data set. Therefore, we have tried several values to tune this parameter.
+
+\begin{equation}
+\label{eq:manhattan_distance}
+d = \sum_{i=1}^{k} |x_i - y_i|
+\end{equation}
+
+\begin{equation}
+\label{eq:minkowski_distance}
+d = (\sum_{i=1}^{k} (|x_i - y_i|)^{q})^{1/q}
+\end{equation}
+
+\subsection{Support Vector Machine Regression (SVR)}
+Even though Support Vector Machine\cite{svm_r} is best known for classification problem, but one can use a modified version of that for regression too with almost all the benefits of normal SVM. In SVR formulation two maximum margin hyperplanes are found between negative and positive errors between a polynomial function of input features and the target values. In the soft-margin SVM which we are using, the $\epsilon$ parameter helps to tolerate small errors and find better support vectors. Slack variables help to ensure existence of a convex solution as well as reducing the effect of noise in data. Kernels in SVR map the feature space to a higher dimensional space that might be more suitable for finding those separating hyperplanes. Since we are working with images and there is a lot of noise in features as well, a Radial Basis Function (RBF) kernel is used which can help smoothing these noise and find better hyperplanes. The gamma parameter ($\gamma$) in RBF kernel defines how far the influence of a single training example reaches, with low values meaning far and high values meaning close. The gamma parameters can be seen as the inverse of the radius of influence of samples selected by the model as support vectors.
 
 
-\subsection{Support Vector Machine regression}
-
+\subsection{Training and test datasets}
+For every learning algorithm we need to have a separate training and testing dataset. Since usually Linear Regression and K-NN need large training set size to avoid over-fitting and also smooth the noise in data, we dedicate 60\% of our data samples for training set, and the rest for testing. This means the training dataset has around 26,000 data samples and test dataset has around 18,000 data samples. For the case of Support Vector Machine Regression, there is no need for such a big training size due to $\epsilon$ and slack variables as well as kernel non-linear mapping. Furthermore, computation time of SVR method increases exponentially to number of training features which makes it very time-consuming for parameter tuning cross validation on a large training set. Therefore, we set the training size 20\% of the total number of samples which is around 6700 samples. The rest of samples are used for testing. The distribution of DHI (target) values in our dataset is not uniform. There are many more samples at low values of DHI than high values. Therefore, to make sure that there is enough sample from every DHI range in the training and test sets, we partition the DHI values into 5 ranges, [0,100], [100,200], [200,300], [300,400], [400,500]. Then in any range we choose $N/5$ of samples randomly for training where $N$ is total number of training. If the number of samples in a range is less than $N/5$ we take 60\% of the sample in that range as training and the rest as test. With this method, we are sure to have enough samples from every DHI range in order to be able estimate other values in that range later with regression. In next chapter, we show some results of this three regression method on testset after being trained with training data.
 
 
 %\section{Translating irradiance to power}

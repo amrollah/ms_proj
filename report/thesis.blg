@@ -7,6 +7,7 @@ Warning--empty institution in sun_pos1
 Warning--empty journal in Borkowski1977
 Warning--empty journal in turbidity
 Warning--empty journal in cloud_cover08
+Warning--empty journal in svm_r
 Warning--empty journal in cloud_detection_using_RBR
 Warning--empty journal in clear_sky_model
 Warning--empty journal in sat_based99
@@ -34,4 +35,4 @@ Warning--empty journal in romania_paper
 Warning--empty journal in point_forecast14
 Warning--empty journal in stat_based13
 Warning--empty journal in cloud_height14
-(There were 33 warnings)
+(There were 34 warnings)

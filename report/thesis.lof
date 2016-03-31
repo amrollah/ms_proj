@@ -26,6 +26,14 @@
 \contentsline {figure}{\numberline {3.17}{\ignorespaces One example of saturated cloud pixels}}{34}{figure.3.17}
 \contentsline {figure}{\numberline {3.18}{\ignorespaces Detected saturated area in a patch around sun}}{35}{figure.3.18}
 \addvspace {10pt}
-\contentsline {figure}{\numberline {4.1}{\ignorespaces K-NN estimation result}}{37}{figure.4.1}
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Linear regression result using only non-image features}}{40}{figure.4.1}
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Linear regression result using all the features}}{40}{figure.4.2}
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Error histogram for linear regression}}{41}{figure.4.3}
+\contentsline {figure}{\numberline {4.4}{\ignorespaces K-NN estimation result using only non-image features}}{41}{figure.4.4}
+\contentsline {figure}{\numberline {4.5}{\ignorespaces K-NN estimation result using all the features}}{42}{figure.4.5}
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Error histogram for K-NN estimation result}}{42}{figure.4.6}
+\contentsline {figure}{\numberline {4.7}{\ignorespaces SVR result using only non-image features}}{43}{figure.4.7}
+\contentsline {figure}{\numberline {4.8}{\ignorespaces SVR result using all the features}}{43}{figure.4.8}
+\contentsline {figure}{\numberline {4.9}{\ignorespaces Error histogram for SVR result}}{43}{figure.4.9}
 \addvspace {10pt}
 \addvspace {10pt}

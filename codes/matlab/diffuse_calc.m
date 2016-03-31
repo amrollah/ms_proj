@@ -53,6 +53,7 @@ function diffuse_calc(az,elev)
     datetickzoom;
     title('sensor 2');
     xlabel('Time');
+    ylim([0 1200]);
     ylabel('Irradiance (W/m^2)');
     
     figno=11;
