@@ -128,6 +128,26 @@ The error histogram of error is plotted in Figure \ref{fig:err_hist_svr}. This s
 \centering
 \end{figure}
 
+\section{Some error cases}
+As we see in the error histograms, the range of error values in all regression method is considerable and between -200 to 200 $W/m^2$. However, the number of these high value errors are very small and can be seen as outliers in statistical analysis.  After looking at the corresponding images and their feature vectors we realized that the reason for such abnormal regression result is either failure in cloud segmentation algorithm or misclassifying sun-state. For example, Figure \ref{fig:img_fail1} shows an image where the predicted DHI is around 300$W/m^2$ but observed value is around 20. The reason for this off prediction is the rain drops on the camera which prevented the cloud in circumsolar area to be detected. Therefore, the K-NN matches this image to other images with clear area around the sun and consequently results in high DHI prediction. Handling rain drops in images is challenging task which is out of the scope of this thesis.
+
+\begin{figure}[h]
+\caption{An image sample of large estimation error}
+\label{fig:img_fail1}
+\includegraphics[scale=.5]{fail1}
+\centering
+\end{figure}
+
+\newline
+Another bad prediction is displayed in Figure \ref{fig:img_fail2} where sun-state is detected as 1 which means sun is not visible at all in the image, but we can clearly see the sun passing the light through a thin cloud. However, the saturation factor is been calculated correctly for this image. The reason for misclassifying sun-state is that the sun detection algorithm looks for a big enough black dot in circumsolar area that is surrounded with bright pixels up to a specific radius. But the black dot of sun in this image is not big enough to be detected by that algorithm. By adjusting the threshold, this case can be correctly classified, but some other false positive instances might appear in other images.
+
+\begin{figure}[h]
+\caption{An image sample of large estimation error}
+\label{fig:img_fail2}
+\includegraphics[scale=.5]{fail2}
+\centering
+\end{figure}
+
 
 \section{Comparison}
 As we saw before, using image-based features along non-image features improves the regression accuracy considerably. Now, for choosing the best performing method among the three regression algorithms, we compare the RMSE of their result for the case where both feature types were used. As Table \ref{table:rmse_cmp} clarifies, K-NN method outperforms linear regression by 20\% and support vector regression by around 9\% improvement.
