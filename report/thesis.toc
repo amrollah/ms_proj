@@ -42,9 +42,10 @@
 \contentsline {subsection}{\numberline {3.8.4}Training and test datasets}{37}{subsection.3.8.4}
 \contentsline {chapter}{\chapternumberline {4}Results and Discussion}{39}{chapter.4}
 \contentsline {section}{\numberline {4.1}Feature Selection}{39}{section.4.1}
-\contentsline {section}{\numberline {4.2}Linear Regression}{39}{section.4.2}
-\contentsline {section}{\numberline {4.3}K-NN}{40}{section.4.3}
-\contentsline {section}{\numberline {4.4}SVR}{41}{section.4.4}
-\contentsline {chapter}{\chapternumberline {5}Future Work}{45}{chapter.5}
-\contentsline {chapter}{\chapternumberline {6}Conclusion}{47}{chapter.6}
-\contentsline {chapter}{Bibliography}{49}{section*.5}
+\contentsline {section}{\numberline {4.2}Linear Regression}{40}{section.4.2}
+\contentsline {section}{\numberline {4.3}K-NN}{41}{section.4.3}
+\contentsline {section}{\numberline {4.4}SVR}{43}{section.4.4}
+\contentsline {section}{\numberline {4.5}Comparison}{46}{section.4.5}
+\contentsline {chapter}{\chapternumberline {5}Future Work}{49}{chapter.5}
+\contentsline {chapter}{\chapternumberline {6}Conclusion}{51}{chapter.6}
+\contentsline {chapter}{Bibliography}{53}{section*.5}

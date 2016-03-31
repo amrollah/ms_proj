@@ -18,7 +18,7 @@ addpath(prj_path);
 if ~exist('data','var')
     load('calc\clean_data_with_8cc_nan_corrected3.mat', 'data');
 end
-N = 9000;%30000; % train size
+N = 30000; %9000; train size
 train_ind = [];
 A=1:length(data);
 all_y = cellfun(@(d) d.corr_tilt_diff, data);
@@ -435,6 +435,17 @@ end
 
 if svm_regress
 % libSVM regressor
+maxdev = chi2inv(.60,1);     
+opt = statset('display','iter',...
+              'TolFun',maxdev,...
+              'TolTypeFun','abs');
+
+inmodel = sequentialfs(@critfun3,x',y',...
+                       'cv','none',...
+                       'nullmodel',false,...
+                       'options',opt,...
+                       'direction','forward');
+                   
 svm_model = svmtrain(y', x', '-s 3 -t 2 -g 8 -c 250 -p 9');
 [y_hat,Acc,~] = svmpredict(yt', test', svm_model);
 rmse4 = sqrt(mean((yt - y_hat').^2));
@@ -460,9 +471,19 @@ err4 = y - y_hat';
 
 [y1,x1] = hist(err1,50); [y2,x2] = hist(err2,50); [y3,x3] = hist(err3,50); [y4,x4] = hist(err4,50);
 figure(14); h1=plot(x1,y1,'b'); grid on; hold on; h2=plot(x2,y2,'r'); h3=plot(x3,y3,'b--'); h4=plot(x4,y4,'r--'); xlim([-300,300]); legend([h1,h2,h3,h4],{'All features(test)'; 'non-image features(test)';'All features(train)';'non-image features(train)'});
-xlabel('Error (W/m^2)'); ylabel('log(frequency)'); title('Histogram of errors'); hold off;
+xlabel('Error (W/m^2)'); ylabel('frequency'); title('Histogram of errors'); hold off;
 
-
+figure(108);
+scatter(y_hat,yt,'b','.');
+lsline;
+hold on;
+grid on;
+plot([0 400], [0 400],'r-');
+xlabel('Predit Irradiance W/M^2');
+ylabel('Measured Irradiance W/M^2');
+xlim([0 400]);
+ylim([0 400]);
+title('SVR result (all the features)');
 
 result_show(data(test_ind),y_hat',yt,IDX,data(train_ind));
 
