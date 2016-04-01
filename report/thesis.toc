@@ -25,22 +25,22 @@
 \contentsline {chapter}{\chapternumberline {3}Estimating Diffuse Horizontal Irradiance (DHI) from sky image}{17}{chapter.3}
 \contentsline {section}{\numberline {3.1}Experimental Setup}{17}{section.3.1}
 \contentsline {section}{\numberline {3.2}Acquired Data}{19}{section.3.2}
-\contentsline {section}{\numberline {3.3}Sun positions and sun states in image}{19}{section.3.3}
-\contentsline {section}{\numberline {3.4}Clear-sky irradiance model}{21}{section.3.4}
-\contentsline {subsection}{\numberline {3.4.1}Ineichen method}{22}{subsection.3.4.1}
+\contentsline {section}{\numberline {3.3}Sun positions and sun states in image}{20}{section.3.3}
+\contentsline {section}{\numberline {3.4}Clear-sky irradiance model}{22}{section.3.4}
+\contentsline {subsection}{\numberline {3.4.1}Ineichen method}{23}{subsection.3.4.1}
 \contentsline {subsection}{\numberline {3.4.2}McClear method}{23}{subsection.3.4.2}
-\contentsline {subsection}{\numberline {3.4.3}Comparison of clear-sky simulation results}{23}{subsection.3.4.3}
+\contentsline {subsection}{\numberline {3.4.3}Comparison of clear-sky simulation results}{24}{subsection.3.4.3}
 \contentsline {subsection}{\numberline {3.4.4}Choosing the clear-sky model}{27}{subsection.3.4.4}
-\contentsline {section}{\numberline {3.5}Estimating diffuse from pyranometers}{28}{section.3.5}
+\contentsline {section}{\numberline {3.5}Estimating diffuse from pyranometers}{27}{section.3.5}
 \contentsline {section}{\numberline {3.6}Key factors influencing DHI}{34}{section.3.6}
 \contentsline {subsection}{\numberline {3.6.1}Cloud coverage features}{35}{subsection.3.6.1}
-\contentsline {subsection}{\numberline {3.6.2}Saturation factor}{35}{subsection.3.6.2}
-\contentsline {section}{\numberline {3.7}Dataset}{37}{section.3.7}
+\contentsline {subsection}{\numberline {3.6.2}Saturation factor}{36}{subsection.3.6.2}
+\contentsline {section}{\numberline {3.7}Dataset}{38}{section.3.7}
 \contentsline {section}{\numberline {3.8}Learning the relation between image features and DHI}{38}{section.3.8}
-\contentsline {subsection}{\numberline {3.8.1}Linear Regression}{38}{subsection.3.8.1}
-\contentsline {subsection}{\numberline {3.8.2}K-nearest-neighbors (K-NN) Regression}{38}{subsection.3.8.2}
-\contentsline {subsection}{\numberline {3.8.3}Support Vector Machine Regression (SVR)}{39}{subsection.3.8.3}
-\contentsline {subsection}{\numberline {3.8.4}Training and test datasets}{39}{subsection.3.8.4}
+\contentsline {subsection}{\numberline {3.8.1}Linear Regression}{39}{subsection.3.8.1}
+\contentsline {subsection}{\numberline {3.8.2}K-nearest-neighbors (K-NN) Regression}{39}{subsection.3.8.2}
+\contentsline {subsection}{\numberline {3.8.3}Support Vector Machine Regression (SVR)}{40}{subsection.3.8.3}
+\contentsline {subsection}{\numberline {3.8.4}Training and test datasets}{40}{subsection.3.8.4}
 \contentsline {chapter}{\chapternumberline {4}Results and Discussion}{41}{chapter.4}
 \contentsline {section}{\numberline {4.1}Feature Selection}{41}{section.4.1}
 \contentsline {section}{\numberline {4.2}Linear Regression}{42}{section.4.2}

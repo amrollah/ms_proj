@@ -10,22 +10,23 @@
 \addvspace {10pt}
 \contentsline {figure}{\numberline {3.1}{\ignorespaces wide-angle camera system used at Carviglia site}}{18}{figure.3.1}
 \contentsline {figure}{\numberline {3.2}{\ignorespaces Two pyranometers (one horizontal, one 45 degrees titled to north) located close to the camera location}}{18}{figure.3.2}
-\contentsline {figure}{\numberline {3.3}{\ignorespaces Sun position angles. source:\cite {sun_angle_pic}}}{20}{figure.3.3}
-\contentsline {figure}{\numberline {3.4}{\ignorespaces Different sun states, from left to right: sun flag=4, 3, 2, 1 respectively.}}{21}{figure.3.4}
-\contentsline {figure}{\numberline {3.5}{\ignorespaces Variation of sun appearance in the images.}}{22}{figure.3.5}
-\contentsline {figure}{\numberline {3.6}{\ignorespaces GHI estimation of McClear vs Ineichen vs observation}}{24}{figure.3.6}
-\contentsline {figure}{\numberline {3.7}{\ignorespaces Correlation of GHI simulation of McClear and Ineichen with observations on selected days}}{25}{figure.3.7}
-\contentsline {figure}{\numberline {3.8}{\ignorespaces DNI and DHI correlation of McClear to Ineichen}}{26}{figure.3.8}
-\contentsline {figure}{\numberline {3.9}{\ignorespaces Comparison of DHI of McClear and Ineichen to observed GHI}}{27}{figure.3.9}
-\contentsline {figure}{\numberline {3.10}{\ignorespaces Variation of irradiance components during day}}{27}{figure.3.10}
-\contentsline {figure}{\numberline {3.11}{\ignorespaces The sun path during a spring day at Cavriglia, Italy, location of ABB PV plant.}}{29}{figure.3.11}
-\contentsline {figure}{\numberline {3.12}{\ignorespaces Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a summer day}}{29}{figure.3.12}
-\contentsline {figure}{\numberline {3.13}{\ignorespaces Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a winter day}}{30}{figure.3.13}
-\contentsline {figure}{\numberline {3.14}{\ignorespaces Calculated DHI}}{32}{figure.3.14}
-\contentsline {figure}{\numberline {3.15}{\ignorespaces Calculated GHI based on DHI and DNI for both sensors}}{33}{figure.3.15}
-\contentsline {figure}{\numberline {3.16}{\ignorespaces Regions of interest for extracting cloud coverage features}}{36}{figure.3.16}
-\contentsline {figure}{\numberline {3.17}{\ignorespaces One example of saturated cloud pixels}}{36}{figure.3.17}
-\contentsline {figure}{\numberline {3.18}{\ignorespaces Detected saturated area in a patch around sun}}{37}{figure.3.18}
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Irradiance measurement from sensor 1}}{20}{figure.3.3}
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Sun position angles. source:\cite {sun_angle_pic}}}{21}{figure.3.4}
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Different sun states, from left to right: sun flag=4, 3, 2, 1 respectively.}}{21}{figure.3.5}
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Variation of sun appearance in the images.}}{22}{figure.3.6}
+\contentsline {figure}{\numberline {3.7}{\ignorespaces GHI estimation of McClear vs Ineichen vs observation}}{25}{figure.3.7}
+\contentsline {figure}{\numberline {3.8}{\ignorespaces Correlation of GHI simulation of McClear and Ineichen with observations on selected days}}{26}{figure.3.8}
+\contentsline {figure}{\numberline {3.9}{\ignorespaces DNI and DHI correlation of McClear to Ineichen}}{27}{figure.3.9}
+\contentsline {figure}{\numberline {3.10}{\ignorespaces Comparison of DHI of McClear and Ineichen to observed GHI}}{28}{figure.3.10}
+\contentsline {figure}{\numberline {3.11}{\ignorespaces Variation of irradiance components during day}}{28}{figure.3.11}
+\contentsline {figure}{\numberline {3.12}{\ignorespaces The sun path during a spring day at Cavriglia, Italy, location of ABB PV plant.}}{29}{figure.3.12}
+\contentsline {figure}{\numberline {3.13}{\ignorespaces Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a summer day}}{30}{figure.3.13}
+\contentsline {figure}{\numberline {3.14}{\ignorespaces Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a winter day}}{30}{figure.3.14}
+\contentsline {figure}{\numberline {3.15}{\ignorespaces Calculated DHI}}{32}{figure.3.15}
+\contentsline {figure}{\numberline {3.16}{\ignorespaces Calculated GHI based on DHI and DNI for both sensors}}{34}{figure.3.16}
+\contentsline {figure}{\numberline {3.17}{\ignorespaces Regions of interest for extracting cloud coverage features}}{36}{figure.3.17}
+\contentsline {figure}{\numberline {3.18}{\ignorespaces One example of saturated cloud pixels}}{37}{figure.3.18}
+\contentsline {figure}{\numberline {3.19}{\ignorespaces Detected saturated area in a patch around sun}}{38}{figure.3.19}
 \addvspace {10pt}
 \contentsline {figure}{\numberline {4.1}{\ignorespaces Linear regression result using only non-image features}}{42}{figure.4.1}
 \contentsline {figure}{\numberline {4.2}{\ignorespaces Linear regression result using both feature types}}{43}{figure.4.2}
