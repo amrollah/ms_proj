@@ -5,7 +5,8 @@
 \addvspace {10pt}
 \contentsline {figure}{\numberline {2.1}{\ignorespaces Three different zones identified in images (sun, cloud, sky)}}{12}{figure.2.1}
 \contentsline {figure}{\numberline {2.2}{\ignorespaces Correlation between estimated DNI and recorded DNI.}}{12}{figure.2.2}
-\contentsline {figure}{\numberline {2.3}{\ignorespaces Comparing estimated $k^{*}_{DHI}$ and $k^{*}_{DNI}$ to measured values. source:\cite {tSchmidt15}}}{16}{figure.2.3}
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Histogram of clear-sky index}}{15}{figure.2.3}
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Comparing estimated $k^{*}_{DHI}$ and $k^{*}_{DNI}$ to measured values. source:\cite {tSchmidt15}}}{16}{figure.2.4}
 \addvspace {10pt}
 \contentsline {figure}{\numberline {3.1}{\ignorespaces wide-angle camera system used at Carviglia site}}{18}{figure.3.1}
 \contentsline {figure}{\numberline {3.2}{\ignorespaces Two pyranometers (one horizontal, one 45 degrees titled to north) located close to the camera location}}{18}{figure.3.2}

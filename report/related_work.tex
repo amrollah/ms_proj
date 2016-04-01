@@ -22,7 +22,7 @@ The irradiance (direct, diffuse, and global) is recorded using the equipment Kip
 \end{figure} 
 
 \section{Using clear sky irradiance model and binary cloud mask}
-The work done by T. Schmidt et al.\cite{tSchmidt_full} at University of Oldenburg in Germany is a very recent and relevant work on irradiance forecast using sky imagery pictures. The experimental setup consists of a wide-view camera, one ceilometer (cloud base height sensor) located next to the camera, and a grid of 99 pyranometer distributed uniformly over 10km by 12km in the area close to camera. The aim is to forecast irradiance of every pyranometer up to 30 minutes. The training data is recorded from the pyranometers and the camera for two months every 10 seconds during daytime.
+The work done by T. Schmidt et al.\cite{tSchmidt_full} at University of Oldenburg in Germany is a very recent and relevant work on irradiance forecast using sky imagery pictures. The experimental setup consists of a wide-view camera, one ceilometer (cloud base height sensor) located close to the camera, and a grid of 99 pyranometer distributed uniformly over 10km by 12km in the area close to camera. The aim is to forecast irradiance of every pyranometer up to 30 minutes. The training data is recorded from the pyranometers and the camera for two months every 10 seconds during daytime.
 In order to determine clouds projection on the ground, they apply a series of image processing algorithms. 
 \subsection{Cloud detection}
 Firstly, they use Red-to-Blue Ratio (RBR) threshold for cloud detection which was first developed by Scripps Institution of Oceanography \cite{RBR89, RBR98} and is been used in many sky-imager-based forecast applications such as \cite{cloud_detection_using_RBR}. The RBR values close to 1 are usually cloud, and values very less than 1 are blue sky, since the blue channel which is in denominator dominates the red channel. However, since the RBR is not homogeneously distributed over the whole field of view, using a fixed global threshold for cloud detection brings a lot of misclassification for the areas close to the sun and also dark thick clouds or very transparent clouds. Therefore, they correct the RBR values based on clear-sky RBR values for each pixel. A Clear Sky Library (CSL) is created from images of one clear day. Then, the closest distance of current position and sun positions of CSL images is used to choose the reference RBR image map. This RBR map is used in correction formula \ref{eq:RBR_correction} to decrease RBR threshold in circumsolar area to counter effect of sun saturation there. The correction also decreases RBR threshold for dark areas and increases it for bright pixels of image in order to detect thick and thin clouds.
@@ -54,7 +54,15 @@ Upon determining the shadowed and sunny grid points on the ground area of experi
 k^{*} = \frac{GHI_{meas}}{GHI_{clear}}
 \end{equation}
 Clear sky irradiance is obtained from the mode of Dumortier \cite{clear_sky_model} and turbidity values of Bourges \cite{turbidity} which is validated according to Ineichen's work \cite{Ineichen}.
-For adapting to smooth changes of irradiance caused by factors other than clouds, this histogram is generated with measurements of last 30 minutes. As it is shown in figure \ref{fig:hist_k_index} this histogram usually has two peaks which correspond to sunny and shadow states on the specified point of ground. Now, for every point on the ground, based on its state (shadow, no-shadow), the corresponding $k^{*}$ is used from the peaks of the histogram to estimate GHI following Eq. \ref{eq:calc_GHI}. In case two distinct peaks could not be detected in histogram due to homogeneous irradiance condition, default values of 0.4 and 1, have been assigned for shadow and no-shadow states.
+For adapting to smooth changes of irradiance caused by factors other than clouds, this histogram is generated with measurements of last 30 minutes. As it is shown in figure \ref{fig:hist_k_index} this histogram usually has two peaks which correspond to sunny and shadow states on the specified point of ground. 
+\begin{figure}[h!]
+\caption{Histogram of clear-sky index}
+\label{fig:hist_k_index}
+\includegraphics[scale=.5]{hist_k_index}
+\centering
+\end{figure} 
+
+Now, for every point on the ground, based on its state (shadow, no-shadow), the corresponding $k^{*}$ is used from the peaks of the histogram to estimate GHI following Eq. \ref{eq:calc_GHI}. In case two distinct peaks could not be detected in histogram due to homogeneous irradiance condition, default values of 0.4 and 1, have been assigned for shadow and no-shadow states.
 \begin{equation}
 \label{eq:calc_GHI}
 GHI = k^{*}_{hist} \times GHI_{clear}
@@ -84,7 +92,7 @@ The result of KNN predication for DHI and DNI clear-sky indexes compared to meas
 \begin{figure}[h]
 \caption{Comparing estimated $k^{*}_{DHI}$ and $k^{*}_{DNI}$ to measured values. source:\cite{tSchmidt15}}
 \label{fig:knn_result_Schmidt}
-\includegraphics[scale=.44]{schmidt_knn_result}
+\includegraphics[scale=.34]{schmidt_knn_result}
 %\includegraphics[scale=.2]{schmidt_knn_DNI}
 %\includegraphics[scale=.2]{schmidt_knn_DHI}
 \centering
