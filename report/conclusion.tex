@@ -4,5 +4,6 @@ Following the global movement for increasing the share of green energy sources i
 
 
 This work specifically is concerned about estimating diffuse (non-direct) component of irradiance from sky images. We use data of two irradiance sensors, one horizontal and one tilted towards north, as well as a fisheye lens camera images of sky. A simplified binary approach is used for estimating DNI based on sun-state (i.e.either sun shining or sun not visible), meaning that the value is either equal to clear-sky DNI or zero. By removing the effect of DNI from titled sensor we get a soft sensor for DHI. We build on top of already existing cloud segmentation work at ABB to extract meaningful features from sky images and related them to DHI. We evaluated several non-image and image-based features to find the best performing feature set for predicting DHI. As the learning algorithm, the results of Linear Regression, K-nearest-neighbor (K-NN) and Support Vector Regression methods are compared. The results show K-NN outperforms other two methods and also that including both clear-sky DHI and cloud coverage features for regression improves the estimation accuracy by 40\% compared to using only non-image features. 
-\newline
+
+
 For future work, one needs to extend our binary DNI model to include other more complicated sun-states as well. Using cloud classification as a feature vector and also for estimating cloud-base-height is another area to work on.
