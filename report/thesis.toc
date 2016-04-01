@@ -2,51 +2,51 @@
 \select@language {english}
 \contentsline {chapter}{Contents}{\textlatin {iii}}{section*.1}
 \contentsline {chapter}{List of Figures}{1}{section*.2}
-\contentsline {chapter}{List of Tables}{2}{section*.3}
-\contentsline {chapter}{\chapternumberline {1}Introduction}{3}{chapter.1}
-\contentsline {section}{\numberline {1.1}Power prediction approaches for a PV plant}{3}{section.1.1}
-\contentsline {subsection}{\numberline {1.1.1}Ground whole-sky imagery}{4}{subsection.1.1.1}
-\contentsline {section}{\numberline {1.2}Cloud segmentation, cloud tracking}{4}{section.1.2}
-\contentsline {section}{\numberline {1.3}Image irradiance estimation for power prediction}{6}{section.1.3}
-\contentsline {section}{\numberline {1.4}Irradiance components}{6}{section.1.4}
-\contentsline {section}{\numberline {1.5}Accuracy metrics}{7}{section.1.5}
-\contentsline {chapter}{\chapternumberline {2}Related work}{9}{chapter.2}
-\contentsline {section}{\numberline {2.1}Estimate irradiance from zone types in sky images}{9}{section.2.1}
-\contentsline {section}{\numberline {2.2}Using clear sky irradiance model and binary cloud mask}{10}{section.2.2}
-\contentsline {subsection}{\numberline {2.2.1}Cloud detection}{11}{subsection.2.2.1}
-\contentsline {subsection}{\numberline {2.2.2}Image un-distorion}{11}{subsection.2.2.2}
-\contentsline {subsection}{\numberline {2.2.3}Shadow mapping}{12}{subsection.2.2.3}
-\contentsline {subsection}{\numberline {2.2.4}Irradiance retrieval}{12}{subsection.2.2.4}
-\contentsline {subsection}{\numberline {2.2.5}Irradiance forecast}{13}{subsection.2.2.5}
-\contentsline {section}{\numberline {2.3}Retrieval of direct and diffuse irradiance from sky images}{13}{section.2.3}
-\contentsline {subsection}{\numberline {2.3.1}Image features}{13}{subsection.2.3.1}
-\contentsline {subsection}{\numberline {2.3.2}irradiance estimation}{14}{subsection.2.3.2}
-\contentsline {chapter}{\chapternumberline {3}Estimating Diffuse Horizontal Irradiance (DHI) from sky image}{15}{chapter.3}
-\contentsline {section}{\numberline {3.1}Experimental Setup}{15}{section.3.1}
-\contentsline {section}{\numberline {3.2}Acquired Data}{17}{section.3.2}
-\contentsline {section}{\numberline {3.3}Sun positions and sun states in image}{17}{section.3.3}
-\contentsline {section}{\numberline {3.4}Clear-sky irradiance model}{19}{section.3.4}
-\contentsline {subsection}{\numberline {3.4.1}Ineichen method}{20}{subsection.3.4.1}
-\contentsline {subsection}{\numberline {3.4.2}McClear method}{21}{subsection.3.4.2}
-\contentsline {subsection}{\numberline {3.4.3}Comparison of clear-sky simulation results}{21}{subsection.3.4.3}
-\contentsline {subsection}{\numberline {3.4.4}Choosing the clear-sky model}{25}{subsection.3.4.4}
-\contentsline {section}{\numberline {3.5}Estimating diffuse from pyranometers}{26}{section.3.5}
-\contentsline {section}{\numberline {3.6}Key factors influencing DHI}{32}{section.3.6}
-\contentsline {subsection}{\numberline {3.6.1}Cloud coverage features}{33}{subsection.3.6.1}
-\contentsline {subsection}{\numberline {3.6.2}Saturation factor}{33}{subsection.3.6.2}
-\contentsline {section}{\numberline {3.7}Dataset}{35}{section.3.7}
-\contentsline {section}{\numberline {3.8}Learning the relation between image features and DHI}{36}{section.3.8}
-\contentsline {subsection}{\numberline {3.8.1}Linear Regression}{36}{subsection.3.8.1}
-\contentsline {subsection}{\numberline {3.8.2}K-nearest-neighbors (K-NN) Regression}{36}{subsection.3.8.2}
-\contentsline {subsection}{\numberline {3.8.3}Support Vector Machine Regression (SVR)}{37}{subsection.3.8.3}
-\contentsline {subsection}{\numberline {3.8.4}Training and test datasets}{37}{subsection.3.8.4}
-\contentsline {chapter}{\chapternumberline {4}Results and Discussion}{39}{chapter.4}
-\contentsline {section}{\numberline {4.1}Feature Selection}{39}{section.4.1}
-\contentsline {section}{\numberline {4.2}Linear Regression}{40}{section.4.2}
-\contentsline {section}{\numberline {4.3}K-NN}{41}{section.4.3}
-\contentsline {section}{\numberline {4.4}SVR}{43}{section.4.4}
-\contentsline {section}{\numberline {4.5}Some error cases}{44}{section.4.5}
-\contentsline {section}{\numberline {4.6}Comparison}{48}{section.4.6}
-\contentsline {chapter}{\chapternumberline {5}Future Work}{49}{chapter.5}
-\contentsline {chapter}{\chapternumberline {6}Conclusion}{51}{chapter.6}
-\contentsline {chapter}{Bibliography}{53}{section*.5}
+\contentsline {chapter}{List of Tables}{3}{section*.3}
+\contentsline {chapter}{\chapternumberline {1}Introduction}{5}{chapter.1}
+\contentsline {section}{\numberline {1.1}Power prediction approaches for a PV plant}{5}{section.1.1}
+\contentsline {subsection}{\numberline {1.1.1}Ground whole-sky imagery}{6}{subsection.1.1.1}
+\contentsline {section}{\numberline {1.2}Cloud segmentation, cloud tracking}{6}{section.1.2}
+\contentsline {section}{\numberline {1.3}Image irradiance estimation for power prediction}{8}{section.1.3}
+\contentsline {section}{\numberline {1.4}Irradiance components}{8}{section.1.4}
+\contentsline {section}{\numberline {1.5}Accuracy metrics}{9}{section.1.5}
+\contentsline {chapter}{\chapternumberline {2}Related work}{11}{chapter.2}
+\contentsline {section}{\numberline {2.1}Estimate irradiance from zone types in sky images}{11}{section.2.1}
+\contentsline {section}{\numberline {2.2}Using clear sky irradiance model and binary cloud mask}{12}{section.2.2}
+\contentsline {subsection}{\numberline {2.2.1}Cloud detection}{13}{subsection.2.2.1}
+\contentsline {subsection}{\numberline {2.2.2}Image un-distorion}{13}{subsection.2.2.2}
+\contentsline {subsection}{\numberline {2.2.3}Shadow mapping}{14}{subsection.2.2.3}
+\contentsline {subsection}{\numberline {2.2.4}Irradiance retrieval}{14}{subsection.2.2.4}
+\contentsline {subsection}{\numberline {2.2.5}Irradiance forecast}{15}{subsection.2.2.5}
+\contentsline {section}{\numberline {2.3}Retrieval of direct and diffuse irradiance from sky images}{15}{section.2.3}
+\contentsline {subsection}{\numberline {2.3.1}Image features}{15}{subsection.2.3.1}
+\contentsline {subsection}{\numberline {2.3.2}irradiance estimation}{16}{subsection.2.3.2}
+\contentsline {chapter}{\chapternumberline {3}Estimating Diffuse Horizontal Irradiance (DHI) from sky image}{17}{chapter.3}
+\contentsline {section}{\numberline {3.1}Experimental Setup}{17}{section.3.1}
+\contentsline {section}{\numberline {3.2}Acquired Data}{19}{section.3.2}
+\contentsline {section}{\numberline {3.3}Sun positions and sun states in image}{19}{section.3.3}
+\contentsline {section}{\numberline {3.4}Clear-sky irradiance model}{21}{section.3.4}
+\contentsline {subsection}{\numberline {3.4.1}Ineichen method}{22}{subsection.3.4.1}
+\contentsline {subsection}{\numberline {3.4.2}McClear method}{23}{subsection.3.4.2}
+\contentsline {subsection}{\numberline {3.4.3}Comparison of clear-sky simulation results}{23}{subsection.3.4.3}
+\contentsline {subsection}{\numberline {3.4.4}Choosing the clear-sky model}{27}{subsection.3.4.4}
+\contentsline {section}{\numberline {3.5}Estimating diffuse from pyranometers}{28}{section.3.5}
+\contentsline {section}{\numberline {3.6}Key factors influencing DHI}{34}{section.3.6}
+\contentsline {subsection}{\numberline {3.6.1}Cloud coverage features}{35}{subsection.3.6.1}
+\contentsline {subsection}{\numberline {3.6.2}Saturation factor}{35}{subsection.3.6.2}
+\contentsline {section}{\numberline {3.7}Dataset}{37}{section.3.7}
+\contentsline {section}{\numberline {3.8}Learning the relation between image features and DHI}{38}{section.3.8}
+\contentsline {subsection}{\numberline {3.8.1}Linear Regression}{38}{subsection.3.8.1}
+\contentsline {subsection}{\numberline {3.8.2}K-nearest-neighbors (K-NN) Regression}{38}{subsection.3.8.2}
+\contentsline {subsection}{\numberline {3.8.3}Support Vector Machine Regression (SVR)}{39}{subsection.3.8.3}
+\contentsline {subsection}{\numberline {3.8.4}Training and test datasets}{39}{subsection.3.8.4}
+\contentsline {chapter}{\chapternumberline {4}Results and Discussion}{41}{chapter.4}
+\contentsline {section}{\numberline {4.1}Feature Selection}{41}{section.4.1}
+\contentsline {section}{\numberline {4.2}Linear Regression}{42}{section.4.2}
+\contentsline {section}{\numberline {4.3}K-NN regression}{43}{section.4.3}
+\contentsline {section}{\numberline {4.4}SVR}{45}{section.4.4}
+\contentsline {section}{\numberline {4.5}Some error cases}{47}{section.4.5}
+\contentsline {section}{\numberline {4.6}Comparison}{49}{section.4.6}
+\contentsline {chapter}{\chapternumberline {5}Future Work}{53}{chapter.5}
+\contentsline {chapter}{\chapternumberline {6}Conclusion}{55}{chapter.6}
+\contentsline {chapter}{Bibliography}{57}{section*.5}

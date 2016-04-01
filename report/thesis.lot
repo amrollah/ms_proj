@@ -3,8 +3,8 @@
 \addvspace {10pt}
 \addvspace {10pt}
 \addvspace {10pt}
-\contentsline {table}{\numberline {4.1}{\ignorespaces Regression errors of K-NN on non-image and full feature vectors}}{42}{table.4.1}
-\contentsline {table}{\numberline {4.2}{\ignorespaces Regression errors of SVR on non-image and both feature types}}{44}{table.4.2}
-\contentsline {table}{\numberline {4.3}{\ignorespaces Comparison of RMSE for all three regression methods using both feature types}}{48}{table.4.3}
+\contentsline {table}{\numberline {4.1}{\ignorespaces Regression errors of K-NN on non-image and full feature vectors}}{44}{table.4.1}
+\contentsline {table}{\numberline {4.2}{\ignorespaces Regression errors of SVR on non-image and both feature types}}{47}{table.4.2}
+\contentsline {table}{\numberline {4.3}{\ignorespaces Comparison of RMSE for all three regression methods using both feature types}}{50}{table.4.3}
 \addvspace {10pt}
 \addvspace {10pt}

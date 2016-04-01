@@ -1,45 +1,44 @@
 \select@language {english}
 \addvspace {10pt}
-\contentsline {figure}{\numberline {1.1}{\ignorespaces Cloud segmentation sample}}{5}{figure.1.1}
-\contentsline {figure}{\numberline {1.2}{\ignorespaces Irradiance components}}{7}{figure.1.2}
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Cloud segmentation sample}}{7}{figure.1.1}
+\contentsline {figure}{\numberline {1.2}{\ignorespaces Irradiance components}}{9}{figure.1.2}
 \addvspace {10pt}
-\contentsline {figure}{\numberline {2.1}{\ignorespaces Three different zones identified in images (sun, cloud, sky)}}{10}{figure.2.1}
-\contentsline {figure}{\numberline {2.2}{\ignorespaces Correlation between estimated DNI and recorded DNI.}}{10}{figure.2.2}
-\contentsline {figure}{\numberline {2.3}{\ignorespaces Comparing estimated $k^{*}_{DHI}$ and $k^{*}_{DNI}$ to measured values. source:\cite {tSchmidt15}}}{14}{figure.2.3}
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Three different zones identified in images (sun, cloud, sky)}}{12}{figure.2.1}
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Correlation between estimated DNI and recorded DNI.}}{12}{figure.2.2}
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Comparing estimated $k^{*}_{DHI}$ and $k^{*}_{DNI}$ to measured values. source:\cite {tSchmidt15}}}{16}{figure.2.3}
 \addvspace {10pt}
-\contentsline {figure}{\numberline {3.1}{\ignorespaces wide-angle camera system used at Carviglia site}}{16}{figure.3.1}
-\contentsline {figure}{\numberline {3.2}{\ignorespaces Two pyranometers (one horizontal, one 45 degrees titled to north) located close to the camera location}}{16}{figure.3.2}
-\contentsline {figure}{\numberline {3.3}{\ignorespaces Sun position angles. source:\cite {sun_angle_pic}}}{18}{figure.3.3}
-\contentsline {figure}{\numberline {3.4}{\ignorespaces Different sun states, from left to right: sun flag=4, 3, 2, 1 respectively.}}{19}{figure.3.4}
-\contentsline {figure}{\numberline {3.5}{\ignorespaces Variation of sun appearance in the images.}}{20}{figure.3.5}
-\contentsline {figure}{\numberline {3.6}{\ignorespaces GHI estimation of McClear vs Ineichen vs observation}}{22}{figure.3.6}
-\contentsline {figure}{\numberline {3.7}{\ignorespaces Correlation of GHI simulation of McClear and Ineichen with observations on selected days}}{23}{figure.3.7}
-\contentsline {figure}{\numberline {3.8}{\ignorespaces DNI and DHI correlation of McClear to Ineichen}}{24}{figure.3.8}
-\contentsline {figure}{\numberline {3.9}{\ignorespaces Comparison of DHI of McClear and Ineichen to observed GHI}}{25}{figure.3.9}
-\contentsline {figure}{\numberline {3.10}{\ignorespaces Variation of irradiance components during day}}{25}{figure.3.10}
-\contentsline {figure}{\numberline {3.11}{\ignorespaces The sun path during a spring day at Cavriglia, Italy, location of ABB PV plant.}}{27}{figure.3.11}
-\contentsline {figure}{\numberline {3.12}{\ignorespaces Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a summer day}}{27}{figure.3.12}
-\contentsline {figure}{\numberline {3.13}{\ignorespaces Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a winter day}}{28}{figure.3.13}
-\contentsline {figure}{\numberline {3.14}{\ignorespaces Calculated DHI}}{30}{figure.3.14}
-\contentsline {figure}{\numberline {3.15}{\ignorespaces Calculated GHI based on DHI and DNI for both sensors}}{31}{figure.3.15}
-\contentsline {figure}{\numberline {3.16}{\ignorespaces Regions of interest for extracting cloud coverage features}}{34}{figure.3.16}
-\contentsline {figure}{\numberline {3.17}{\ignorespaces One example of saturated cloud pixels}}{34}{figure.3.17}
-\contentsline {figure}{\numberline {3.18}{\ignorespaces Detected saturated area in a patch around sun}}{35}{figure.3.18}
+\contentsline {figure}{\numberline {3.1}{\ignorespaces wide-angle camera system used at Carviglia site}}{18}{figure.3.1}
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Two pyranometers (one horizontal, one 45 degrees titled to north) located close to the camera location}}{18}{figure.3.2}
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Sun position angles. source:\cite {sun_angle_pic}}}{20}{figure.3.3}
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Different sun states, from left to right: sun flag=4, 3, 2, 1 respectively.}}{21}{figure.3.4}
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Variation of sun appearance in the images.}}{22}{figure.3.5}
+\contentsline {figure}{\numberline {3.6}{\ignorespaces GHI estimation of McClear vs Ineichen vs observation}}{24}{figure.3.6}
+\contentsline {figure}{\numberline {3.7}{\ignorespaces Correlation of GHI simulation of McClear and Ineichen with observations on selected days}}{25}{figure.3.7}
+\contentsline {figure}{\numberline {3.8}{\ignorespaces DNI and DHI correlation of McClear to Ineichen}}{26}{figure.3.8}
+\contentsline {figure}{\numberline {3.9}{\ignorespaces Comparison of DHI of McClear and Ineichen to observed GHI}}{27}{figure.3.9}
+\contentsline {figure}{\numberline {3.10}{\ignorespaces Variation of irradiance components during day}}{27}{figure.3.10}
+\contentsline {figure}{\numberline {3.11}{\ignorespaces The sun path during a spring day at Cavriglia, Italy, location of ABB PV plant.}}{29}{figure.3.11}
+\contentsline {figure}{\numberline {3.12}{\ignorespaces Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a summer day}}{29}{figure.3.12}
+\contentsline {figure}{\numberline {3.13}{\ignorespaces Irradiance comparison of horizontal sensor (1) and tilted sensor (2) for a winter day}}{30}{figure.3.13}
+\contentsline {figure}{\numberline {3.14}{\ignorespaces Calculated DHI}}{32}{figure.3.14}
+\contentsline {figure}{\numberline {3.15}{\ignorespaces Calculated GHI based on DHI and DNI for both sensors}}{33}{figure.3.15}
+\contentsline {figure}{\numberline {3.16}{\ignorespaces Regions of interest for extracting cloud coverage features}}{36}{figure.3.16}
+\contentsline {figure}{\numberline {3.17}{\ignorespaces One example of saturated cloud pixels}}{36}{figure.3.17}
+\contentsline {figure}{\numberline {3.18}{\ignorespaces Detected saturated area in a patch around sun}}{37}{figure.3.18}
 \addvspace {10pt}
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Linear regression result using only non-image features}}{40}{figure.4.1}
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Linear regression result using both feature types}}{41}{figure.4.2}
-\contentsline {figure}{\numberline {4.3}{\ignorespaces Error histogram for linear regression}}{42}{figure.4.3}
-\contentsline {figure}{\numberline {4.4}{\ignorespaces K-NN estimation result using only non-image features}}{43}{figure.4.4}
-\contentsline {figure}{\numberline {4.5}{\ignorespaces K-NN estimation result using all the features}}{44}{figure.4.5}
-\contentsline {figure}{\numberline {4.6}{\ignorespaces Error histogram for K-NN estimation result}}{45}{figure.4.6}
-\contentsline {figure}{\numberline {4.7}{\ignorespaces SVR result using only non-image features}}{45}{figure.4.7}
-\contentsline {figure}{\numberline {4.8}{\ignorespaces SVR result using both feature types}}{46}{figure.4.8}
-\contentsline {figure}{\numberline {4.9}{\ignorespaces Error histogram for SVR result}}{46}{figure.4.9}
-\contentsline {figure}{\numberline {4.10}{\ignorespaces An image sample of large estimation error}}{47}{figure.4.10}
-\contentsline {figure}{\numberline {4.11}{\ignorespaces An image sample of large estimation error}}{47}{figure.4.11}
-\contentsline {figure}{\numberline {4.12}{\ignorespaces An image sample of large estimation error}}{48}{figure.4.12}
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Linear regression result using only non-image features}}{42}{figure.4.1}
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Linear regression result using both feature types}}{43}{figure.4.2}
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Error histogram for linear regression}}{44}{figure.4.3}
+\contentsline {figure}{\numberline {4.4}{\ignorespaces K-NN estimation result using only non-image features}}{45}{figure.4.4}
+\contentsline {figure}{\numberline {4.5}{\ignorespaces K-NN estimation result using all the features}}{46}{figure.4.5}
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Error histogram for K-NN estimation result}}{46}{figure.4.6}
+\contentsline {figure}{\numberline {4.7}{\ignorespaces SVR result using only non-image features}}{47}{figure.4.7}
+\contentsline {figure}{\numberline {4.8}{\ignorespaces SVR result using both feature types}}{48}{figure.4.8}
+\contentsline {figure}{\numberline {4.9}{\ignorespaces Error histogram for SVR result}}{48}{figure.4.9}
+\contentsline {figure}{\numberline {4.10}{\ignorespaces An image sample of large estimation error}}{49}{figure.4.10}
+\contentsline {figure}{\numberline {4.11}{\ignorespaces An image sample of large estimation error}}{50}{figure.4.11}
+\contentsline {figure}{\numberline {4.12}{\ignorespaces An image sample of large estimation error}}{50}{figure.4.12}
 \addvspace {10pt}
-\contentsline {figure}{\numberline {5.1}{\ignorespaces Cloud types and their base-heights}}{49}{figure.5.1}
-\contentsline {figure}{\numberline {5.2}{\ignorespaces An example of sun-state 2}}{49}{figure.5.2}
-\contentsline {figure}{\numberline {5.3}{\ignorespaces An example of sun-state 3}}{50}{figure.5.3}
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Cloud types and their base-heights}}{53}{figure.5.1}
+\contentsline {figure}{\numberline {5.2}{\ignorespaces An example of sun-state=2 (left) and sun-state=3 (right)}}{54}{figure.5.2}
 \addvspace {10pt}
