@@ -46,8 +46,8 @@
 \contentsline {section}{\numberline {4.2}Linear Regression}{42}{section.4.2}
 \contentsline {section}{\numberline {4.3}K-NN regression}{43}{section.4.3}
 \contentsline {section}{\numberline {4.4}SVR}{45}{section.4.4}
-\contentsline {section}{\numberline {4.5}Some error cases}{47}{section.4.5}
-\contentsline {section}{\numberline {4.6}Comparison}{49}{section.4.6}
+\contentsline {section}{\numberline {4.5}Some error cases}{48}{section.4.5}
+\contentsline {section}{\numberline {4.6}Comparison}{50}{section.4.6}
 \contentsline {chapter}{\chapternumberline {5}Future Work}{53}{chapter.5}
 \contentsline {chapter}{\chapternumberline {6}Conclusion}{55}{chapter.6}
 \contentsline {chapter}{Bibliography}{57}{section*.5}
