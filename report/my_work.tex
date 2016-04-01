@@ -229,7 +229,7 @@ As we have shown in Figure \ref{fig:clean_sky_day_irr} all the irradiance compon
 \item Zenith angle of the sun; between around 20 up to around 80 degrees
 \end{itemize}
 Even though $DHI_{clear\_sky}$ is dependent on zenith angle, but we included both to evaluate their mutual relation to diffuse irradiance as well.
-\newline
+
 
 Besides non-image features, we extract some visual features from sky images to help estimating DHI in not-clear-sky situations. For image-based features there are several intuitions about what factors might affect DHI most. These includes cloud coverage, cloud type, shininess of sun, cloud color and etc. However, using cloud color features is not a good idea for our application, since they vary a lot even in very short-time ahead and predicting cloud color is not accurate enough. And since the aim of this study is to forecast irradiance for predicted cloud states in several minutes ahead, we restrict our image-based features to highly predictable features. This includes:
 \begin{itemize}

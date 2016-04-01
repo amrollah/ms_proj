@@ -174,8 +174,8 @@ x_t = test;
 
 %% Standard regression
 if normal_regress
-model = fitlm(x',y','interactions');
-y_hat = max(0,predict(model,x_t'));
+model = fitlm(x_no_img(1,:)',y','interactions');
+y_hat = max(0,predict(model,x_no_img_t(1,:)'));
 rmse1 = sqrt(mean((yt - y_hat').^2));
 disp(['Error linear regres: ' num2str(rmse1)]);
 % x=x_no_img;
@@ -184,7 +184,7 @@ opt = statset('display','iter',...
               'TolFun',maxdev,...
               'TolTypeFun','abs');
 
-inmodel = sequentialfs(@critfun2,[x',sqrt(x'),(x').^2],y',...
+inmodel = sequentialfs(@critfun2,[x_no_img',sqrt(x_no_img'),(x_no_img').^2],y',...
                        'cv','none',...
                        'nullmodel',false,...
                        'options',opt,...
@@ -199,6 +199,7 @@ y_hat = max(0,predict(model,new_x_t(:,inmodel)));
 new_rmse1 = sqrt(mean((yt - y_hat').^2));
 disp(['Error linear regres: ' num2str(new_rmse1)]);
 err1 = yt - y_hat';
+result_show(data(test_ind),y_hat',yt);
 
 y_hat_tr = max(0,predict(model,new_x(:,inmodel)));
 disp(['Error linear regres: ' num2str(sqrt(mean((y - y_hat_tr').^2)))]);
@@ -231,7 +232,7 @@ err4 = y - y_hat_tr';
 
 
 
-figure(101);
+figure(103);
 scatter(y_hat,yt,'b','.');
 lsline;
 hold on;
@@ -241,7 +242,7 @@ xlabel('Predit Irradiance W/M^2');
 ylabel('Measured Irradiance W/M^2');
 xlim([0 400]);
 ylim([0 400]);
-title('Standard regression (non-image feature)');
+title('Standard regression (both feature types)');
     
 end
 
@@ -274,7 +275,7 @@ rmse5 = sqrt(mean((yt - knn_y_hat').^2));
 % knn_R_sq = 1-sum((yt - knn_y_hat').^2)/sum(yt.^2);
 % knn_MBE = mean(yt - knn_y_hat');
 disp(['Error knn regres: ' num2str(rmse5)]);
-% result_show(data(test_ind),knn_y_hat',yt,IDX,data(train_ind));
+% result_show(data(test_ind),knn_y_hat',yt);
 err1=yt - knn_y_hat';
 
 [IDX,D] = knnsearch(x',x','K',10,'Distance','minkowski','P',1);
@@ -485,7 +486,7 @@ xlim([0 400]);
 ylim([0 400]);
 title('SVR result (all the features)');
 
-result_show(data(test_ind),y_hat',yt,IDX,data(train_ind));
+result_show(data(test_ind),y_hat',yt);
 
 err4 = abs(yt - y_hat').*(log(yt)/log(100));
 err14 = abs(yt - y_hat')./log(yt);
