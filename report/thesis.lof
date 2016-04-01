@@ -27,7 +27,7 @@
 \contentsline {figure}{\numberline {3.18}{\ignorespaces Detected saturated area in a patch around sun}}{35}{figure.3.18}
 \addvspace {10pt}
 \contentsline {figure}{\numberline {4.1}{\ignorespaces Linear regression result using only non-image features}}{40}{figure.4.1}
-\contentsline {figure}{\numberline {4.2}{\ignorespaces Linear regression result using all the features}}{41}{figure.4.2}
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Linear regression result using both feature types}}{41}{figure.4.2}
 \contentsline {figure}{\numberline {4.3}{\ignorespaces Error histogram for linear regression}}{42}{figure.4.3}
 \contentsline {figure}{\numberline {4.4}{\ignorespaces K-NN estimation result using only non-image features}}{43}{figure.4.4}
 \contentsline {figure}{\numberline {4.5}{\ignorespaces K-NN estimation result using all the features}}{44}{figure.4.5}
@@ -35,5 +35,8 @@
 \contentsline {figure}{\numberline {4.7}{\ignorespaces SVR result using only non-image features}}{45}{figure.4.7}
 \contentsline {figure}{\numberline {4.8}{\ignorespaces SVR result using both feature types}}{46}{figure.4.8}
 \contentsline {figure}{\numberline {4.9}{\ignorespaces Error histogram for SVR result}}{46}{figure.4.9}
+\contentsline {figure}{\numberline {4.10}{\ignorespaces An image sample of large estimation error}}{47}{figure.4.10}
+\contentsline {figure}{\numberline {4.11}{\ignorespaces An image sample of large estimation error}}{47}{figure.4.11}
+\contentsline {figure}{\numberline {4.12}{\ignorespaces An image sample of large estimation error}}{48}{figure.4.12}
 \addvspace {10pt}
 \addvspace {10pt}
