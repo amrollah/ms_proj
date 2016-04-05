@@ -9,5 +9,8 @@ proj_path;
 addpath(prj_path);
 
 
-date = '2016_02_05';
+date = '2015_07_30';
 s = vml('cavriglia',date);
+
+figure;
+s.plotIrr;

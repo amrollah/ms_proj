@@ -1046,8 +1046,8 @@ classdef vmlSeq < handle
     
     function plotirr(obj)
       %plot the power profiles
-      plot(obj.data.ti,obj.getIrrClear(obj.data.ti),'r',...
-        obj.data.ti,obj.getIrr(obj.data.ti),'b.');
+      plot(obj.data.ti,obj.getIrrClear(obj.data.ti),'r-',...
+        obj.data.ti,obj.getIrr(obj.data.ti),'b--');
       ylim = get(gca,'ylim'); ylim(1) = 0;
       set(gca,'ylim',ylim);
       grid on;
